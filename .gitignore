@@ -1,0 +1,5 @@
+.stack-work/
+gql.cabal
+dist/
+.DS_Store
+*~

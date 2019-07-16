@@ -1,0 +1,54 @@
+name: gql
+version: 0.1.0.0
+github: "jonathanlorimer/gql"
+license: BSD3
+author: "Jonathan Lorimer"
+maintainer: "jonathan_lorimer@mac.com"
+copyright: "2019 Jonathan Lorimer"
+
+extra-source-files:
+  - README.md
+  - ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description: Please see the README on GitHub at <https://github.com/jonathanlorimer/gql#readme>
+
+dependencies:
+  - base >= 4.7 && < 5
+
+default-extensions:
+  - DeriveGeneric
+  - TypeFamilies
+  - RankNTypes
+  - GADTs
+  - DataKinds
+  - PolyKinds
+  - ScopedTypeVariables
+  - TypeApplications
+  - MultiParamTypeClasses
+  - AllowAmbiguousTypes
+  - TypeOperators
+  - FlexibleInstances
+  - FlexibleContexts
+  - FunctionalDependencies
+  - StandaloneDeriving
+
+library:
+  source-dirs: src
+
+tests:
+  gql-test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - gql
