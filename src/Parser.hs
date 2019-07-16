@@ -1,13 +1,14 @@
 module Parser where
 
-import TestData
 import           Control.Applicative
 import           Data.Attoparsec.Text
 import           Data.Proxy
 import qualified Data.Text as T
 import           GHC.Generics
 import           GHC.TypeLits
+import           QueryParser
 import           SchemaGenerator
+import           TestData
 
 
 class GIncrParser rep fq where
@@ -31,9 +32,11 @@ type HasIncrParser record =
 incrParser :: HasIncrParser record => record 'Query -> Parser (record 'Query)
 incrParser = fmap to . gIncrParser id const . from
 
-instance (GIncrParser rep fq, GIncrParser rep gq) => GIncrParser rep (fq :*: gq) where
+instance ( GIncrParser rep fq
+         , GIncrParser rep gq
+         ) => GIncrParser rep (fq :*: gq) where
   gIncrParser get set rep = do
-    rep' <- gIncrParser (fstG . get) (\a b -> set (a :*: sndG (get b)) b) rep <|> pure rep
+    rep' <-  gIncrParser (fstG . get) (\a b -> set (a :*: sndG (get b)) b) rep  <|> pure rep
     rep'' <- gIncrParser (sndG . get) (\a b -> set (fstG (get b) :*: a) b) rep' <|> pure rep'
     gIncrParser (fstG . get) (\a b -> set (a :*: sndG (get b)) b) rep'' <|> pure rep''
 
@@ -44,13 +47,16 @@ instance KnownSymbol name => GIncrParser rep (M1 S ('MetaSel ('Just name) _1 _2 
     skipSpace
     pure $ set (M1 $ K1 True) $ rep
 
-instance (KnownSymbol name, HasIncrParser t) => GIncrParser rep (M1 S ('MetaSel ('Just name) _1 _2 _3) (K1 _4 (Maybe (t 'Query)))) where
+instance ( KnownSymbol name
+         , HasIncrParser t
+         , HasEmptyQuery t
+         ) => GIncrParser rep (M1 S ('MetaSel ('Just name) _1 _2 _3) (K1 _4 (Maybe (t 'Query)))) where
   gIncrParser get set rep = do
     string $ T.pack $ symbolVal $ Proxy @name
     skipSpace
     _ <- char '{'
     skipSpace
-    z <- incrParser @t undefined
+    z <- incrParser emptyQuery
     _ <- char '}'
     skipSpace
     pure $ set (M1 $ K1 $ Just z) $ rep

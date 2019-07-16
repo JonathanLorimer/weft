@@ -5,9 +5,12 @@ import GHC.Generics
 import SchemaGenerator
 
 
-emptyQuery :: forall record . ( GEmptyQuery (Rep (record 'Query))
-              , Generic (record 'Query)
-              ) => record 'Query
+type HasEmptyQuery record =
+  ( GEmptyQuery (Rep (record 'Query))
+  , Generic (record 'Query)
+  )
+
+emptyQuery :: forall record . HasEmptyQuery record => record 'Query
 emptyQuery = to $ gEmptyQuery @(Rep (record 'Query))
 
 class GEmptyQuery (fq :: * -> *) where
