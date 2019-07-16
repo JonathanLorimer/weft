@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module TestData where
 
 import GHC.Generics
@@ -12,6 +14,7 @@ data User' ts = User { userId       :: Magic ts Id
                      , userFriend   :: Magic ts [User' ts]} deriving (Generic)
 deriving instance Show (User' 'Schema)
 deriving instance Show (User' 'Response)
+deriving instance Show (User' 'Query)
 
 type User = User' 'Data
 type UserQuery = User' 'Query
