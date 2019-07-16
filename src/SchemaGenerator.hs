@@ -12,14 +12,25 @@ newtype Name = Name String deriving (Generic, Show)
 
 -- | Test Data
 data User' ts = User { userId       :: Magic ts Id 
-                     , userName     :: Magic ts Name
-                     , userFriends  :: Magic ts [User' ts]} deriving (Generic)
+                     , userName     :: Magic ts Name 
+                     , userFriend   :: Magic ts [User' ts]} deriving (Generic)
 deriving instance Show (User' 'Schema)
+deriving instance Show (User' 'Response)
 
 type User = User' 'Data
+type UserQuery = User' 'Query
 
-user1 :: User' Data
-user1 = User (Id "1") (Name "Jonathan") undefined
+user3 :: User
+user3 = User (Id "3") (Name "Claire") [user1, user2]
+
+user2 :: User
+user2 = User (Id "2") (Name "Sandy") [user1, user3]
+
+user1 :: User
+user1 = User (Id "1") (Name "Jonathan") []
+
+userQ :: User' 'Query
+userQ = User True True $ Just $ User False True $ Just (User True True Nothing)
 
 
 -- | Library Code
@@ -29,14 +40,14 @@ data SchemaRecord = SchemaRecord { fieldName :: String
                                  , fieldType :: String } deriving (Show)
 
 type family Magic (ts :: TypeState) a where
-    Magic 'Data a = a
-    Magic 'Query (f (record 'Query)) = Maybe (record 'Query)
-    Magic 'Query (record 'Query) = Maybe (record 'Query)
-    Magic 'Query field = Bool
-    Magic 'Response (f (record 'Response)) = Maybe (f (record 'Response))
-    Magic 'Response (record 'Response) = Maybe (record 'Response)
-    Magic 'Response field = Maybe field
-    Magic 'Schema a = SchemaRecord
+             Magic 'Data a = a
+{- Q1. -}    Magic 'Query [record 'Query] = Maybe (record 'Query)
+{- Q2. -}    Magic 'Query (record 'Query) = Maybe (record 'Query)
+{- Q3. -}    Magic 'Query field = Bool
+{- R1. -}    Magic 'Response [record 'Response] = Maybe [record 'Response]
+{- R2. -}    Magic 'Response (record 'Response) = Maybe (record 'Response)
+{- R3. -}    Magic 'Response field = Maybe field
+             Magic 'Schema a = SchemaRecord
 
 -- | Schema Generation
 schema :: forall record . (Generic (record 'Schema), GHasSchema (Rep (record 'Data)) (Rep (record 'Schema)), Generic (record 'Data)) => record 'Schema
@@ -58,9 +69,19 @@ instance (GHasSchema fi fo)
                     (M1 x y fo) where
     gSchema = M1 $ gSchema @fi
 
+type IsHydrateable record = ( Generic (record 'Data)
+                            , Generic (record 'Query)
+                            , Generic (record 'Response)
+                            , GHydrate (Rep (record 'Data))
+                                    (Rep (record 'Query))
+                                    (Rep (record 'Response))
+                            )
+
+hydrate :: IsHydrateable record => record 'Data -> record 'Query -> record 'Response
+hydrate d query = to $ gHydrate (from d) (from query)
+
 class GHydrate fd fq fr where
     gHydrate :: fd x -> fq x -> fr x
-
 
 instance (GHydrate fd fq fr) => 
     GHydrate (M1 x y fd)
@@ -74,8 +95,31 @@ instance (GHydrate fd fq fr, GHydrate gd gq gr) =>
              (fr :*: gr) where 
     gHydrate (fd :*: gd) (fq :*: gq) = (gHydrate fd fq) :*: (gHydrate gd gq) 
 
+-- Q3, R3
+instance GHydrate (K1 x (d))
+                  (K1 x (Bool))
+                  (K1 x (Maybe d)) where 
+    gHydrate (K1 _) (K1 False) = K1 Nothing 
+    gHydrate (K1 d) (K1 True)  = K1 $ Just d
 
--- $> :t User @'Response
+-- Q2, R2
+instance IsHydrateable record =>
+         GHydrate (K1 x (record 'Data))
+                  (K1 x (Maybe (record 'Query)))
+                  (K1 x (Maybe (record 'Response))) where 
+    gHydrate (K1 _) (K1 Nothing) = K1 Nothing 
+    gHydrate (K1 d) (K1 (Just q)) = K1 $ Just $ hydrate d q
+
+-- Q1, R1 List
+instance IsHydrateable record =>
+         GHydrate (K1 x [record 'Data])
+                  (K1 x (Maybe (record 'Query)))
+                  (K1 x (Maybe [record 'Response])) where 
+    gHydrate (K1 _) (K1 Nothing) = K1 Nothing 
+    gHydrate (K1 d) (K1 (Just q)) = K1 $ Just $ (flip hydrate $ q) <$> d
+
+
+-- $> hydrate user2 userQ
 
 -- Id -> Name -> [User' 'Data] -> User' 'Data
 -- Bool -> Bool -> Maybe (User' 'Query) -> User' 'Query

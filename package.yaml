@@ -38,6 +38,8 @@ default-extensions:
   - FlexibleContexts
   - FunctionalDependencies
   - StandaloneDeriving
+  - ConstraintKinds
+  - UndecidableInstances
 
 library:
   source-dirs: src
