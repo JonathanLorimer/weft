@@ -2,6 +2,7 @@ module SchemaGenerator where
 
 import GHC.Generics
 import GHC.TypeLits
+import GHC.OverloadedLabels
 import Data.Proxy
 import Data.Typeable
 
@@ -9,6 +10,24 @@ data TypeState = Query | Data | Schema | Response
 
 data SchemaRecord = SchemaRecord { fieldName :: String
                                  , fieldType :: String } deriving (Show)
+
+data Label (s :: Symbol) where
+  Label :: KnownSymbol s => Label s
+
+instance (KnownSymbol s', s ~ s') => IsLabel s (Label s') where
+  fromLabel = Label
+
+
+data Args (ts :: [(Symbol, *)]) where
+  ANil :: Args '[]
+  (:@@) :: Pair s t -> Args ts -> Args ('(s, t) ': ts)
+infixr 5 :@@
+
+
+data Pair (s :: Symbol) (t :: *) where
+  (:~>) :: Label s -> t -> Pair s t
+infixr 6 :~>
+
 
 type family Magic (ts :: TypeState) a where
              Magic 'Data a = a
@@ -30,12 +49,12 @@ class GHasSchema i o where
 instance (GHasSchema fi fo, GHasSchema gi go) => GHasSchema (fi :*: gi) (fo :*: go) where
     gSchema = gSchema @fi :*: gSchema @gi
 
-instance {-# OVERLAPPING #-}(KnownSymbol a, Typeable t) 
+instance {-# OVERLAPPING #-}(KnownSymbol a, Typeable t)
       => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (Rec0 t))
                     (M1 S ('MetaSel ('Just a) b c d) (Rec0 SchemaRecord)) where
     gSchema = M1 $ K1 $ SchemaRecord (symbolVal $ Proxy @a) $ show $ typeRep $ Proxy @t
 
-instance (GHasSchema fi fo) 
+instance (GHasSchema fi fo)
       => GHasSchema (M1 x y fi)
                     (M1 x y fo) where
     gSchema = M1 $ gSchema @fi
