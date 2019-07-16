@@ -4,7 +4,7 @@ import TestData
 import SchemaGenerator
 import Data.Proxy
 import Data.Typeable
-import GHC.TypeLitsxw
+import GHC.TypeLits
 
 data ResolverMeta = ResolverMeta { resolverInput :: [SchemaRecord]
                                  , resolverType  :: String
@@ -15,7 +15,7 @@ newtype Arg (name :: Symbol) t = Arg t
 class HasResolverMeta t where
     resolverMeta :: ResolverMeta
 
-instance (Typeable record) => 
+instance (Typeable record) =>
     HasResolverMeta (record 'Query -> IO (record 'Response)) where
     resolverMeta = ResolverMeta [] $ show $ typeRep $ Proxy @record
 
@@ -23,7 +23,7 @@ instance (Typeable record) =>
 
 instance (Typeable t, KnownSymbol name, HasResolverMeta f) => HasResolverMeta (Arg name t -> f) where
     resolverMeta = rm {resolverInput = sr : (resolverInput rm)}
-        where 
+        where
             rm = resolverMeta @f
             sr = SchemaRecord (symbolVal $ Proxy @name) (show $ typeRep $ Proxy @t)
 
