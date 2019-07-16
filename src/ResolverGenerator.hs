@@ -27,5 +27,4 @@ instance (Typeable t, KnownSymbol name, HasResolverMeta f) => HasResolverMeta (A
             rm = resolverMeta @f
             sr = SchemaRecord (symbolVal $ Proxy @name) (show $ typeRep $ Proxy @t)
 
--- $> resolverMeta @(Arg "id" Integer -> Arg "name" String -> User' 'Query -> IO (User' 'Response))
 
