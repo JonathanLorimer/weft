@@ -43,8 +43,9 @@ type family ToNestedTuple (ts :: [(k1, *)]) :: * where
   ToNestedTuple ('(a, b) ': ts) = (b, ToNestedTuple ts)
 
 type family Something (u :: ([(Symbol, *)], *)) :: * where
-  Something '( '[], r) = r
-  Something '( ts,  r) = (ToNestedTuple ts, r)
+  Something '(ts, [record 'Query])          = (ToNestedTuple ts, record 'Query)
+  Something '(ts, record 'Query)            = (ToNestedTuple ts, record 'Query)
+  Something '(ts, a)                        = (ToNestedTuple ts, ())
 
 
 type family Magic (ts :: TypeState) a where

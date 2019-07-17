@@ -32,15 +32,16 @@ instance (GHydrate fd fq fr, GHydrate gd gq gr) =>
     gHydrate (fd :*: gd) (fq :*: gq) = (gHydrate fd fq) :*: (gHydrate gd gq)
 
 -- Q3, R3
-instance GHydrate (K1 x (d))
-                  (K1 x (Maybe (Args args)))
-                  (K1 x (Maybe d)) where
-    gHydrate (K1 d) (K1 m) = K1 $ d <$ m
+instance GHydrate (K1 x a)
+                  (K1 x (Maybe (args, ())))
+                  (K1 x (Maybe a)) where
+    gHydrate (K1 _) (K1 Nothing) = K1 Nothing
+    gHydrate (K1 d) (K1 (Just (_, ()))) = K1 $ Just d
 
 -- Q2, R2
 instance IsHydrateable record =>
          GHydrate (K1 x (record 'Data))
-                  (K1 x (Maybe (Args args, record 'Query)))
+                  (K1 x (Maybe (args, record 'Query)))
                   (K1 x (Maybe (record 'Response))) where
     gHydrate (K1 _) (K1 Nothing) = K1 Nothing
     gHydrate (K1 d) (K1 (Just (_, q))) = K1 $ Just $ hydrate d q
@@ -48,7 +49,7 @@ instance IsHydrateable record =>
 -- Q1, R1 List
 instance IsHydrateable record =>
          GHydrate (K1 x [record 'Data])
-                  (K1 x (Maybe (Args args, record 'Query)))
+                  (K1 x (Maybe (args, record 'Query)))
                   (K1 x (Maybe [record 'Response])) where
     gHydrate (K1 _) (K1 Nothing) = K1 Nothing
     gHydrate (K1 d) (K1 (Just (_, q))) = K1 $ Just $ (flip hydrate $ q) <$> d
