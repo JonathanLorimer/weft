@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module TestData where
 
 import GHC.Generics
@@ -10,8 +8,8 @@ newtype Id = Id String deriving (Generic, Show)
 newtype Name = Name String deriving (Generic, Show)
 
 data User' ts = User
-  { userId         :: Magic ts '[] Id
-  , userName       :: Magic ts '[] Name
+  { userId         :: Magic ts '[ '("the_arg", Maybe Int) ] Id
+  , userName       :: Magic ts '[ '("other_arg", String) ] Name
   , userBestFriend :: Magic ts '[] (User' ts)
   , userFriends    :: Magic ts '[] [User' ts]
   } deriving (Generic)

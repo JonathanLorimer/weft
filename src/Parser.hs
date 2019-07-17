@@ -4,6 +4,7 @@ import           Args
 import           Control.Applicative
 import           Data.Attoparsec.Text
 import           Data.Char
+import           Data.Foldable
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Proxy
@@ -45,13 +46,17 @@ instance ( GIncrParser rep fq
     gIncrParser (fstG . get) (\a b -> set (a :*: sndG (get b)) b) rep'' <|> pure rep''
 
 
-instance KnownSymbol name
+-- TODO(sandy): thiere is a bug here where if the args are necessary and you
+-- dont put them in then the parser will succeed with the field being
+-- un-asked-for
+instance (KnownSymbol name, FromRawArgs args, IsAllMaybe args)
       => GIncrParser rep (M1 S ('MetaSel ('Just name) _1 _2 _3)
                          (K1 _4 (Maybe (Args args)))) where
   gIncrParser get set rep = do
     string $ T.pack $ symbolVal $ Proxy @name
     skipSpace
-    pure $ set (M1 $ K1 undefined) $ rep
+    args <- parseOptionalArgs @args
+    pure $ set (M1 $ K1 $ Just args) $ rep
 
 instance ( KnownSymbol name
          , HasIncrParser t
@@ -73,16 +78,29 @@ testIncrParser :: User' 'Query -> Parser (User' 'Query)
 testIncrParser = incrParser
 
 class IsAllMaybe (args :: [(Symbol, *)]) where
-  isAllMaybe :: Bool
+  isAllMaybe :: Maybe (Args args)
 
 instance IsAllMaybe '[] where
-  isAllMaybe = True
+  isAllMaybe = Just ANil
 
-instance {-# OVERLAPPING #-} IsAllMaybe ts => IsAllMaybe ('(a, Maybe b) ': ts) where
-  isAllMaybe = True && isAllMaybe @ts
+instance {-# OVERLAPPING #-} (KnownSymbol a, IsAllMaybe ts) => IsAllMaybe ('(a, Maybe b) ': ts) where
+  isAllMaybe = (:@@) <$> (Just $ Label @a :> Nothing) <*> isAllMaybe @ts
 
 instance IsAllMaybe ('(a, b) ': ts) where
-  isAllMaybe = False
+  isAllMaybe = Nothing
+
+
+parseArgs :: FromRawArgs args => Parser (Args args)
+parseArgs = do
+  raw <- parseRawArgs
+  maybe empty pure $ fromRawArgs raw
+
+
+parseOptionalArgs :: forall args. (FromRawArgs args, IsAllMaybe args) => Parser (Args args)
+parseOptionalArgs =
+  case isAllMaybe @args of
+    Nothing -> parseArgs
+    Just argsOfNothing -> parseArgs <|> pure argsOfNothing
 
 
 
@@ -94,6 +112,7 @@ class HasParser ty where
 
 parseARawArg :: Parser (String, String)
 parseARawArg = do
+  skipSpace
   first <- satisfy $ inClass "_A-Za-z"
   rest <- many $ satisfy $ inClass "_0-9A-Za-z"
   skipSpace
@@ -103,9 +122,18 @@ parseARawArg = do
   result <- many1 $ satisfy $ not . isSpace
   pure (first : rest, result)
 
+
 parseRawArgs :: Parser (M.Map String String)
 parseRawArgs = fmap M.fromList
-             $ parseARawArg `sepBy` (skipSpace >> char ',' >> skipSpace)
+             $ do
+  skipSpace
+  _ <- char '('
+  skipSpace
+  z <- parseARawArg `sepBy` (skipSpace >> char ',' >> skipSpace)
+  skipSpace
+  _ <- char ')'
+  skipSpace
+  pure z
 
 
 
@@ -123,18 +151,15 @@ instance (Read t, FromRawArgs args, KnownSymbol name) => FromRawArgs ('(name, t)
     readed <- listToMaybe $ fmap fst $ reads @t found
     pure $ Label @name :> readed :@@ args
 
-
-
-
-
-
--- instance (ParseArgs args, KnownSymbol name, HasParser ty) => ParseArgs ('(name, ty) ': args) where
---   parseArgs = do
---     string $ T.pack $ symbolVal $ Proxy @name
---     skipSpace
---     _ <- char ':'
---     skipSpace
---     p <- parseType
---     pure $ _
+instance {-# OVERLAPPING #-} (Read t, FromRawArgs args, KnownSymbol name) => FromRawArgs ('(name, Maybe t) ': args) where
+  fromRawArgs raw = do
+    args <- fromRawArgs @args raw
+    asum
+      [ do
+         found <- M.lookup (symbolVal $ Proxy @name) raw
+         readed <- listToMaybe $ fmap fst $ reads @t found
+         pure $ Label @name :> Just readed :@@ args
+      , pure $ Label @name :> Nothing :@@ args
+      ]
 
 
