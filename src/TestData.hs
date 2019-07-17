@@ -3,16 +3,19 @@ module TestData where
 import GHC.Generics
 import Data.Text
 import SchemaGenerator
+import Args
 
 newtype Id = Id String deriving (Generic, Show)
 newtype Name = Name String deriving (Generic, Show)
 
 data User' ts = User
-  { userId         :: Magic ts '[ '("the_arg", Maybe Int) ] Id
-  , userName       :: Magic ts '[ '("other_arg", String) ] Name
-  , userBestFriend :: Magic ts '[] (User' ts)
-  , userFriends    :: Magic ts '[] [User' ts]
+  { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
+  , userName       :: Magic ts Name
+  , userBestFriend :: Magic ts (User' ts)
+  , userFriends    :: Magic ts [User' ts]
   } deriving (Generic)
+
+deriving instance Show (User' 'Data)
 deriving instance Show (User' 'Schema)
 deriving instance Show (User' 'Response)
 deriving instance Show (User' 'Query)

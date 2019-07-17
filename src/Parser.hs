@@ -62,7 +62,7 @@ instance ( KnownSymbol name
          , HasIncrParser t
          , HasEmptyQuery t
          ) => GIncrParser rep (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                                    (K1 _4 (Maybe (Args args, t 'Query)))) where
+                                    (K1 _4 (Maybe (t 'Query)))) where
   gIncrParser get set rep = do
     string $ T.pack $ symbolVal $ Proxy @name
     skipSpace

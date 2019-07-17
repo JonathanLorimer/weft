@@ -13,7 +13,7 @@ data NameType = NameType
   , ntType :: String
   } deriving (Eq, Ord, Show)
 
-data Field (args :: [(Symbol, *)]) = Field
+data Field = Field
   { fNameType :: NameType
   , fArgs     :: [NameType]
   } deriving (Show)
@@ -31,16 +31,31 @@ reifyNameType :: forall n t. (Typeable t, KnownSymbol n) => NameType
 reifyNameType = NameType (symbolVal $ Proxy @n)
                          (show $ typeRep $ Proxy @t)
 
+type family ConsFirst (a :: k1) (b :: ([k1], k2)) :: ([k1], k2) where
+  ConsFirst a '(b, c) = '(a ': b, c)
 
-type family Magic (ts :: TypeState) (args :: [(Symbol, *)]) a where
-             Magic 'Data     args a                  = a
-{- Q1. -}    Magic 'Query    args [record 'Query]    = Maybe (Args args, record 'Query)
-{- Q2. -}    Magic 'Query    args (record 'Query)    = Maybe (Args args, record 'Query)
-{- Q3. -}    Magic 'Query    args scalar             = Maybe (Args args)
-{- R1. -}    Magic 'Response args [record 'Response] = Maybe [record 'Response]
-{- R2. -}    Magic 'Response args (record 'Response) = Maybe (record 'Response)
-{- R3. -}    Magic 'Response args scalar             = Maybe scalar
-             Magic 'Schema   args a                  = Field args
+type family UnravelArgs (t :: *) :: ([(Symbol, *)], *) where
+  UnravelArgs (Arg n t -> a) = ConsFirst '(n, t) (UnravelArgs a)
+  UnravelArgs a              = '( '[], a)
+
+type family ToNestedTuple (ts :: [(k1, *)]) :: * where
+  ToNestedTuple '[] = ()
+  ToNestedTuple ('(a, b) ': ts) = (b, ToNestedTuple ts)
+
+type family Something (u :: ([(Symbol, *)], *)) :: * where
+  Something '( '[], r) = r
+  Something '( ts,  r) = (ToNestedTuple ts, r)
+
+
+type family Magic (ts :: TypeState) a where
+             Magic 'Data     (Arg n t -> a)     = Magic 'Data a
+             Magic 'Data     a                  = a
+             Magic 'Query    ts                 = Maybe (Something (UnravelArgs ts))
+             Magic 'Response (Arg n t -> a)     = Magic 'Response a
+{- R1. -}    Magic 'Response [record 'Response] = Maybe [record 'Response]
+{- R2. -}    Magic 'Response (record 'Response) = Maybe (record 'Response)
+{- R3. -}    Magic 'Response scalar             = Maybe scalar
+             Magic 'Schema   a                  = Field
 
 -- | Schema Generation
 schema
@@ -61,7 +76,7 @@ instance (GHasSchema fi fo, GHasSchema gi go) => GHasSchema (fi :*: gi) (fo :*: 
 
 instance {-# OVERLAPPING #-} (KnownSymbol a, Typeable t, ReifyArgs args)
       => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (Rec0 t))
-                    (M1 S ('MetaSel ('Just a) b c d) (Rec0 (Field args))) where
+                    (M1 S ('MetaSel ('Just a) b c d) (Rec0 (Field))) where
     gSchema = M1 $ K1 $ Field (reifyNameType @a @t) (reifyArgs @args)
 
 instance (GHasSchema fi fo)

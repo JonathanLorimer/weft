@@ -43,6 +43,7 @@ default-extensions:
   - StandaloneDeriving
   - ConstraintKinds
   - UndecidableInstances
+  - OverloadedStrings
 
 library:
   source-dirs: src
