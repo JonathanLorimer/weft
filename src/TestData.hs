@@ -23,6 +23,9 @@ deriving instance Show (User' 'Query)
 type User = User' 'Data
 type UserQuery = User' 'Query
 
+userSchema :: User' 'Schema
+userSchema = schema
+
 userQ :: User' 'Query
 userQ = User Nothing Nothing Nothing Nothing
 
