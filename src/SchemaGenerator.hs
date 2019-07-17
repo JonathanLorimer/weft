@@ -35,17 +35,13 @@ type family ConsFirst (a :: k1) (b :: ([k1], k2)) :: ([k1], k2) where
   ConsFirst a '(b, c) = '(a ': b, c)
 
 type family UnravelArgs (t :: *) :: ([(Symbol, *)], *) where
-  UnravelArgs (Arg n t -> a) = ConsFirst '(n, t) (UnravelArgs a)
-  UnravelArgs a              = '( '[], a)
-
-type family ToNestedTuple (ts :: [(k1, *)]) :: * where
-  ToNestedTuple '[] = ()
-  ToNestedTuple ('(a, b) ': ts) = (b, ToNestedTuple ts)
+  UnravelArgs (Arg t n -> a) = ConsFirst '(t, n) (UnravelArgs a)
+  UnravelArgs a        = '( '[], a)
 
 type family Something (u :: ([(Symbol, *)], *)) :: * where
-  Something '(ts, [record 'Query])          = (ToNestedTuple ts, record 'Query)
-  Something '(ts, record 'Query)            = (ToNestedTuple ts, record 'Query)
-  Something '(ts, a)                        = (ToNestedTuple ts, ())
+  Something '(ts, [record 'Query])          = (Args ts, record 'Query)
+  Something '(ts, record 'Query)            = (Args ts, record 'Query)
+  Something '(ts, a)                        = (Args ts, ())
 
 
 type family Magic (ts :: TypeState) a where
