@@ -69,8 +69,6 @@ incrParser = fmap to . gIncrParser id const . from
 
 queryParser :: (HasEmptyQuery record, HasIncrParser record) => Parser (record 'Query)
 queryParser = do
-  string $ "query"
-  _ <- skipSpace
   _ <- char '{'
   _ <- skipSpace
   p <- incrParser emptyQuery
@@ -124,18 +122,6 @@ instance ( KnownSymbol name
 testIncrParser :: User 'Query -> Parser (User 'Query)
 testIncrParser = incrParser
 
-class IsAllMaybe (args :: [(Symbol, *)]) where
-  isAllMaybe :: Maybe (Args args)
-
-instance IsAllMaybe '[] where
-  isAllMaybe = Just ANil
-
-instance {-# OVERLAPPING #-} (KnownSymbol a, IsAllMaybe ts) => IsAllMaybe ('(a, Maybe b) ': ts) where
-  isAllMaybe = (:@@) <$> (Just $ Arg Nothing) <*> isAllMaybe @ts
-
-instance IsAllMaybe ('(a, b) ': ts) where
-  isAllMaybe = Nothing
-
 
 parseArgs :: FromRawArgs args => Parser (Args args)
 parseArgs = do
@@ -166,7 +152,10 @@ parseARawArg = do
   _ <- char ':'
   skipSpace
   -- TODO(sandy): make this less shitty
-  result <- many1 $ satisfy $ not . (Data.Char.isSpace)
+  result <- many1 $ satisfy $ \c -> all ($ c)
+    [ not . Data.Char.isSpace
+    , (/= ')')
+    ]
   pure (first : rest, result)
 
 

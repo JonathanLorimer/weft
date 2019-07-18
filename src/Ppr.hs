@@ -1,5 +1,7 @@
 module Ppr where
 
+import Args
+import Parser
 import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Proxy
@@ -22,9 +24,41 @@ pprType :: GqlType -> Doc
 pprType (GqlSingle b t) = text t <> pprBang b
 pprType (GqlList b t) = brackets (pprType t) <> pprBang b
 
+class PprEachArg (ts) where
+  pprEachArg :: Args ts -> [Doc]
 
-pprArg :: NameType -> Doc
-pprArg (NameType n t) =
+instance PprEachArg '[] where
+  pprEachArg ANil = []
+
+instance (PprArg t, PprEachArg args) => PprEachArg ('(n, t) ': args) where
+  pprEachArg (arg :@@ args) = pprArg arg : pprEachArg args
+
+
+pprArgs :: PprEachArg ts => Args ts -> Doc
+pprArgs args =
+  let args_docs = pprEachArg args
+   in case all isEmpty args_docs of
+        True -> empty
+        False -> parens $ sep $ punctuate (char ',') args_docs
+
+class PprArg t where
+  pprArg :: Arg n t -> Doc
+
+instance Show t => PprArg t where
+  pprArg (Arg v :: Arg n t) =
+    sep [ text (symbolVal $ Proxy @n) <> char ':'
+        , text $ show v
+        ]
+
+instance {-# OVERLAPPING #-} Show t => PprArg (Maybe t) where
+  pprArg (Arg Nothing) = empty
+  pprArg (Arg (Just v) :: Arg n (Maybe t)) =
+    sep [ text (symbolVal $ Proxy @n) <> char ':'
+        , text $ show v
+        ]
+
+pprFieldArg :: NameType -> Doc
+pprFieldArg (NameType n t) =
   sep [ text n <> char ':'
       , pprType t
       ]
@@ -40,17 +74,19 @@ pprField (Field (NameType n t) []) =
 pprField (Field (NameType n t) args) =
   sep [ mconcat
         [ text n
-        , parens (sep $ punctuate (char ',') $ fmap pprArg args)
+        , parens (sep $ punctuate (char ',') $ fmap pprFieldArg args)
         , char ':'
         ]
       , pprType t
       ]
 
+type HasPprRecord record = (GPprSchema (Rep (record 'Schema)), Generic (record 'Schema))
+
 pprRecord
-    :: (GPprRecord (Rep (record 'Schema)), Generic (record 'Schema))
+    :: HasPprRecord record
     => record 'Schema
     -> Doc
-pprRecord = gPprRecord . from
+pprRecord = gPprSchema . from
 
 pprTypeHerald :: String -> Doc -> Doc
 pprTypeHerald name doc = vcat
@@ -64,28 +100,68 @@ pprTypeHerald name doc = vcat
   ]
 
 
-class GPprRecord rs where
-  gPprRecord :: rs x -> Doc
+class GPprSchema rs where
+  gPprSchema :: rs x -> Doc
 
-instance (KnownSymbol name, GPprRecord f) => GPprRecord (M1 D ('MetaData name _1 _2 _3) f) where
-  gPprRecord (M1 f) = pprTypeHerald (symbolVal $ Proxy @name) $ gPprRecord f
+instance (KnownSymbol name, GPprSchema f) => GPprSchema (M1 D ('MetaData name _1 _2 _3) f) where
+  gPprSchema (M1 f) = pprTypeHerald (symbolVal $ Proxy @name) $ gPprSchema f
 
-instance (GPprRecord f, GPprRecord g) => GPprRecord (f :*: g) where
-  gPprRecord (f :*: g) = vcat
-    [ gPprRecord f
-    , gPprRecord g
+instance (GPprSchema f, GPprSchema g) => GPprSchema (f :*: g) where
+  gPprSchema (f :*: g) = vcat
+    [ gPprSchema f
+    , gPprSchema g
     ]
 
-instance {-# OVERLAPPABLE #-} GPprRecord f => GPprRecord (M1 _1 _2 f) where
-  gPprRecord (M1 f) = gPprRecord f
+instance {-# OVERLAPPABLE #-} GPprSchema f => GPprSchema (M1 _1 _2 f) where
+  gPprSchema (M1 f) = gPprSchema f
 
-instance GPprRecord (K1 _1 (Field args)) where
-  gPprRecord (K1 f) = pprField f
+instance GPprSchema (K1 _1 (Field args)) where
+  gPprSchema (K1 f) = pprField f
+
+
+class GPprQuery rq where
+  gPprQuery :: rq x -> Doc
+
+type HasPprQuery record = (Generic (record 'Query), GPprQuery (Rep (record 'Query)))
+
+pprQuery :: HasPprQuery record => record 'Query -> Doc
+pprQuery q = sep
+  [ char '{'
+  , gPprQuery $ from q
+  , char '}'
+  ]
+
+
+instance (GPprQuery f, GPprQuery g) => GPprQuery (f :*: g) where
+  gPprQuery (f :*: g) = vcat
+    [ gPprQuery f
+    , gPprQuery g
+    ]
+
+instance {-# OVERLAPPABLE #-} GPprQuery f => GPprQuery (M1 _1 _2 f) where
+  gPprQuery (M1 f) = gPprQuery f
+
+instance (KnownSymbol name, PprEachArg args, HasPprQuery record) => GPprQuery (M1 S ('MetaSel ('Just name) b c d) (K1 x (Maybe (Args args, record 'Query)))) where
+  gPprQuery (M1 (K1 Nothing)) = empty
+  gPprQuery (M1 (K1 (Just (args, rec)))) =
+    sep
+      [ text (symbolVal $ Proxy @name) <> pprArgs args
+      , pprQuery rec
+      ]
+
+instance (KnownSymbol name, PprEachArg args) => GPprQuery (M1 S ('MetaSel ('Just name) b c d) (K1 x (Maybe (Args args, ())))) where
+  gPprQuery (M1 (K1 Nothing)) = empty
+  gPprQuery (M1 (K1 (Just (args, rec)))) =
+    mconcat
+      [ text $ symbolVal $ Proxy @name
+      , pprArgs args
+      ]
+
 
 type HasFindTypes record =
   ( GFindTypes (Rep (record 'Data))
   , GHasSchema (Rep (record 'Data)) (Rep (record 'Schema))
-  , GPprRecord (Rep (record 'Schema))
+  , GPprSchema (Rep (record 'Schema))
   , Generic (record 'Data)
   , Generic (record 'Schema)
   , Typeable record

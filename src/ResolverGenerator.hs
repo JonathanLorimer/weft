@@ -2,14 +2,21 @@ module ResolverGenerator where
 
 import TestData
 
+import Parser
 import SchemaGenerator
 import Args
 import GHC.Generics
 import Data.Typeable
+import GHC.TypeLits
 
 
-testResolve :: User 'Resolver -> User 'Query -> IO (User 'Response)
+testResolve :: Account 'Resolver -> Account 'Query -> IO (Account 'Response)
 testResolve = doResolve
+
+-- testResolver :: Account 'Resolver
+-- testResolver = Account $ do
+--   putStrLn "hello world"
+--   pure 5
 
 
 doResolve
@@ -72,7 +79,7 @@ instance Resolve (IO (scalar))
 
 -- | Args Case
 instance {-# OVERLAPPING #-}
-          (Resolve rv (Maybe (Args args, ru)) rp) =>
+          (KnownSymbol n, Resolve rv (Maybe (Args args, ru)) rp) =>
           Resolve (Arg n (Maybe t) -> rv)
                  (Maybe ((Args ('(n, Maybe t)':args), ru)))
                  (rp) where
