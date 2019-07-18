@@ -3,7 +3,20 @@ module Args where
 import Data.Proxy
 import GHC.TypeLits
 import Data.Kind
-import Test.QuickCheck (Arbitrary (..))
+import Test.QuickCheck (Arbitrary (..), oneof, suchThat)
+import Data.Maybe
+
+class IsAllMaybe (args :: [(Symbol, *)]) where
+  isAllMaybe :: Maybe (Args args)
+
+instance IsAllMaybe '[] where
+  isAllMaybe = Just ANil
+
+instance {-# OVERLAPPING #-} (KnownSymbol a, IsAllMaybe ts) => IsAllMaybe ('(a, Maybe b) ': ts) where
+  isAllMaybe = (:@@) <$> (Just $ Arg Nothing) <*> isAllMaybe @ts
+
+instance IsAllMaybe ('(a, b) ': ts) where
+  isAllMaybe = Nothing
 
 data Arg (name :: Symbol) a = KnownSymbol name => Arg { getArg :: a }
 
@@ -62,6 +75,12 @@ instance Arbitrary (Args '[]) where
 
 instance (KnownSymbol name, Arbitrary t, Arbitrary (Args args)) => Arbitrary (Args ('(name, t) ': args)) where
   arbitrary = (:@@) <$> arbitrary <*> arbitrary
+
+instance {-# OVERLAPPING #-} (IsAllMaybe args, Arbitrary (Args args), Arbitrary t) => Arbitrary (Maybe (Args args, t)) where
+  arbitrary = oneof
+    [ pure Nothing
+    , fmap Just $ (,) <$> arbitrary <*> arbitrary
+    ] `suchThat` maybe (isJust $ isAllMaybe @args) (const True)
 
 
 
