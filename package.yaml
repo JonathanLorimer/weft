@@ -60,7 +60,7 @@ default-extensions:
 
 library:
   source-dirs: src
-  ghc-options: -Wall -fno-warn-orphans
+  ghc-options: -Wall
 
 tests:
   gql-test:

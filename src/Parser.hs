@@ -1,6 +1,5 @@
 module Parser where
 
-import           Args
 import           Control.Applicative
 import           Control.Applicative.Permutations
 import           Data.Attoparsec.ByteString.Char8

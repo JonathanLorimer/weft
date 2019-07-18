@@ -81,11 +81,3 @@ instance (Resolve rv (Maybe (Args args, ru)) rp) =>
         resolve _ Nothing = error "impossible"
         resolve f (Just (arg :@@ args, query)) = resolve @rv @(Maybe (Args args, ru)) @rp (f arg) (Just (args, query))
 
-
--- instance Resolve (Arg n t -> rv)
---                  (Maybe ((Args ('(n, t)':args), qu)))
---                  (rp)
---         resolve (f) (Nothing) = resolve
-
-
--- $> :kind! Rep (User 'Resolver)

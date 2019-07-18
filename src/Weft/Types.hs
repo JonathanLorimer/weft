@@ -1,7 +1,11 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Weft.Types where
 
+import Data.Proxy
 import GHC.TypeLits
-import Test.QuickCheck (Arbitrary (..))
+import Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
+import Data.Maybe
 
 
 ------------------------------------------------------------------------------
@@ -67,6 +71,51 @@ data Args (ts :: [(Symbol, *)]) where
   (:@@) :: Arg s t -> Args ts -> Args ('(s, t) ': ts)
 infixr 5 :@@
 
+instance Show (Args '[]) where
+  show _ = ""
+
+instance (Show t, KnownSymbol name, Show (Args args)) => Show (Args ('(name, t) ': args)) where
+  show (Arg v :@@ args) = mconcat
+    [ symbolVal $ Proxy @name
+    , "="
+    , show v
+    , " :@@ "
+    , show args
+    ]
+
+instance Eq (Args '[]) where
+  ANil == ANil = True
+
+instance (Eq t, Eq (Args args)) => Eq (Args ('(name, t) ': args)) where
+  (Arg a :@@ args) == (Arg b :@@ args') = a == b && args == args'
+
+
+instance Arbitrary (Args '[]) where
+  arbitrary = pure ANil
+
+instance
+      ( KnownSymbol name
+      , Arbitrary t
+      , Arbitrary (Args args)
+      ) => Arbitrary (Args ('(name, t) ': args)) where
+  arbitrary = (:@@) <$> arbitrary <*> arbitrary
+
+instance {-# OVERLAPPING #-}
+      ( IsAllMaybe args
+      , Arbitrary t
+      , Arbitrary (Args args)
+      ) => Arbitrary (Maybe (Args args, t)) where
+  arbitrary = sized $ \case
+    0 -> pure Nothing
+    n -> resize (n - 1) $ oneof
+           [ pure Nothing
+           , fmap Just $ (,) <$> arbitrary <*> arbitrary
+           ] `suchThat` maybe (isJust $ isAllMaybe @args) (const True)
+
+
+
+
+
 
 ------------------------------------------------------------------------------
 -- |
@@ -90,4 +139,19 @@ data Field args = Field
   { fNameType :: NameType
   , fArgs     :: [NameType]
   } deriving (Show, Eq, Ord)
+
+------------------------------------------------------------------------------
+-- |
+
+class IsAllMaybe (args :: [(Symbol, *)]) where
+  isAllMaybe :: Maybe (Args args)
+
+instance IsAllMaybe '[] where
+  isAllMaybe = Just ANil
+
+instance {-# OVERLAPPING #-} (KnownSymbol a, IsAllMaybe ts) => IsAllMaybe ('(a, Maybe b) ': ts) where
+  isAllMaybe = (:@@) <$> (Just $ Arg Nothing) <*> isAllMaybe @ts
+
+instance IsAllMaybe ('(a, b) ': ts) where
+  isAllMaybe = Nothing
 
