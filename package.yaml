@@ -24,6 +24,9 @@ dependencies:
   - text
   - attoparsec
   - containers
+  - warp
+  - wai
+  - http-types
 
 default-extensions:
   - DeriveGeneric
