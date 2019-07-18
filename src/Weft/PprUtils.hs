@@ -1,4 +1,4 @@
-module PprUtils where
+module Weft.PprUtils where
 
 import Data.Proxy
 import GHC.TypeLits

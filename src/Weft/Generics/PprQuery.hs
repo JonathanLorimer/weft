@@ -6,9 +6,9 @@ module Weft.Generics.PprQuery
 import Data.Proxy
 import GHC.Generics
 import GHC.TypeLits
-import PprUtils
 import Prelude hiding ((<>))
 import Text.PrettyPrint.HughesPJ
+import Weft.PprUtils
 import Weft.Types
 
 

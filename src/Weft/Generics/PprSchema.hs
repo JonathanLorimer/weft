@@ -6,9 +6,9 @@ module Weft.Generics.PprSchema
 import Data.Proxy
 import GHC.Generics
 import GHC.TypeLits
-import PprUtils
 import Prelude hiding ((<>))
 import Text.PrettyPrint.HughesPJ
+import Weft.PprUtils
 import Weft.Types
 
 
@@ -34,7 +34,9 @@ pprSchema = gPprSchema . from
 class GPprSchema rs where
   gPprSchema :: rs x -> Doc
 
-instance (KnownSymbol name, GPprSchema f) => GPprSchema (M1 D ('MetaData name _1 _2 _3) f) where
+instance ( KnownSymbol name
+         , GPprSchema f
+         ) => GPprSchema (M1 D ('MetaData name _1 _2 _3) f) where
   gPprSchema (M1 f) = pprTypeHerald (symbolVal $ Proxy @name) $ gPprSchema f
 
 instance (GPprSchema f, GPprSchema g) => GPprSchema (f :*: g) where
@@ -62,3 +64,4 @@ pprTypeHerald name doc = vcat
   , nest 4 doc
   , char '}'
   ]
+
