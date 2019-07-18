@@ -11,7 +11,7 @@ newtype Name = Name String deriving (Generic, Show)
 data User' ts = User
   { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
   , userName       :: Magic ts Name
-  , userBestFriend :: Magic ts (User' ts)
+  , userBestFriend :: Magic ts (Arg "arg" (Maybe String) -> User' ts)
   , userFriends    :: Magic ts [User' ts]
   } deriving (Generic)
 

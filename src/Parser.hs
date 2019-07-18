@@ -61,17 +61,21 @@ instance (KnownSymbol name, FromRawArgs args, IsAllMaybe args)
 instance ( KnownSymbol name
          , HasIncrParser t
          , HasEmptyQuery t
+         , FromRawArgs args
+         , IsAllMaybe args
          ) => GIncrParser rep (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                     (K1 _4 (Maybe (Args args, t 'Query)))) where
   gIncrParser get set rep = do
     string $ T.pack $ symbolVal $ Proxy @name
+    skipSpace
+    args <- parseOptionalArgs @args
     skipSpace
     _ <- char '{'
     skipSpace
     z <- incrParser emptyQuery
     _ <- char '}'
     skipSpace
-    pure $ set (M1 $ K1 $ Just (undefined, z)) $ rep
+    pure $ set (M1 $ K1 $ Just (args, z)) $ rep
 
 
 testIncrParser :: User' 'Query -> Parser (User' 'Query)
