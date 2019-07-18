@@ -43,6 +43,7 @@ deriving instance Eq (Account 'Query)
 instance Arbitrary (Account 'Query) where
   arbitrary = Account <$> arbitrary
 
+-- TODO(sandy): lets do THIS generically too!!
 instance Arbitrary (User 'Query) where
   arbitrary = sized $ \case
     0 -> pure $ User Nothing Nothing Nothing Nothing
