@@ -47,7 +47,7 @@ instance HasGqlType a => HasGqlType (Maybe a) where
 data Field args = Field
   { fNameType :: NameType
   , fArgs     :: [NameType]
-  } deriving (Show)
+  } deriving (Show, Eq, Ord)
 
 class ReifyArgs (args :: [(Symbol, *)]) where
   reifyArgs :: [NameType]
@@ -85,7 +85,7 @@ type family Magic (ts :: TypeState) a where
   Magic 'Data     (Arg n t -> a)     = Magic 'Data a                              -- D1
   Magic 'Data     a                  = a                                          -- D2
   Magic 'Query    ts                 = Maybe (Something (UnravelArgs ts))
-  Magic 'Response (Arg n t -> a)     = Magic 'Response a                          
+  Magic 'Response (Arg n t -> a)     = Magic 'Response a
   Magic 'Response [record 'Response] = Maybe [record 'Response]                   -- RP1
   Magic 'Response (record 'Response) = Maybe (record 'Response)                   -- RP2
   Magic 'Response scalar             = Maybe scalar                               -- RP3

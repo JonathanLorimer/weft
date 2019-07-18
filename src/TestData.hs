@@ -4,9 +4,10 @@ import GHC.Generics
 import Data.Text
 import SchemaGenerator
 import Args
+import Test.QuickCheck
 
-newtype Id = Id String deriving (Generic, Show)
-newtype Name = Name String deriving (Generic, Show)
+newtype Id = Id String deriving (Generic, Show, Eq, Ord)
+newtype Name = Name String deriving (Generic, Show, Eq, Ord)
 
 data User ts = User
   { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
@@ -28,6 +29,20 @@ deriving instance Show (Account 'Data)
 deriving instance Show (Account 'Schema)
 deriving instance Show (Account 'Response)
 deriving instance Show (Account 'Query)
+
+deriving instance Eq (User 'Data)
+deriving instance Eq (User 'Schema)
+deriving instance Eq (User 'Query)
+
+deriving instance Eq (Account 'Data)
+deriving instance Eq (Account 'Schema)
+deriving instance Eq (Account 'Query)
+
+instance Arbitrary (Account 'Query) where
+  arbitrary = Account <$> arbitrary
+
+instance Arbitrary (User 'Query) where
+  arbitrary = User <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 userSchema :: User 'Schema
 userSchema = schema

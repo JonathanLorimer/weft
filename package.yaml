@@ -32,6 +32,8 @@ dependencies:
   - wai
   - http-types
   - pretty
+  - QuickCheck
+  - hspec
 
 default-extensions:
   - DeriveGeneric

@@ -69,8 +69,6 @@ incrParser = fmap to . gIncrParser id const . from
 
 queryParser :: (HasEmptyQuery record, HasIncrParser record) => Parser (record 'Query)
 queryParser = do
-  string $ "query"
-  _ <- skipSpace
   _ <- char '{'
   _ <- skipSpace
   p <- incrParser emptyQuery
