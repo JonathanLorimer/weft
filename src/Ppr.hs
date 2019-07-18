@@ -86,9 +86,9 @@ type HasFindTypes record =
   ( GFindTypes (Rep (record 'Data))
   , GHasSchema (Rep (record 'Data)) (Rep (record 'Schema))
   , GPprRecord (Rep (record 'Schema))
-  , Typeable record
   , Generic (record 'Data)
   , Generic (record 'Schema)
+  , Typeable record
   )
 
 allTypes :: forall record. HasFindTypes record => [Doc]
