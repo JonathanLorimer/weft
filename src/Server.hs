@@ -1,7 +1,7 @@
 module Server where
 
 import Weft.Types
-import Parser
+import Weft.Generics.QueryParser
 import TestData
 import Lens.Micro
 import Lens.Micro.Aeson

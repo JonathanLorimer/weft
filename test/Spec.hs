@@ -1,7 +1,8 @@
 import           Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString.Char8 as BS8
 import           GHC.Generics
-import           Parser
+import           Weft.Generics.QueryParser
+import           Weft.Generics.EmptyQuery
 import           Ppr
 import           Test.QuickCheck
 import           TestData
@@ -13,9 +14,8 @@ main = do
   let test_query
           :: forall record
            . ( Eq (record 'Query)
-             , Generic (record 'Query)
-             , GEmptyQuery (Rep (record 'Query))
-             , GIncrParser (Rep (record 'Query))
+             , HasEmptyQuery (record)
+             , HasQueryParser (record)
              , GPprQuery (Rep (record 'Query))
              )
           => record 'Query -> Bool
