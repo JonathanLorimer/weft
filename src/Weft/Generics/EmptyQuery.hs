@@ -3,7 +3,7 @@ module Weft.Generics.EmptyQuery
   , HasEmptyQuery
   ) where
 
-import Weft.Types
+import Weft.Internal.Types
 import GHC.Generics
 
 

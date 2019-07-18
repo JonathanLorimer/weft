@@ -8,7 +8,7 @@ import Data.Proxy
 import Data.Typeable
 import GHC.Generics
 import GHC.TypeLits
-import Weft.Types
+import Weft.Internal.Types
 
 
 ------------------------------------------------------------------------------

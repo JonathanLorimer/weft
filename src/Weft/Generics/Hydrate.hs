@@ -3,7 +3,7 @@ module Weft.Generics.Hydrate
   , hydrate
   ) where
 
-import Weft.Types
+import Weft.Internal.Types
 import GHC.Generics
 
 

@@ -9,7 +9,7 @@ import GHC.TypeLits
 import Prelude hiding ((<>))
 import Text.PrettyPrint.HughesPJ
 import Weft.PprUtils
-import Weft.Types
+import Weft.Internal.Types
 
 
 ------------------------------------------------------------------------------

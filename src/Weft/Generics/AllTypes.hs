@@ -12,7 +12,7 @@ import           Prelude hiding ((<>))
 import           Text.PrettyPrint.HughesPJ
 import           Weft.Generics.Schema
 import           Weft.Generics.PprSchema
-import           Weft.Types
+import           Weft.Internal.Types
 
 
 ------------------------------------------------------------------------------

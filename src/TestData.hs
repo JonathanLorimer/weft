@@ -4,7 +4,7 @@
 
 module TestData where
 
-import Weft.Types
+import Weft.Internal.Types
 import GHC.Generics
 import Test.QuickCheck
 

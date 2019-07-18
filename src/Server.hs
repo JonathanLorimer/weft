@@ -1,6 +1,6 @@
 module Server where
 
-import Weft.Types
+import Weft.Internal.Types
 import Weft.Generics.QueryParser
 import TestData
 import Lens.Micro

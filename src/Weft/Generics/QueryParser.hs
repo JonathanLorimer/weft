@@ -15,7 +15,7 @@ import           Data.Proxy
 import           GHC.Generics
 import           GHC.TypeLits
 import           Weft.Generics.EmptyQuery
-import           Weft.Types
+import           Weft.Internal.Types
 
 
 type HasQueryParser record =
