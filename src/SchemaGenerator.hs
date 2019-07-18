@@ -5,13 +5,41 @@ import GHC.Generics
 import GHC.TypeLits
 import Data.Proxy
 import Data.Typeable
+import Data.List.NonEmpty
 
 data TypeState = Query | Data | Schema | Response | Resolver
 
 data NameType = NameType
   { ntName :: String
-  , ntType :: String
+  , ntType :: GqlType
   } deriving (Eq, Ord, Show)
+
+data GqlType
+  = GqlList   Bool GqlType
+  | GqlSingle Bool String
+  deriving (Eq, Ord, Show)
+
+class HasGqlType a where
+  gqlType :: GqlType
+
+instance {-# OVERLAPPING #-} HasGqlType String where
+  gqlType = GqlSingle True "String"
+
+instance {-# OVERLAPPABLE #-} Typeable a => HasGqlType a where
+  gqlType = GqlSingle True $ show $ typeRep $ Proxy @a
+
+instance HasGqlType a => HasGqlType [a] where
+  gqlType = GqlList False $ gqlType @a
+
+instance HasGqlType a => HasGqlType (NonEmpty a) where
+  gqlType = GqlList True $ gqlType @a
+
+instance HasGqlType a => HasGqlType (Maybe a) where
+  gqlType =
+    case gqlType @a of
+      GqlList   _ t -> GqlList False t
+      GqlSingle _ t -> GqlSingle False t
+
 
 data Field args = Field
   { fNameType :: NameType
@@ -24,12 +52,11 @@ class ReifyArgs (args :: [(Symbol, *)]) where
 instance ReifyArgs '[] where
   reifyArgs = []
 
-instance (Typeable t, KnownSymbol n, ReifyArgs args) => ReifyArgs ('(n, t) ': args) where
+instance (HasGqlType t, KnownSymbol n, ReifyArgs args) => ReifyArgs ('(n, t) ': args) where
   reifyArgs = reifyNameType @n @t : reifyArgs @args
 
-reifyNameType :: forall n t. (Typeable t, KnownSymbol n) => NameType
-reifyNameType = NameType (symbolVal $ Proxy @n)
-                         (show $ typeRep $ Proxy @t)
+reifyNameType :: forall n t. (HasGqlType t, KnownSymbol n) => NameType
+reifyNameType = NameType (symbolVal $ Proxy @n) $ gqlType @t
 
 type family ConsFirst (a :: k1) (b :: ([k1], k2)) :: ([k1], k2) where
   ConsFirst a '(b, c) = '(a ': b, c)
@@ -78,7 +105,7 @@ class GHasSchema i o where
 instance (GHasSchema fi fo, GHasSchema gi go) => GHasSchema (fi :*: gi) (fo :*: go) where
     gSchema = gSchema @fi :*: gSchema @gi
 
-instance {-# OVERLAPPING #-} (KnownSymbol a, Typeable t, ReifyArgs args)
+instance {-# OVERLAPPING #-} (KnownSymbol a, HasGqlType t, ReifyArgs args)
       => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (Rec0 t))
                     (M1 S ('MetaSel ('Just a) b c d) (Rec0 (Field args))) where
     gSchema = M1 $ K1 $ Field (reifyNameType @a @t) (reifyArgs @args)
