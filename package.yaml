@@ -24,6 +24,9 @@ dependencies:
   - text
   - attoparsec
   - containers
+  - warp
+  - wai
+  - http-types
 
 default-extensions:
   - DeriveGeneric
@@ -43,6 +46,7 @@ default-extensions:
   - StandaloneDeriving
   - ConstraintKinds
   - UndecidableInstances
+  - OverloadedStrings
 
 library:
   source-dirs: src
