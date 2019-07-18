@@ -12,10 +12,39 @@ import           Data.Proxy
 import qualified Data.Text as T
 import           GHC.Generics
 import           GHC.TypeLits
-import           QueryParser
 import           SchemaGenerator
 import           TestData
 
+
+type HasEmptyQuery record =
+  ( GEmptyQuery (Rep (record 'Query))
+  , Generic (record 'Query)
+  )
+
+emptyQuery :: forall record . HasEmptyQuery record => record 'Query
+emptyQuery = to $ gEmptyQuery @(Rep (record 'Query))
+
+class GEmptyQuery (fq :: * -> *) where
+    gEmptyQuery :: fq x
+
+instance (GEmptyQuery fq, GEmptyQuery gq) => GEmptyQuery (fq :*: gq) where
+    gEmptyQuery = (gEmptyQuery @fq) :*: (gEmptyQuery @gq)
+
+instance GEmptyQuery fq => GEmptyQuery (M1 x y fq) where
+    gEmptyQuery = M1 $ gEmptyQuery @fq
+
+-- | Q3
+instance GEmptyQuery (K1 x Bool) where
+    gEmptyQuery = K1 False
+
+-- | Q2
+instance GEmptyQuery (K1 x (Maybe a)) where
+    gEmptyQuery = K1 Nothing
+
+
+
+testEmptyQuery :: User 'Query
+testEmptyQuery = emptyQuery
 
 class GIncrParser rep fq where
   gIncrParser :: (rep x -> fq x) -> (fq x -> rep x -> rep x) -> rep x -> Parser (rep x)
@@ -37,6 +66,19 @@ type HasIncrParser record =
 
 incrParser :: HasIncrParser record => record 'Query -> Parser (record 'Query)
 incrParser = fmap to . gIncrParser id const . from
+
+queryParser :: (HasEmptyQuery record, HasIncrParser record) => Parser (record 'Query)
+queryParser = do
+  string $ "query"
+  _ <- skipSpace
+  _ <- char '{'
+  _ <- skipSpace
+  p <- incrParser emptyQuery
+  _ <- skipSpace
+  _ <- char '}'
+  _ <- skipSpace
+  pure p
+
 
 instance ( GIncrParser rep fq
          , GIncrParser rep gq
