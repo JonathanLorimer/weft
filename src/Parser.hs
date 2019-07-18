@@ -78,7 +78,7 @@ instance ( KnownSymbol name
     pure $ set (M1 $ K1 $ Just (args, z)) $ rep
 
 
-testIncrParser :: User' 'Query -> Parser (User' 'Query)
+testIncrParser :: User 'Query -> Parser (User 'Query)
 testIncrParser = incrParser
 
 class IsAllMaybe (args :: [(Symbol, *)]) where

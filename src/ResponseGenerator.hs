@@ -55,6 +55,6 @@ instance IsHydrateable record =>
     gHydrate (K1 d) (K1 (Just (_, q))) = K1 $ Just $ (flip hydrate $ q) <$> d
 
 
-testHydrate :: User' 'Data -> User' 'Query -> User' 'Response
+testHydrate :: User 'Data -> User 'Query -> User 'Response
 testHydrate = hydrate
 
