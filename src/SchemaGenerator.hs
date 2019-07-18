@@ -48,17 +48,17 @@ type family Fst (u :: (k1, k2)) :: k1 where
 
 
 type family Magic (ts :: TypeState) a where
-  Magic 'Resolver (Arg n t -> a)     = Arg n t -> Magic 'Resolver a
-  Magic 'Resolver [record 'Resolver] = record 'Query -> IO [record 'Response]
-  Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)
-  Magic 'Resolver a                  = IO a
-  Magic 'Data     (Arg n t -> a)     = Magic 'Data a
-  Magic 'Data     a                  = a
+  Magic 'Resolver (Arg n t -> a)     = Arg n t -> Magic 'Resolver a               -- RV1
+  Magic 'Resolver [record 'Resolver] = record 'Query -> IO [record 'Response]     -- RV2
+  Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)     -- RV3
+  Magic 'Resolver a                  = IO a                                       -- RV4
+  Magic 'Data     (Arg n t -> a)     = Magic 'Data a                              -- D1
+  Magic 'Data     a                  = a                                          -- D2
   Magic 'Query    ts                 = Maybe (Something (UnravelArgs ts))
-  Magic 'Response (Arg n t -> a)     = Magic 'Response a
-  Magic 'Response [record 'Response] = Maybe [record 'Response]  -- R1
-  Magic 'Response (record 'Response) = Maybe (record 'Response)  -- R2
-  Magic 'Response scalar             = Maybe scalar              -- R3
+  Magic 'Response (Arg n t -> a)     = Magic 'Response a                          
+  Magic 'Response [record 'Response] = Maybe [record 'Response]                   -- RP1
+  Magic 'Response (record 'Response) = Maybe (record 'Response)                   -- RP2
+  Magic 'Response scalar             = Maybe scalar                               -- RP3
   Magic 'Schema   ts                 = Field (Fst (UnravelArgs ts))
 
 -- | Schema Generation

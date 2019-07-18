@@ -38,10 +38,9 @@ app :: Application
 app req f = do
     rb <- requestBody req
     let textQuery = note . maybeQuery $ rb
-    let (eitherQuery) = do 
+    let eitherQuery = do 
             textQuery <- note . maybeQuery $ rb
             parseReqBody textQuery
-    -- print =<< parseReqBody <$> (requestBody req)
     f $ responseLBS status200 [(hContentType, "text/plain")] "type Query { getGod: God! } type God { name: String entity_type: String god_of: String parents: [Entity] consorts: [Entity] children: [God] roman: String generation: Int olympian: Boolean }"
 
 main :: IO ()
