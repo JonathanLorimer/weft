@@ -8,7 +8,7 @@ import           Data.Typeable
 import           GHC.Generics
 import           GHC.TypeLits
 import           Prelude hiding ((<>))
-import           SchemaGenerator
+import Weft.Generics.Schema
 import           Text.PrettyPrint.HughesPJ
 
 
@@ -158,10 +158,8 @@ instance (KnownSymbol name, PprEachArg args) => GPprQuery (M1 S ('MetaSel ('Just
 
 type HasFindTypes record =
   ( GFindTypes (Rep (record 'Data))
-  , GHasSchema (Rep (record 'Data)) (Rep (record 'Schema))
   , GPprSchema (Rep (record 'Schema))
-  , Generic (record 'Data)
-  , Generic (record 'Schema)
+  , HasSchema record
   , Typeable record
   )
 

@@ -6,7 +6,6 @@ module TestData where
 
 import Weft.Types
 import GHC.Generics
-import SchemaGenerator
 import Test.QuickCheck
 
 newtype Id = Id String deriving (Generic, Show, Eq, Ord)
@@ -49,10 +48,4 @@ instance Arbitrary (User 'Query) where
     0 -> pure $ User Nothing Nothing Nothing Nothing
     n -> let smaller = resize (n - 1) arbitrary
           in User <$> smaller <*> smaller <*> smaller <*> smaller
-
-userSchema :: User 'Schema
-userSchema = schema
-
-userQ :: User 'Query
-userQ = User Nothing Nothing Nothing Nothing
 
