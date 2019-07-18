@@ -1,8 +1,7 @@
 module ResponseGenerator where
 
-import Args
+import Weft.Types
 import GHC.Generics
-import SchemaGenerator
 import TestData
 
 type IsHydrateable record = ( Generic (record 'Data)

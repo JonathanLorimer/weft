@@ -1,10 +1,11 @@
 module Args where
 
+import Data.Kind
+import Data.Maybe
 import Data.Proxy
 import GHC.TypeLits
-import Data.Kind
 import Test.QuickCheck (Arbitrary (..), oneof, suchThat, getSize, resize)
-import Data.Maybe
+import Weft.Types
 
 class IsAllMaybe (args :: [(Symbol, *)]) where
   isAllMaybe :: Maybe (Args args)
@@ -18,25 +19,11 @@ instance {-# OVERLAPPING #-} (KnownSymbol a, IsAllMaybe ts) => IsAllMaybe ('(a, 
 instance IsAllMaybe ('(a, b) ': ts) where
   isAllMaybe = Nothing
 
-data Arg (name :: Symbol) a = KnownSymbol name => Arg { getArg :: a }
-
-instance (KnownSymbol name, Arbitrary t) => Arbitrary (Arg name t) where
-  arbitrary = Arg <$> arbitrary
-
-deriving instance Eq t => Eq (Arg n t)
-deriving instance Show t => Show (Arg n t)
-deriving instance Ord t => Ord (Arg n t)
-
 
 type family AllHave (c :: * -> Constraint) (ts :: [(Symbol, *)]) :: Constraint where
   AllHave c '[] = (() :: Constraint)
   AllHave c ('(n, t) ': args) = (c t, AllHave c args)
 
-
-data Args (ts :: [(Symbol, *)]) where
-  ANil :: Args '[]
-  (:@@) :: Arg s t -> Args ts -> Args ('(s, t) ': ts)
-infixr 5 :@@
 
 
 elimArgs

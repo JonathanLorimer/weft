@@ -1,23 +1,11 @@
 module SchemaGenerator where
 
-import Args
+import Weft.Types
 import GHC.Generics
 import GHC.TypeLits
 import Data.Proxy
 import Data.Typeable
 import Data.List.NonEmpty
-
-data TypeState = Query | Data | Schema | Response | Resolver
-
-data NameType = NameType
-  { ntName :: String
-  , ntType :: GqlType
-  } deriving (Eq, Ord, Show)
-
-data GqlType
-  = GqlList   Bool GqlType
-  | GqlSingle Bool String
-  deriving (Eq, Ord, Show)
 
 class HasGqlType a where
   gqlType :: GqlType
@@ -44,11 +32,6 @@ instance HasGqlType a => HasGqlType (Maybe a) where
       GqlSingle _ t -> GqlSingle False t
 
 
-data Field args = Field
-  { fNameType :: NameType
-  , fArgs     :: [NameType]
-  } deriving (Show, Eq, Ord)
-
 class ReifyArgs (args :: [(Symbol, *)]) where
   reifyArgs :: [NameType]
 
@@ -61,35 +44,6 @@ instance (HasGqlType t, KnownSymbol n, ReifyArgs args) => ReifyArgs ('(n, t) ': 
 reifyNameType :: forall n t. (HasGqlType t, KnownSymbol n) => NameType
 reifyNameType = NameType (symbolVal $ Proxy @n) $ gqlType @t
 
-type family ConsFirst (a :: k1) (b :: ([k1], k2)) :: ([k1], k2) where
-  ConsFirst a '(b, c) = '(a ': b, c)
-
-type family UnravelArgs (t :: *) :: ([(Symbol, *)], *) where
-  UnravelArgs (Arg t n -> a) = ConsFirst '(t, n) (UnravelArgs a)
-  UnravelArgs a        = '( '[], a)
-
-type family Something (u :: ([(Symbol, *)], *)) :: * where
-  Something '(ts, [record 'Query]) = (Args ts, record 'Query)
-  Something '(ts, record 'Query)   = (Args ts, record 'Query)
-  Something '(ts, a)               = (Args ts, ())
-
-type family Fst (u :: (k1, k2)) :: k1 where
-  Fst '(ts, a) = ts
-
-
-type family Magic (ts :: TypeState) a where
-  Magic 'Resolver (Arg n t -> a)     = Arg n t -> Magic 'Resolver a               -- RV1
-  Magic 'Resolver [record 'Resolver] = record 'Query -> IO [record 'Response]     -- RV2
-  Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)     -- RV3
-  Magic 'Resolver a                  = IO a                                       -- RV4
-  Magic 'Data     (Arg n t -> a)     = Magic 'Data a                              -- D1
-  Magic 'Data     a                  = a                                          -- D2
-  Magic 'Query    ts                 = Maybe (Something (UnravelArgs ts))
-  Magic 'Response (Arg n t -> a)     = Magic 'Response a
-  Magic 'Response [record 'Response] = Maybe [record 'Response]                   -- RP1
-  Magic 'Response (record 'Response) = Maybe (record 'Response)                   -- RP2
-  Magic 'Response scalar             = Maybe scalar                               -- RP3
-  Magic 'Schema   ts                 = Field (Fst (UnravelArgs ts))
 
 -- | Schema Generation
 schema

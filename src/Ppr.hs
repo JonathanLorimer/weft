@@ -1,7 +1,6 @@
 module Ppr where
 
-import Args
-import Parser
+import Weft.Types
 import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Proxy
@@ -10,7 +9,6 @@ import           GHC.Generics
 import           GHC.TypeLits
 import           Prelude hiding ((<>))
 import           SchemaGenerator
-import           TestData
 import           Text.PrettyPrint.HughesPJ
 
 
@@ -151,7 +149,7 @@ instance (KnownSymbol name, PprEachArg args, HasPprQuery record) => GPprQuery (M
 
 instance (KnownSymbol name, PprEachArg args) => GPprQuery (M1 S ('MetaSel ('Just name) b c d) (K1 x (Maybe (Args args, ())))) where
   gPprQuery (M1 (K1 Nothing)) = empty
-  gPprQuery (M1 (K1 (Just (args, rec)))) =
+  gPprQuery (M1 (K1 (Just (args, ())))) =
     mconcat
       [ text $ symbolVal $ Proxy @name
       , pprArgs args
@@ -177,7 +175,7 @@ findTypes
     -> M.Map TypeRep Doc
 findTypes m =
   case M.lookup name m of
-    Just x -> m
+    Just _  -> m
     Nothing -> gFindTypes @(Rep (record 'Data)) $ M.insert name (pprRecord $ schema @record) m
   where
     name = typeRep $ Proxy @record

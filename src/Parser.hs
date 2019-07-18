@@ -10,11 +10,10 @@ import           Data.Foldable
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Proxy
-import qualified Data.Text as T
 import           GHC.Generics
 import           GHC.TypeLits
-import           SchemaGenerator
 import           TestData
+import           Weft.Types
 
 
 type HasEmptyQuery record =
@@ -104,7 +103,7 @@ instance (KnownSymbol name, FromRawArgs args, IsAllMaybe args)
       => GIncrPermParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                          (K1 _4 (Maybe (Args args, ())))) where
   gIncrPermParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
-    string $ BS.pack $ symbolVal $ Proxy @name
+    _ <- string $ BS.pack $ symbolVal $ Proxy @name
     skipSpace
     args <- parseOptionalArgs @args
     pure $ Just (args, ())
@@ -117,7 +116,7 @@ instance ( KnownSymbol name
          ) => GIncrPermParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                     (K1 _4 (Maybe (Args args, t 'Query)))) where
   gIncrPermParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
-    string $ BS.pack $ symbolVal $ Proxy @name
+    _ <- string $ BS.pack $ symbolVal $ Proxy @name
     skipSpace
     args <- parseOptionalArgs @args
     skipSpace
@@ -160,8 +159,8 @@ parseStringValue = do
       c2 <- anyChar
       (++) <$> pure (c1 : c2 : [])
            <*> parseStringValue
-    Just c' -> (:) <$> anyChar
-                   <*> parseStringValue
+    Just _ -> (:) <$> anyChar
+                  <*> parseStringValue
     Nothing -> empty
 
 parseRawArgValue :: Parser String

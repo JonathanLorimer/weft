@@ -1,22 +1,9 @@
 module ResolverGenerator where
 
-import TestData
-
-import Parser
-import SchemaGenerator
-import Args
 import GHC.Generics
-import Data.Typeable
 import GHC.TypeLits
+import Weft.Types
 
-
-testResolve :: Account 'Resolver -> Account 'Query -> IO (Account 'Response)
-testResolve = doResolve
-
--- testResolver :: Account 'Resolver
--- testResolver = Account $ do
---   putStrLn "hello world"
---   pure 5
 
 
 doResolve
@@ -60,20 +47,20 @@ class Resolve rv qu rp where
 instance Resolve (record 'Query -> IO (record 'Response))
                  (Maybe ((Args ('[]), record 'Query)))
                  (IO (Maybe (record 'Response))) where
-        resolve (f) (Nothing) = pure Nothing
-        resolve (f) (Just (ANil, query)) = Just <$> f query
+        resolve _ Nothing = pure Nothing
+        resolve f (Just (ANil, query)) = Just <$> f query
 
 instance Resolve (record 'Query -> IO ([record 'Response]))
                  (Maybe ((Args ('[]), record 'Query)))
                  (IO (Maybe ([record 'Response]))) where
-        resolve (f) (Nothing) = pure Nothing
-        resolve (f) (Just (ANil, query)) = Just <$> f query
+        resolve _ Nothing = pure Nothing
+        resolve f (Just (ANil, query)) = Just <$> f query
 
 instance Resolve (IO (scalar))
                  (Maybe ((Args ('[]), ())))
                  (IO (Maybe (scalar))) where
-        resolve (f) (Nothing) = pure Nothing
-        resolve (s) (Just (ANil, ())) = Just <$> s
+        resolve _ (Nothing) = pure Nothing
+        resolve s (Just (ANil, ())) = Just <$> s
 
 
 
@@ -91,7 +78,7 @@ instance (Resolve rv (Maybe (Args args, ru)) rp) =>
           Resolve (Arg n t -> rv)
                  (Maybe ((Args ('(n, t)':args), ru)))
                  (rp) where
-        resolve f Nothing = error "impossible"
+        resolve _ Nothing = error "impossible"
         resolve f (Just (arg :@@ args, query)) = resolve @rv @(Maybe (Args args, ru)) @rp (f arg) (Just (args, query))
 
 
