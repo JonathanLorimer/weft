@@ -2,9 +2,10 @@ module Parser where
 
 import           Args
 import           Control.Applicative
+import           Control.Applicative.Permutations
 import           Data.Attoparsec.ByteString.Char8
-import           Data.Char
 import qualified Data.ByteString.Char8 as BS
+import           Data.Char
 import           Data.Foldable
 import qualified Data.Map as M
 import           Data.Maybe
@@ -46,11 +47,23 @@ instance GEmptyQuery (K1 x (Maybe a)) where
 testEmptyQuery :: User 'Query
 testEmptyQuery = emptyQuery
 
-class GIncrParser rep fq where
-  gIncrParser :: (rep x -> fq x) -> (fq x -> rep x -> rep x) -> rep x -> Parser (rep x)
+class GIncrPermParser (rq :: * -> *) where
+  gIncrPermParser :: Permutation Parser (rq x)
 
-instance {-# OVERLAPPABLE #-} GIncrParser rep fq => GIncrParser rep (M1 a b fq) where
-  gIncrParser get set rep = gIncrParser (unM1 . get) (\a -> set (M1 a)) rep
+instance {-# OVERLAPPABLE #-} GIncrPermParser fq => GIncrPermParser (M1 a b fq) where
+  gIncrPermParser = M1 <$> gIncrPermParser
+
+instance ( GIncrPermParser fq
+         , GIncrPermParser gq
+         ) => GIncrPermParser (fq :*: gq) where
+  gIncrPermParser = (:*:) <$> gIncrPermParser
+                          <*> gIncrPermParser
+
+class GIncrParser (rq :: * -> *) where
+  gIncrParser :: Parser (rq x)
+
+instance {-# OVERLAPPABLE #-} GIncrParser fq => GIncrParser (M1 a b fq) where
+  gIncrParser = M1 <$> gIncrParser
 
 fstG :: (f :*: g) x -> f x
 fstG (f :*: _) = f
@@ -61,65 +74,62 @@ sndG (_ :*: g) = g
 type HasIncrParser record =
      ( Generic (record 'Query)
      , GIncrParser (Rep (record 'Query))
-                   (Rep (record 'Query))
      )
 
-incrParser :: HasIncrParser record => record 'Query -> Parser (record 'Query)
-incrParser = fmap to . gIncrParser id const . from
+incrParser :: HasIncrParser record => Parser (record 'Query)
+incrParser = fmap to gIncrParser
 
 queryParser :: (HasEmptyQuery record, HasIncrParser record) => Parser (record 'Query)
 queryParser = do
   _ <- char '{'
   _ <- skipSpace
-  p <- incrParser emptyQuery
+  p <- incrParser
   _ <- skipSpace
   _ <- char '}'
   _ <- skipSpace
   pure p
 
 
-instance ( GIncrParser rep fq
-         , GIncrParser rep gq
-         ) => GIncrParser rep (fq :*: gq) where
-  gIncrParser get set rep = do
-    rep' <-  gIncrParser (fstG . get) (\a b -> set (a :*: sndG (get b)) b) rep  <|> pure rep
-    rep'' <- gIncrParser (sndG . get) (\a b -> set (fstG (get b) :*: a) b) rep' <|> pure rep'
-    gIncrParser (fstG . get) (\a b -> set (a :*: sndG (get b)) b) rep'' <|> pure rep''
+instance ( GIncrPermParser (fq :*: gq)) => GIncrParser (fq :*: gq) where
+  gIncrParser = intercalateEffect skipSpace gIncrPermParser
+
+instance GIncrPermParser (M1 _1 _2 (K1 _3 f)) => GIncrParser (M1 _1 _2 (K1 _3 f)) where
+  gIncrParser = runPermutation gIncrPermParser
 
 
 -- TODO(sandy): thiere is a bug here where if the args are necessary and you
 -- dont put them in then the parser will succeed with the field being
 -- un-asked-for
 instance (KnownSymbol name, FromRawArgs args, IsAllMaybe args)
-      => GIncrParser rep (M1 S ('MetaSel ('Just name) _1 _2 _3)
+      => GIncrPermParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                          (K1 _4 (Maybe (Args args, ())))) where
-  gIncrParser get set rep = do
+  gIncrPermParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
     string $ BS.pack $ symbolVal $ Proxy @name
     skipSpace
     args <- parseOptionalArgs @args
-    pure $ set (M1 $ K1 $ Just (args, ())) $ rep
+    pure $ Just (args, ())
 
 instance ( KnownSymbol name
          , HasIncrParser t
          , HasEmptyQuery t
          , FromRawArgs args
          , IsAllMaybe args
-         ) => GIncrParser rep (M1 S ('MetaSel ('Just name) _1 _2 _3)
+         ) => GIncrPermParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                     (K1 _4 (Maybe (Args args, t 'Query)))) where
-  gIncrParser get set rep = do
+  gIncrPermParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
     string $ BS.pack $ symbolVal $ Proxy @name
     skipSpace
     args <- parseOptionalArgs @args
     skipSpace
     _ <- char '{'
     skipSpace
-    z <- incrParser emptyQuery
+    z <- incrParser
     _ <- char '}'
     skipSpace
-    pure $ set (M1 $ K1 $ Just (args, z)) $ rep
+    pure $ Just (args, z)
 
 
-testIncrParser :: User 'Query -> Parser (User 'Query)
+testIncrParser :: Parser (Account 'Query)
 testIncrParser = incrParser
 
 

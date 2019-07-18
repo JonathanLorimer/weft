@@ -5,6 +5,10 @@ import Parser
 import TestData
 import Ppr
 import qualified Data.ByteString.Char8 as BS8
+import SchemaGenerator
 
 main :: IO ()
-main = quickCheck $ \q -> (parseOnly (queryParser @Account) $ BS8.pack $ render $ pprQuery @Account q) == Right q
+main = do
+  q <- generate arbitrary
+  print $ pprQuery q
+  print $ (parseOnly (queryParser @User) $ BS8.pack $ render $ pprQuery @User q) == Right q

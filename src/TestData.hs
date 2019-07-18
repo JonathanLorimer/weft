@@ -17,7 +17,7 @@ data User ts = User
   } deriving (Generic)
 
 data Account ts = Account
-  { accountBalance :: Magic ts (Arg "num" Int -> Int)
+  { accountBalance :: Magic ts (Arg "num" (Maybe Int) -> Int)
   } deriving (Generic)
 
 deriving instance Show (User 'Data)
