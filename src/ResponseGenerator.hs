@@ -32,10 +32,11 @@ instance (GHydrate fd fq fr, GHydrate gd gq gr) =>
     gHydrate (fd :*: gd) (fq :*: gq) = (gHydrate fd fq) :*: (gHydrate gd gq)
 
 -- Q3, R3
-instance GHydrate (K1 x (d))
-                  (K1 x (Maybe (Args args)))
-                  (K1 x (Maybe d)) where
-    gHydrate (K1 d) (K1 m) = K1 $ d <$ m
+instance GHydrate (K1 x a)
+                  (K1 x (Maybe (Args args, ())))
+                  (K1 x (Maybe a)) where
+    gHydrate (K1 _) (K1 Nothing) = K1 Nothing
+    gHydrate (K1 d) (K1 (Just (_, ()))) = K1 $ Just d
 
 -- Q2, R2
 instance IsHydrateable record =>

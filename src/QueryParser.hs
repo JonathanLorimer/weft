@@ -24,11 +24,11 @@ instance GEmptyQuery fq => GEmptyQuery (M1 x y fq) where
     gEmptyQuery = M1 $ gEmptyQuery @fq
 
 -- | Q3
-instance GEmptyQuery (K1 x (Maybe (Args args))) where
-    gEmptyQuery = K1 Nothing
+instance GEmptyQuery (K1 x Bool) where
+    gEmptyQuery = K1 False
 
 -- | Q2
-instance GEmptyQuery (K1 x (Maybe (Args args, record 'Query))) where
+instance GEmptyQuery (K1 x (Maybe a)) where
     gEmptyQuery = K1 Nothing
 
 
