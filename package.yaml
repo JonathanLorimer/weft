@@ -56,8 +56,11 @@ default-extensions:
   - UndecidableInstances
   - OverloadedStrings
 
+
+
 library:
   source-dirs: src
+  ghc-options: -Wall
 
 tests:
   gql-test:

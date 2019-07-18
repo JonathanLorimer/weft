@@ -1,9 +1,11 @@
+{-# LANGUAGE LambdaCase                #-}
+{-# LANGUAGE NoMonoLocalBinds            #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+
 module TestData where
 
+import Weft.Internal.Types
 import GHC.Generics
-import Data.Text
-import SchemaGenerator
-import Args
 import Test.QuickCheck
 
 newtype Id = Id String deriving (Generic, Show, Eq, Ord)
@@ -41,12 +43,10 @@ deriving instance Eq (Account 'Query)
 instance Arbitrary (Account 'Query) where
   arbitrary = Account <$> arbitrary
 
+-- TODO(sandy): lets do THIS generically too!!
 instance Arbitrary (User 'Query) where
-  arbitrary = User <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-
-userSchema :: User 'Schema
-userSchema = schema
-
-userQ :: User 'Query
-userQ = User Nothing Nothing Nothing Nothing
+  arbitrary = sized $ \case
+    0 -> pure $ User Nothing Nothing Nothing Nothing
+    n -> let smaller = resize (n - 1) arbitrary
+          in User <$> smaller <*> smaller <*> smaller <*> smaller
 
