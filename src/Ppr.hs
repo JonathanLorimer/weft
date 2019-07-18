@@ -127,7 +127,7 @@ type HasPprQuery record = (Generic (record 'Query), GPprQuery (Rep (record 'Quer
 pprQuery :: HasPprQuery record => record 'Query -> Doc
 pprQuery q = sep
   [ char '{'
-  , gPprQuery $ from q
+  , nest 4 $ gPprQuery $ from q
   , char '}'
   ]
 

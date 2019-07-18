@@ -1,3 +1,7 @@
+{-# LANGUAGE LambdaCase                #-}
+{-# LANGUAGE NoMonoLocalBinds            #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+
 module TestData where
 
 import GHC.Generics
@@ -42,7 +46,10 @@ instance Arbitrary (Account 'Query) where
   arbitrary = Account <$> arbitrary
 
 instance Arbitrary (User 'Query) where
-  arbitrary = User <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+  arbitrary = sized $ \case
+    0 -> pure $ User Nothing Nothing Nothing Nothing
+    n -> let smaller = resize (n - 1) arbitrary
+          in User <$> smaller <*> smaller <*> smaller <*> smaller
 
 userSchema :: User 'Schema
 userSchema = schema

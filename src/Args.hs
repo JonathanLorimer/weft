@@ -3,7 +3,7 @@ module Args where
 import Data.Proxy
 import GHC.TypeLits
 import Data.Kind
-import Test.QuickCheck (Arbitrary (..), oneof, suchThat)
+import Test.QuickCheck (Arbitrary (..), oneof, suchThat, getSize, resize)
 import Data.Maybe
 
 class IsAllMaybe (args :: [(Symbol, *)]) where
@@ -77,10 +77,14 @@ instance (KnownSymbol name, Arbitrary t, Arbitrary (Args args)) => Arbitrary (Ar
   arbitrary = (:@@) <$> arbitrary <*> arbitrary
 
 instance {-# OVERLAPPING #-} (IsAllMaybe args, Arbitrary (Args args), Arbitrary t) => Arbitrary (Maybe (Args args, t)) where
-  arbitrary = oneof
-    [ pure Nothing
-    , fmap Just $ (,) <$> arbitrary <*> arbitrary
-    ] `suchThat` maybe (isJust $ isAllMaybe @args) (const True)
+  arbitrary = do
+    size <- getSize
+    case size of
+      0 -> pure Nothing
+      _ -> resize (size - 1) $ oneof
+             [ pure Nothing
+             , fmap Just $ (,) <$> arbitrary <*> arbitrary
+             ] `suchThat` maybe (isJust $ isAllMaybe @args) (const True)
 
 
 

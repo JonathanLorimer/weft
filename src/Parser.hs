@@ -150,6 +150,28 @@ parseOptionalArgs =
 class HasParser ty where
   parseType :: Parser ty
 
+parseStringValue :: Parser String
+parseStringValue = do
+  c <- peekChar
+  case c of
+    Just '"' -> char '"' >> pure "\""
+    Just '\\' -> do
+      c1 <- anyChar
+      c2 <- anyChar
+      (++) <$> pure (c1 : c2 : [])
+           <*> parseStringValue
+    Just c' -> (:) <$> anyChar
+                   <*> parseStringValue
+    Nothing -> empty
+
+parseRawArgValue :: Parser String
+parseRawArgValue = choice
+  [ char '"' >> (:) <$> pure '"' <*> parseStringValue
+  , many1 $ satisfy $ \c -> all ($ c)
+      [ not . Data.Char.isSpace
+      , (/= ')')
+      ]
+  ]
 
 
 
@@ -162,10 +184,7 @@ parseARawArg = do
   _ <- char ':'
   skipSpace
   -- TODO(sandy): make this less shitty
-  result <- many1 $ satisfy $ \c -> all ($ c)
-    [ not . Data.Char.isSpace
-    , (/= ')')
-    ]
+  result <- parseRawArgValue
   pure (first : rest, result)
 
 
