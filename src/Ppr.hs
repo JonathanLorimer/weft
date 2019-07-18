@@ -1,12 +1,16 @@
 module Ppr where
 
-import Data.Proxy
-import GHC.TypeLits
-import TestData
-import Text.PrettyPrint.HughesPJ
-import SchemaGenerator
-import GHC.Generics
-import Prelude hiding ((<>))
+import           Data.List.NonEmpty
+import qualified Data.Map as M
+import           Data.Proxy
+import           Data.Typeable
+import           GHC.Generics
+import           GHC.TypeLits
+import           Prelude hiding ((<>))
+import           SchemaGenerator
+import           TestData
+import           Text.PrettyPrint.HughesPJ
+
 
 
 pprBang :: Bool -> Doc
@@ -48,20 +52,23 @@ pprRecord
     -> Doc
 pprRecord = gPprRecord . from
 
+pprTypeHerald :: String -> Doc -> Doc
+pprTypeHerald name doc = vcat
+  [ hsep
+    [ text "type"
+    , text name
+    , char '{'
+    ]
+  , nest 4 doc
+  , char '}'
+  ]
+
 
 class GPprRecord rs where
   gPprRecord :: rs x -> Doc
 
 instance (KnownSymbol name, GPprRecord f) => GPprRecord (M1 D ('MetaData name _1 _2 _3) f) where
-  gPprRecord (M1 f) = vcat
-    [ hsep
-      [ text "type"
-      , text $ symbolVal $ Proxy @name
-      , char '{'
-      ]
-    , nest 4 $ gPprRecord f
-    , char '}'
-    ]
+  gPprRecord (M1 f) = pprTypeHerald (symbolVal $ Proxy @name) $ gPprRecord f
 
 instance (GPprRecord f, GPprRecord g) => GPprRecord (f :*: g) where
   gPprRecord (f :*: g) = vcat
@@ -74,4 +81,52 @@ instance {-# OVERLAPPABLE #-} GPprRecord f => GPprRecord (M1 _1 _2 f) where
 
 instance GPprRecord (K1 _1 (Field args)) where
   gPprRecord (K1 f) = pprField f
+
+type HasFindTypes record =
+  ( GFindTypes (Rep (record 'Data))
+  , GHasSchema (Rep (record 'Data)) (Rep (record 'Schema))
+  , GPprRecord (Rep (record 'Schema))
+  , Typeable record
+  , Generic (record 'Data)
+  , Generic (record 'Schema)
+  )
+
+allTypes :: forall record. HasFindTypes record => [Doc]
+allTypes = fmap snd $ M.toList $ findTypes @record M.empty
+
+findTypes
+    :: forall record
+     . HasFindTypes record
+    => M.Map TypeRep Doc
+    -> M.Map TypeRep Doc
+findTypes m =
+  case M.lookup name m of
+    Just x -> m
+    Nothing -> gFindTypes @(Rep (record 'Data)) $ M.insert name (pprRecord $ schema @record) m
+  where
+    name = typeRep $ Proxy @record
+
+
+class GFindTypes rd where
+  gFindTypes :: M.Map TypeRep Doc -> M.Map TypeRep Doc
+
+instance GFindTypes rd => GFindTypes (M1 _1 _2 rd) where
+  gFindTypes = gFindTypes @rd
+
+instance (GFindTypes rd, GFindTypes rd') => GFindTypes (rd :*: rd') where
+  gFindTypes m =
+    let m' = gFindTypes @rd m
+     in gFindTypes @rd' m'
+
+instance (HasFindTypes record) => GFindTypes (K1 _1 (record 'Data)) where
+  gFindTypes = findTypes @record
+
+instance (HasFindTypes record) => GFindTypes (K1 _1 [record 'Data]) where
+  gFindTypes = findTypes @record
+
+instance (HasFindTypes record) => GFindTypes (K1 _1 (NonEmpty (record 'Data))) where
+  gFindTypes = findTypes @record
+
+instance {-# OVERLAPPABLE #-} GFindTypes (K1 _1 _2) where
+  gFindTypes = id
 

@@ -25,6 +25,9 @@ class HasGqlType a where
 instance {-# OVERLAPPING #-} HasGqlType String where
   gqlType = GqlSingle True "String"
 
+instance {-# OVERLAPPING #-} Typeable record => HasGqlType (record (ts :: TypeState)) where
+  gqlType = GqlSingle True $ show $ typeRep $ Proxy @record
+
 instance {-# OVERLAPPABLE #-} Typeable a => HasGqlType a where
   gqlType = GqlSingle True $ show $ typeRep $ Proxy @a
 
