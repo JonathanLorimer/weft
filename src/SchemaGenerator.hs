@@ -6,7 +6,7 @@ import GHC.TypeLits
 import Data.Proxy
 import Data.Typeable
 
-data TypeState = Query | Data | Schema | Response
+data TypeState = Query | Data | Schema | Response | Resolver
 
 data NameType = NameType
   { ntName :: String
@@ -48,6 +48,10 @@ type family Fst (u :: (k1, k2)) :: k1 where
 
 
 type family Magic (ts :: TypeState) a where
+  Magic 'Resolver (Arg n t -> a)     = Arg n t -> Magic 'Resolver a
+  Magic 'Resolver [record 'Resolver] = record 'Query -> IO [record 'Response]
+  Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)
+  Magic 'Resolver a                  = IO a
   Magic 'Data     (Arg n t -> a)     = Magic 'Data a
   Magic 'Data     a                  = a
   Magic 'Query    ts                 = Maybe (Something (UnravelArgs ts))

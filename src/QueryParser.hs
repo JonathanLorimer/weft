@@ -33,5 +33,5 @@ instance GEmptyQuery (K1 x (Maybe a)) where
 
 
 
-testEmptyQuery :: User' 'Query
+testEmptyQuery :: User 'Query
 testEmptyQuery = emptyQuery
