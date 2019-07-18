@@ -22,6 +22,10 @@ description: Please see the README on GitHub at <https://github.com/jonathanlori
 dependencies:
   - base >= 4.7 && < 5
   - text
+  - bytestring
+  - aeson
+  - microlens
+  - microlens-aeson
   - attoparsec
   - containers
   - warp

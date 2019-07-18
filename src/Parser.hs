@@ -2,8 +2,9 @@ module Parser where
 
 import           Args
 import           Control.Applicative
-import           Data.Attoparsec.Text
+import           Data.Attoparsec.ByteString.Char8
 import           Data.Char
+import qualified Data.ByteString.Char8 as BS
 import           Data.Foldable
 import qualified Data.Map as M
 import           Data.Maybe
@@ -53,7 +54,7 @@ instance (KnownSymbol name, FromRawArgs args, IsAllMaybe args)
       => GIncrParser rep (M1 S ('MetaSel ('Just name) _1 _2 _3)
                          (K1 _4 (Maybe (Args args, ())))) where
   gIncrParser get set rep = do
-    string $ T.pack $ symbolVal $ Proxy @name
+    string $ BS.pack $ symbolVal $ Proxy @name
     skipSpace
     args <- parseOptionalArgs @args
     pure $ set (M1 $ K1 $ Just (args, ())) $ rep
@@ -66,7 +67,7 @@ instance ( KnownSymbol name
          ) => GIncrParser rep (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                     (K1 _4 (Maybe (Args args, t 'Query)))) where
   gIncrParser get set rep = do
-    string $ T.pack $ symbolVal $ Proxy @name
+    string $ BS.pack $ symbolVal $ Proxy @name
     skipSpace
     args <- parseOptionalArgs @args
     skipSpace
@@ -97,7 +98,7 @@ instance IsAllMaybe ('(a, b) ': ts) where
 parseArgs :: FromRawArgs args => Parser (Args args)
 parseArgs = do
   raw <- parseRawArgs
-  maybe empty pure $ fromRawArgs raw
+  maybe Control.Applicative.empty pure $ fromRawArgs raw
 
 
 parseOptionalArgs :: forall args. (FromRawArgs args, IsAllMaybe args) => Parser (Args args)
@@ -123,7 +124,7 @@ parseARawArg = do
   _ <- char ':'
   skipSpace
   -- TODO(sandy): make this less shitty
-  result <- many1 $ satisfy $ not . isSpace
+  result <- many1 $ satisfy $ not . (Data.Char.isSpace)
   pure (first : rest, result)
 
 
