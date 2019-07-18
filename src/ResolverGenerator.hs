@@ -7,13 +7,10 @@ import Args
 import GHC.Generics
 import Data.Typeable
 
--- type IsResolvable record = ( Generic (record 'Data)
---                             , Generic (record 'Query)
---                             , Generic (record 'Response)
---                             , GHydrate (Rep (record 'Data))
---                                     (Rep (record 'Query))
---                                     (Rep (record 'Response))
---                             )
+
+testResolve :: User 'Resolver -> User 'Query -> IO (User 'Response)
+testResolve = doResolve
+
 
 doResolve
     :: ( GResolve (Rep (record 'Resolver)) (Rep (record 'Query)) (Rep (record 'Response))
