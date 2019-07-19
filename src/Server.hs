@@ -5,7 +5,7 @@ import Weft.Generics.QueryParser
 import TestData
 import Lens.Micro
 import Lens.Micro.Aeson
-import Network.Wai (responseLBS, Application, requestBody)
+import Network.Wai (responseLBS, Application, getRequestBodyChunk)
 import Network.Wai.Handler.Warp (run)
 import Network.HTTP.Types (status200)
 import Network.HTTP.Types.Header (hContentType)
@@ -36,11 +36,16 @@ note (Just x) = Right x
 
 app :: Application
 app req f = do
-    rb <- requestBody req
+    rb <- getRequestBodyChunk req
+    let tq = note . maybeQuery $ rb
+    print tq
     let _eitherQuery = do
             textQuery <- note . maybeQuery $ rb
-            parseReqBody textQuery
-    f $ responseLBS status200 [(hContentType, "text/plain")] "type Query { getGod: God! } type God { name: String entity_type: String god_of: String parents: [Entity] consorts: [Entity] children: [God] roman: String generation: Int olympian: Boolean }"
+            -- TODO: actually parse out query, don't just drop it.
+            Right $ Data.Text.drop 6 $ textQuery
+    print _eitherQuery
+    print $ parseReqBody <$> _eitherQuery
+    f $ responseLBS status200 [(hContentType, "text/plain")] "response"
 
 main :: IO ()
 main = do
