@@ -45,7 +45,7 @@ app req f = do
             Right $ Data.Text.drop 6 $ textQuery
     print _eitherQuery
     print $ parseReqBody <$> _eitherQuery
-    f $ responseLBS status200 [(hContentType, "text/plain")] "response"
+    f $ responseLBS status200 [(hContentType, "application/json")] "response"
 
 main :: IO ()
 main = do
