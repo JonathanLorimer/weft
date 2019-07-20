@@ -17,16 +17,12 @@ import qualified Data.ByteString.Lazy as BL
 
 
 
-parseReqBody :: RequestType ByteString -> Either String (User 'Query)
-parseReqBody (QueryRequest query)         = parseOnly
-                                            queryParser
-                                            query
-parseReqBody (MutationRequest query)      = parseOnly
-                                            queryParser
-                                            query
-parseReqBody (SubscriptionRequest query)  = parseOnly
-                                            queryParser
-                                            query
+parseReqBody :: RequestType ByteString -> Either String (record 'Query)
+parseReqBody (QueryRequest query)               = parseOnly
+                                                  queryParser
+                                                  query
+parseReqBody (MutationRequest mutation)         = undefined
+parseReqBody (SubscriptionRequest subscription) = undefined
 
 
 maybeQuery :: ByteString -> Maybe ByteString
@@ -51,7 +47,7 @@ app req f = do
             textQuery <- note . maybeQuery $ rb
             reqBody <- parseServerRequest textQuery
             parseReqBody reqBody
-    print _eitherQuery
+    -- print _eitherQuery
     f $ responseLBS status200 [(hContentType, "application/json")] "response"
 
 main :: IO ()
