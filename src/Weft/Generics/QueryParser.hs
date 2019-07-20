@@ -1,13 +1,14 @@
 module Weft.Generics.QueryParser
   ( HasQueryParser
-  , queryParser
   , Vars
+  , queryParser
   ) where
 
 import           Control.Applicative
 import           Control.Applicative.Permutations
 import           Control.Monad.Reader
 import           Data.Attoparsec.ByteString.Char8
+import qualified Data.Attoparsec.ByteString.Char8 as AP
 import qualified Data.ByteString.Char8 as BS
 import           Data.Char
 import qualified Data.Map as M
@@ -146,17 +147,17 @@ parseRawArgValue = choice
       ]
   ]
 
-parseStringValue :: Parser String
+parseStringValue :: AP.Parser String
 parseStringValue = do
-  c <- peekChar
+  c <- AP.peekChar
   case c of
-    Just '"' -> char '"' >> pure "\""
+    Just '"' -> AP.char '"' >> pure "\""
     Just '\\' -> do
-      c1 <- anyChar
-      c2 <- anyChar
+      c1 <- AP.anyChar
+      c2 <- AP.anyChar
       (++) <$> pure (c1 : c2 : [])
            <*> parseStringValue
-    Just _ -> (:) <$> anyChar
+    Just _ -> (:) <$> AP.anyChar
                   <*> parseStringValue
     Nothing -> empty
 
