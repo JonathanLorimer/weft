@@ -1,5 +1,5 @@
 .stack-work/
-gql.cabal
+weft.cabal
 dist/
 .DS_Store
 *~
