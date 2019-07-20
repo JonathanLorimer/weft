@@ -1,11 +1,16 @@
 module Weft.Generics.QueryParser
-  ( HasQueryParser
+  ( RequestType(..)
+  , HasQueryParser
+  , parseQ
+  , parseM
+  , parseS
   , queryParser
+  , parseServerRequest
   ) where
 
 import           Control.Applicative
 import           Control.Applicative.Permutations
-import           Data.Attoparsec.ByteString.Char8
+import qualified Data.Attoparsec.ByteString.Char8 as AP
 import qualified Data.ByteString.Char8 as BS
 import           Data.Char
 import           Data.Foldable
@@ -23,14 +28,14 @@ type HasQueryParser record =
      , GIncrParser (Rep (record 'Query))
      )
 
-incrParser :: HasQueryParser record => Parser (record 'Query)
+incrParser :: HasQueryParser record => AP.Parser (record 'Query)
 incrParser = fmap to gIncrParser
 
 
 ------------------------------------------------------------------------------
 -- |
 class GPermFieldsParser (rq :: * -> *) where
-  gPermFieldsParser :: Permutation Parser (rq x)
+  gPermFieldsParser :: Permutation AP.Parser (rq x)
 
 instance {-# OVERLAPPABLE #-} GPermFieldsParser fq => GPermFieldsParser (M1 a b fq) where
   gPermFieldsParser = M1 <$> gPermFieldsParser
@@ -48,8 +53,8 @@ instance (KnownSymbol name, FromRawArgs args, IsAllMaybe args)
       => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                          (K1 _4 (Maybe (Args args, ())))) where
   gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
-    _ <- string $ BS.pack $ symbolVal $ Proxy @name
-    skipSpace
+    _ <- AP.string $ BS.pack $ symbolVal $ Proxy @name
+    AP.skipSpace
     args <- parseOptionalArgs @args
     pure $ Just (args, ())
 
@@ -61,15 +66,15 @@ instance ( KnownSymbol name
          ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                     (K1 _4 (Maybe (Args args, t 'Query)))) where
   gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
-    _ <- string $ BS.pack $ symbolVal $ Proxy @name
-    skipSpace
+    _ <- AP.string $ BS.pack $ symbolVal $ Proxy @name
+    AP.skipSpace
     args <- parseOptionalArgs @args
-    skipSpace
-    _ <- char '{'
-    skipSpace
+    AP.skipSpace
+    _ <- AP.char '{'
+    AP.skipSpace
     z <- incrParser
-    _ <- char '}'
-    skipSpace
+    _ <- AP.char '}'
+    AP.skipSpace
     pure $ Just (args, z)
 
 
@@ -77,13 +82,13 @@ instance ( KnownSymbol name
 ------------------------------------------------------------------------------
 -- |
 class GIncrParser (rq :: * -> *) where
-  gIncrParser :: Parser (rq x)
+  gIncrParser :: AP.Parser (rq x)
 
 instance {-# OVERLAPPABLE #-} GIncrParser fq => GIncrParser (M1 a b fq) where
   gIncrParser = M1 <$> gIncrParser
 
 instance ( GPermFieldsParser (fq :*: gq)) => GIncrParser (fq :*: gq) where
-  gIncrParser = intercalateEffect skipSpace gPermFieldsParser
+  gIncrParser = intercalateEffect AP.skipSpace gPermFieldsParser
 
 instance GPermFieldsParser (M1 _1 _2 (K1 _3 f)) => GIncrParser (M1 _1 _2 (K1 _3 f)) where
   gIncrParser = runPermutation gPermFieldsParser
@@ -120,77 +125,122 @@ instance {-# OVERLAPPING #-} (Read t, FromRawArgs args, KnownSymbol name) => Fro
 
 ------------------------------------------------------------------------------
 -- |
-parseOptionalArgs :: forall args. (FromRawArgs args, IsAllMaybe args) => Parser (Args args)
+parseOptionalArgs :: forall args. (FromRawArgs args, IsAllMaybe args) => AP.Parser (Args args)
 parseOptionalArgs =
   case isAllMaybe @args of
     Nothing -> parseArgs
     Just argsOfNothing -> parseArgs <|> pure argsOfNothing
 
 
-parseArgs :: FromRawArgs args => Parser (Args args)
+parseArgs :: FromRawArgs args => AP.Parser (Args args)
 parseArgs = do
   raw <- parseRawArgs
   maybe Control.Applicative.empty pure $ fromRawArgs raw
 
 
-parseRawArgs :: Parser (M.Map String String)
+parseRawArgs :: AP.Parser (M.Map String String)
 parseRawArgs = fmap M.fromList $ do
-  skipSpace
-  _ <- char '('
-  skipSpace
-  z <- parseARawArg `sepBy` (skipSpace >> char ',' >> skipSpace)
-  skipSpace
-  _ <- char ')'
-  skipSpace
+  AP.skipSpace
+  _ <- AP.char '('
+  AP.skipSpace
+  z <- parseARawArg `AP.sepBy` (AP.skipSpace >> AP.char ',' >> AP.skipSpace)
+  AP.skipSpace
+  _ <- AP.char ')'
+  AP.skipSpace
   pure z
 
 
-parseARawArg :: Parser (String, String)
+parseARawArg :: AP.Parser (String, String)
 parseARawArg = do
-  skipSpace
-  first <- satisfy $ inClass "_A-Za-z"
-  rest <- many $ satisfy $ inClass "_0-9A-Za-z"
-  skipSpace
-  _ <- char ':'
-  skipSpace
+  AP.skipSpace
+  first <- AP.satisfy $ AP.inClass "_A-Za-z"
+  rest <- many $ AP.satisfy $ AP.inClass "_0-9A-Za-z"
+  AP.skipSpace
+  _ <- AP.char ':'
+  AP.skipSpace
   -- TODO(sandy): make this less shitty
   result <- parseRawArgValue
   pure (first : rest, result)
 
 
-parseRawArgValue :: Parser String
-parseRawArgValue = choice
-  [ char '"' >> (:) <$> pure '"' <*> parseStringValue
-  , many1 $ satisfy $ \c -> all ($ c)
+parseRawArgValue :: AP.Parser String
+parseRawArgValue = AP.choice
+  [ AP.char '"' >> (:) <$> pure '"' <*> parseStringValue
+  , AP.many1 $ AP.satisfy $ \c -> all ($ c)
       [ not . Data.Char.isSpace
       , (/= ')')
       ]
   ]
 
-parseStringValue :: Parser String
+parseStringValue :: AP.Parser String
 parseStringValue = do
-  c <- peekChar
+  c <- AP.peekChar
   case c of
-    Just '"' -> char '"' >> pure "\""
+    Just '"' -> AP.char '"' >> pure "\""
     Just '\\' -> do
-      c1 <- anyChar
-      c2 <- anyChar
+      c1 <- AP.anyChar
+      c2 <- AP.anyChar
       (++) <$> pure (c1 : c2 : [])
            <*> parseStringValue
-    Just _ -> (:) <$> anyChar
+    Just _ -> (:) <$> AP.anyChar
                   <*> parseStringValue
     Nothing -> empty
 
 
 ------------------------------------------------------------------------------
 -- |
-queryParser :: (HasEmptyQuery record, HasQueryParser record) => Parser (record 'Query)
+
+data RequestType s = QueryRequest s
+                   | MutationRequest s
+                   | SubscriptionRequest s
+                   deriving (Eq, Ord, Show)
+instance Functor RequestType where
+    fmap f (QueryRequest x) = QueryRequest $ f x
+    fmap f (MutationRequest x) = MutationRequest $ f x
+    fmap f (SubscriptionRequest x) = SubscriptionRequest $ f x
+
+parseRequestSignature :: BS.ByteString 
+                      -> (BS.ByteString -> RequestType BS.ByteString)
+                      -> AP.Parser (RequestType BS.ByteString)
+parseRequestSignature str constructor = do
+    body <- AP.string str
+    _ <- AP.skipSpace
+    pure $ constructor (body)
+
+parseQ :: AP.Parser (RequestType BS.ByteString)
+parseQ = parseRequestSignature "query" QueryRequest
+
+parseM :: AP.Parser (RequestType BS.ByteString)
+parseM = parseRequestSignature "mutation" MutationRequest
+
+parseS :: AP.Parser (RequestType BS.ByteString)
+parseS = parseRequestSignature "subscription" SubscriptionRequest
+
+parseRequestType :: AP.Parser (RequestType BS.ByteString)
+parseRequestType = do
+      _ <- AP.skipSpace
+      AP.choice [ parseQ
+                , parseM
+                , parseS
+                ]
+
+parseServerRequest :: BS.ByteString -> Either String (RequestType BS.ByteString)
+parseServerRequest s = foldResult $ AP.parse parseRequestType s
+
+foldResult :: AP.Result (RequestType BS.ByteString) -> Either String (RequestType BS.ByteString)
+foldResult (AP.Done body constructor) = Right $ (const body) <$> constructor
+foldResult (AP.Partial _) = Left "Partial"
+foldResult (AP.Fail _ _ _) = Left "server request failed to parse"
+------------------------------------------------------------------------------
+-- |
+
+queryParser :: (HasEmptyQuery record, HasQueryParser record) => AP.Parser (record 'Query)
 queryParser = do
-  _ <- char '{'
-  _ <- skipSpace
+  _ <- AP.char '{'
+  _ <- AP.skipSpace
   p <- incrParser
-  _ <- skipSpace
-  _ <- char '}'
-  _ <- skipSpace
+  _ <- AP.skipSpace
+  _ <- AP.char '}'
+  _ <- AP.skipSpace
   pure p
 

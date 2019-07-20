@@ -12,22 +12,27 @@ import Network.HTTP.Types.Header (hContentType)
 import Data.Aeson hiding (json)
 import Data.Attoparsec.ByteString.Char8
 import Data.ByteString.Char8
-import Data.Text
 import Data.Text.Encoding
 import qualified Data.ByteString.Lazy as BL
 
 
 
+parseReqBody :: RequestType ByteString -> Either String (User 'Query)
+parseReqBody (QueryRequest query)         = parseOnly
+                                            queryParser
+                                            query
+parseReqBody (MutationRequest query)      = parseOnly
+                                            queryParser
+                                            query
+parseReqBody (SubscriptionRequest query)  = parseOnly
+                                            queryParser
+                                            query
 
-parseReqBody :: Text -> Either String (User 'Query)
-parseReqBody query = parseOnly
-                    queryParser
-                    (encodeUtf8 $ query)
 
-maybeQuery :: ByteString -> Maybe Text
+maybeQuery :: ByteString -> Maybe ByteString
 maybeQuery rb = do
     json <- decode @Value $ BL.fromStrict rb
-    (^? key "query" . _String) json
+    encodeUtf8 <$> ((^? key "query" . _String) json)
 
 
 note :: Maybe a -> Either String a
@@ -38,13 +43,15 @@ app :: Application
 app req f = do
     rb <- getRequestBodyChunk req
     let tq = note . maybeQuery $ rb
+    Prelude.putStrLn "tq"
     print tq
+    Prelude.putStrLn "maybeQuery"
+    print $ note . maybeQuery $ rb
     let _eitherQuery = do
             textQuery <- note . maybeQuery $ rb
-            -- TODO: actually parse out query, don't just drop it.
-            Right $ Data.Text.drop 6 $ textQuery
+            reqBody <- parseServerRequest textQuery
+            parseReqBody reqBody
     print _eitherQuery
-    print $ parseReqBody <$> _eitherQuery
     f $ responseLBS status200 [(hContentType, "application/json")] "response"
 
 main :: IO ()
@@ -53,4 +60,3 @@ main = do
     Prelude.putStrLn $ "Listening on port " ++ show port
     run port app
 
--- $> main
