@@ -17,7 +17,7 @@ import qualified Data.ByteString.Lazy as BL
 
 
 
-parseReqBody :: RequestType ByteString -> Either String (record 'Query)
+parseReqBody :: RequestType ByteString -> Either String (User 'Query)
 parseReqBody (QueryRequest query)               = parseOnly
                                                   queryParser
                                                   query
@@ -38,6 +38,7 @@ note (Just x) = Right x
 app :: Application
 app req f = do
     rb <- getRequestBodyChunk req
+    Prelude.putStrLn $ unpack rb
     let tq = note . maybeQuery $ rb
     Prelude.putStrLn "tq"
     print tq
