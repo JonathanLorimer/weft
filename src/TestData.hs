@@ -5,11 +5,18 @@
 module TestData where
 
 import Weft.Internal.Types
+import Weft.Generics.Resolve
+import Weft.Generics.Hydrate
 import GHC.Generics
 import Test.QuickCheck
 
 newtype Id = Id String deriving (Generic, Show, Eq, Ord)
 newtype Name = Name String deriving (Generic, Show, Eq, Ord)
+
+data GqlQuery ts = GqlQuery
+    { getUser :: Magic ts (Arg "id" Id -> User ts)
+    , getAllUsers :: Magic ts [User ts]
+    }
 
 data User ts = User
   { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
@@ -21,6 +28,29 @@ data User ts = User
 data Account ts = Account
   { accountBalance :: Magic ts (Arg "num" (Maybe Int) -> Int)
   } deriving (Generic)
+
+jonathan :: User 'Data
+jonathan = User { userId = (Id "1"), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
+
+sandy :: User 'Data
+sandy = User { userId = (Id "2"), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
+
+getUserResolver :: Id -> User 'Query -> User 'Response
+getUserResolver a q
+    | a == (Id "1") = hydrate jonathan q
+    | a == (Id "2") = hydrate sandy q
+    | otherwise = hydrate jonathan q
+
+getAllUsersResolver :: User 'Query -> IO (User 'Response)
+getAllUsersResolver q = pure $ hydrate [sandy, jonathan] q
+
+queryResolver :: GqlQuery 'Resolver
+queryResolver = GqlQuery 
+            { getUser = getUserResolver
+            , getAllUsers = resolve getAllUsersResolver
+            }
+
+-- resolver = resolve (User @('Resolver)) (User @('Query))
 
 deriving instance Show (User 'Data)
 deriving instance Show (User 'Schema)
