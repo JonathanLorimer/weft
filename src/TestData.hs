@@ -1,10 +1,10 @@
 {-# LANGUAGE LambdaCase                #-}
-{-# LANGUAGE NoMonoLocalBinds            #-}
+{-# LANGUAGE NoMonoLocalBinds          #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 module TestData where
 
-import Weft.Internal.Types
+import Weft.Types
 import GHC.Generics
 import Test.QuickCheck
 
@@ -18,27 +18,16 @@ data User ts = User
   , userFriends    :: Magic ts [User ts]
   } deriving (Generic)
 
+deriving instance AllHave Show (User ts) => Show (User ts)
+deriving instance AllHave Eq (User ts)   => Eq (User ts)
+
 data Account ts = Account
   { accountBalance :: Magic ts (Arg "num" (Maybe Int) -> Int)
   } deriving (Generic)
 
-deriving instance Show (User 'Data)
-deriving instance Show (User 'Schema)
-deriving instance Show (User 'Response)
-deriving instance Show (User 'Query)
+deriving instance AllHave Show (Account ts) => Show (Account ts)
+deriving instance AllHave Eq (Account ts)   => Eq (Account ts)
 
-deriving instance Show (Account 'Data)
-deriving instance Show (Account 'Schema)
-deriving instance Show (Account 'Response)
-deriving instance Show (Account 'Query)
-
-deriving instance Eq (User 'Data)
-deriving instance Eq (User 'Schema)
-deriving instance Eq (User 'Query)
-
-deriving instance Eq (Account 'Data)
-deriving instance Eq (Account 'Schema)
-deriving instance Eq (Account 'Query)
 
 instance Arbitrary (Account 'Query) where
   arbitrary = Account <$> arbitrary
