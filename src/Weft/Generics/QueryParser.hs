@@ -8,8 +8,6 @@ import           Control.Applicative.Permutations
 import           Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString.Char8 as BS
 import           Data.Char
-import           Data.Foldable
-import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Proxy
 import           GHC.Generics
@@ -20,11 +18,11 @@ import           Weft.Internal.Types
 
 type HasQueryParser record =
      ( Generic (record 'Query)
-     , GIncrParser (Rep (record 'Query))
+     , GQueryParser (Rep (record 'Query))
      )
 
 incrParser :: HasQueryParser record => Parser (record 'Query)
-incrParser = fmap to gIncrParser
+incrParser = fmap to gQueryParser
 
 
 ------------------------------------------------------------------------------
@@ -39,12 +37,9 @@ instance ( GPermFieldsParser fq
          , GPermFieldsParser gq
          ) => GPermFieldsParser (fq :*: gq) where
   gPermFieldsParser = (:*:) <$> gPermFieldsParser
-                          <*> gPermFieldsParser
+                            <*> gPermFieldsParser
 
--- TODO(sandy): thiere is a bug here where if the args are necessary and you
--- dont put them in then the parser will succeed with the field being
--- un-asked-for
-instance (KnownSymbol name, FromRawArgs args, IsAllMaybe args)
+instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
       => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                          (K1 _4 (Maybe (Args args, ())))) where
   gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
@@ -56,7 +51,7 @@ instance (KnownSymbol name, FromRawArgs args, IsAllMaybe args)
 instance ( KnownSymbol name
          , HasQueryParser t
          , HasEmptyQuery t
-         , FromRawArgs args
+         , ParseArgs args
          , IsAllMaybe args
          ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                     (K1 _4 (Maybe (Args args, t 'Query)))) where
@@ -76,86 +71,47 @@ instance ( KnownSymbol name
 
 ------------------------------------------------------------------------------
 -- |
-class GIncrParser (rq :: * -> *) where
-  gIncrParser :: Parser (rq x)
+class GQueryParser (rq :: * -> *) where
+  gQueryParser :: Parser (rq x)
 
-instance {-# OVERLAPPABLE #-} GIncrParser fq => GIncrParser (M1 a b fq) where
-  gIncrParser = M1 <$> gIncrParser
+instance {-# OVERLAPPABLE #-} GQueryParser fq => GQueryParser (M1 a b fq) where
+  gQueryParser = M1 <$> gQueryParser
 
-instance ( GPermFieldsParser (fq :*: gq)) => GIncrParser (fq :*: gq) where
-  gIncrParser = intercalateEffect skipSpace gPermFieldsParser
+instance ( GPermFieldsParser (fq :*: gq)) => GQueryParser (fq :*: gq) where
+  gQueryParser = intercalateEffect skipSpace gPermFieldsParser
 
-instance GPermFieldsParser (M1 _1 _2 (K1 _3 f)) => GIncrParser (M1 _1 _2 (K1 _3 f)) where
-  gIncrParser = runPermutation gPermFieldsParser
-
-
-------------------------------------------------------------------------------
--- |
-class FromRawArgs args where
-  -- TODO(sandy): put in errors
-  fromRawArgs :: M.Map String String -> Maybe (Args args)
-
-instance FromRawArgs '[] where
-  fromRawArgs = const $ pure ANil
-
-instance (Read t, FromRawArgs args, KnownSymbol name) => FromRawArgs ('(name, t) ': args) where
-  fromRawArgs raw = do
-    args <- fromRawArgs @args raw
-    found <- M.lookup (symbolVal $ Proxy @name) raw
-    readed <- listToMaybe $ fmap fst $ reads @t found
-    pure $ Arg readed :@@ args
-
-instance {-# OVERLAPPING #-} (Read t, FromRawArgs args, KnownSymbol name) => FromRawArgs ('(name, Maybe t) ': args) where
-  fromRawArgs raw = do
-    args <- fromRawArgs @args raw
-    asum
-      [ do
-         found <- M.lookup (symbolVal $ Proxy @name) raw
-         readed <- listToMaybe $ fmap fst $ reads @t found
-         pure $ Arg (Just readed) :@@ args
-      , pure $ Arg Nothing :@@ args
-      ]
-
+instance GPermFieldsParser (M1 _1 _2 (K1 _3 f)) => GQueryParser (M1 _1 _2 (K1 _3 f)) where
+  gQueryParser = runPermutation gPermFieldsParser
 
 
 ------------------------------------------------------------------------------
 -- |
-parseOptionalArgs :: forall args. (FromRawArgs args, IsAllMaybe args) => Parser (Args args)
+parseOptionalArgs :: forall args. (ParseArgs args, IsAllMaybe args) => Parser (Args args)
 parseOptionalArgs =
   case isAllMaybe @args of
-    Nothing -> parseArgs
-    Just argsOfNothing -> parseArgs <|> pure argsOfNothing
+    Nothing -> parseArgList
+    Just argsOfNothing ->
+      fmap (fromMaybe argsOfNothing)
+        $ optional parseArgList
 
-
-parseArgs :: FromRawArgs args => Parser (Args args)
-parseArgs = do
-  raw <- parseRawArgs
-  maybe Control.Applicative.empty pure $ fromRawArgs raw
-
-
-parseRawArgs :: Parser (M.Map String String)
-parseRawArgs = fmap M.fromList $ do
-  skipSpace
+parseArgList :: ParseArgs args => Parser (Args args)
+parseArgList = do
   _ <- char '('
-  skipSpace
-  z <- parseARawArg `sepBy` (skipSpace >> char ',' >> skipSpace)
-  skipSpace
+  z <- intercalateEffect (skipSpace >> char ',' >> skipSpace) $ parseArgs
   _ <- char ')'
-  skipSpace
   pure z
 
 
-parseARawArg :: Parser (String, String)
-parseARawArg = do
+parseAnArg :: Read a => String -> Parser a
+parseAnArg arg_name = do
   skipSpace
-  first <- satisfy $ inClass "_A-Za-z"
-  rest <- many $ satisfy $ inClass "_0-9A-Za-z"
+  _ <- string $ BS.pack arg_name
   skipSpace
   _ <- char ':'
   skipSpace
   -- TODO(sandy): make this less shitty
   result <- parseRawArgValue
-  pure (first : rest, result)
+  pure $ read result
 
 
 parseRawArgValue :: Parser String
@@ -193,4 +149,40 @@ queryParser = do
   _ <- char '}'
   _ <- skipSpace
   pure p
+
+
+------------------------------------------------------------------------------
+-- |
+class ParseArgs (args :: [(Symbol, *)]) where
+  parseArgs :: Permutation Parser (Args args)
+
+instance ParseArgs '[] where
+  parseArgs = pure ANil
+
+instance {-# OVERLAPPING #-}
+         ( Read t
+         , ParseArgs args
+         , KnownSymbol n
+         ) => ParseArgs ('(n, Maybe t) ': args) where
+  parseArgs =
+    -- 'Maybe' arguments are allowed to be missing
+    (:@@) <$> fmap Arg ( toPermutationWithDefault Nothing
+                       . fmap Just
+                       . parseAnArg
+                       . symbolVal
+                       $ Proxy @n
+                       )
+          <*> parseArgs
+
+instance ( Read t
+         , ParseArgs args
+         , KnownSymbol n
+         ) => ParseArgs ('(n, t) ': args) where
+  parseArgs =
+    (:@@) <$> fmap Arg ( toPermutation
+                       . parseAnArg
+                       . symbolVal
+                       $ Proxy @n
+                       )
+          <*> parseArgs
 
