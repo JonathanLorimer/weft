@@ -35,6 +35,7 @@ dependencies:
   - QuickCheck
   - hspec
   - parser-combinators
+  - mtl
 
 default-extensions:
   - DeriveGeneric
