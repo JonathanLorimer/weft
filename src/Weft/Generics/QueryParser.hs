@@ -5,9 +5,11 @@ module Weft.Generics.QueryParser
 
 import           Control.Applicative
 import           Control.Applicative.Permutations
+import           Control.Monad.Reader
 import           Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString.Char8 as BS
 import           Data.Char
+import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Proxy
 import           GHC.Generics
@@ -21,14 +23,17 @@ type HasQueryParser record =
      , GQueryParser (Rep (record 'Query))
      )
 
-incrParser :: HasQueryParser record => Parser (record 'Query)
+incrParser :: HasQueryParser record => ReaderT Vars Parser (record 'Query)
 incrParser = fmap to gQueryParser
+
+
+type Vars = M.Map String String
 
 
 ------------------------------------------------------------------------------
 -- |
 class GPermFieldsParser (rq :: * -> *) where
-  gPermFieldsParser :: Permutation Parser (rq x)
+  gPermFieldsParser :: Permutation (ReaderT Vars Parser) (rq x)
 
 instance {-# OVERLAPPABLE #-} GPermFieldsParser fq => GPermFieldsParser (M1 a b fq) where
   gPermFieldsParser = M1 <$> gPermFieldsParser
@@ -43,8 +48,8 @@ instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
       => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                          (K1 _4 (Maybe (Args args, ())))) where
   gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
-    _ <- string $ BS.pack $ symbolVal $ Proxy @name
-    skipSpace
+    _ <- lift $ string $ BS.pack $ symbolVal $ Proxy @name
+    lift skipSpace
     args <- parseOptionalArgs @args
     pure $ Just (args, ())
 
@@ -56,15 +61,15 @@ instance ( KnownSymbol name
          ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                     (K1 _4 (Maybe (Args args, t 'Query)))) where
   gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
-    _ <- string $ BS.pack $ symbolVal $ Proxy @name
-    skipSpace
+    _ <- lift $ string $ BS.pack $ symbolVal $ Proxy @name
+    lift skipSpace
     args <- parseOptionalArgs @args
-    skipSpace
-    _ <- char '{'
-    skipSpace
+    lift skipSpace
+    _ <- lift $ char '{'
+    lift skipSpace
     z <- incrParser
-    _ <- char '}'
-    skipSpace
+    _ <- lift $ char '}'
+    lift skipSpace
     pure $ Just (args, z)
 
 
@@ -72,54 +77,71 @@ instance ( KnownSymbol name
 ------------------------------------------------------------------------------
 -- |
 class GQueryParser (rq :: * -> *) where
-  gQueryParser :: Parser (rq x)
+  gQueryParser :: ReaderT Vars Parser (rq x)
 
-instance {-# OVERLAPPABLE #-} GQueryParser fq => GQueryParser (M1 a b fq) where
+instance {-# OVERLAPPABLE #-} GQueryParser fq
+      => GQueryParser (M1 a b fq) where
   gQueryParser = M1 <$> gQueryParser
 
-instance ( GPermFieldsParser (fq :*: gq)) => GQueryParser (fq :*: gq) where
-  gQueryParser = intercalateEffect skipSpace gPermFieldsParser
+instance ( GPermFieldsParser (fq :*: gq))
+      => GQueryParser (fq :*: gq) where
+  gQueryParser = intercalateEffect (lift skipSpace) gPermFieldsParser
 
-instance GPermFieldsParser (M1 _1 _2 (K1 _3 f)) => GQueryParser (M1 _1 _2 (K1 _3 f)) where
+instance GPermFieldsParser (M1 _1 _2 (K1 _3 f))
+      => GQueryParser (M1 _1 _2 (K1 _3 f)) where
   gQueryParser = runPermutation gPermFieldsParser
 
 
 ------------------------------------------------------------------------------
 -- |
-parseOptionalArgs :: forall args. (ParseArgs args, IsAllMaybe args) => Parser (Args args)
+parseOptionalArgs
+    :: ( ParseArgs args
+       , IsAllMaybe args
+       )
+    => ReaderT Vars Parser (Args args)
 parseOptionalArgs =
-  case isAllMaybe @args of
+  case isAllMaybe of
     Nothing -> parseArgList
     Just argsOfNothing ->
       fmap (fromMaybe argsOfNothing)
         $ optional parseArgList
 
-parseArgList :: ParseArgs args => Parser (Args args)
+parseArgList :: ParseArgs args => ReaderT Vars Parser (Args args)
 parseArgList = do
-  _ <- char '('
-  z <- intercalateEffect (skipSpace >> char ',' >> skipSpace) $ parseArgs
-  _ <- char ')'
+  _ <- lift $ char '('
+  z <- intercalateEffect (lift $ skipSpace >> char ',' >> skipSpace) $ parseArgs
+  _ <- lift $ char ')'
   pure z
 
 
-parseAnArg :: Read a => String -> Parser a
+parseAnArg :: Read a => String -> ReaderT Vars Parser a
 parseAnArg arg_name = do
-  skipSpace
-  _ <- string $ BS.pack arg_name
-  skipSpace
-  _ <- char ':'
-  skipSpace
+  lift skipSpace
+  _ <- lift $ string $ BS.pack arg_name
+  lift skipSpace
+  _ <- lift $ char ':'
+  lift skipSpace
   -- TODO(sandy): make this less shitty
   result <- parseRawArgValue
   pure $ read result
 
 
-parseRawArgValue :: Parser String
+parseRawArgValue :: ReaderT Vars Parser String
 parseRawArgValue = choice
-  [ char '"' >> (:) <$> pure '"' <*> parseStringValue
-  , many1 $ satisfy $ \c -> all ($ c)
+  [do
+      _ <- lift $ char '$'
+      ident <- lift parseAnIdentifier
+      vars <- ask
+      case M.lookup ident vars of
+        -- TODO(sandy): this shouldn't return a string, since we potentially
+        -- know it's the right type inside of the vars list
+        Just res -> pure res
+        Nothing -> lift (empty <?> ("Undefined variable " ++ ident))
+  , lift $ (char '"') >> (:) <$> pure '"' <*> parseStringValue
+  , lift $ many1 $ satisfy $ \c -> all ($ c)
       [ not . Data.Char.isSpace
       , (/= ')')
+      , (/= '$')
       ]
   ]
 
@@ -138,23 +160,30 @@ parseStringValue = do
     Nothing -> empty
 
 
+parseAnIdentifier :: Parser String
+parseAnIdentifier = do
+  first <- satisfy $ inClass "_A-Za-z"
+  rest <- many $ satisfy $ inClass "_0-9A-Za-z"
+  pure $ first : rest
+
+
 ------------------------------------------------------------------------------
 -- |
-queryParser :: (HasEmptyQuery record, HasQueryParser record) => Parser (record 'Query)
+queryParser :: (HasEmptyQuery record, HasQueryParser record) => ReaderT Vars Parser (record 'Query)
 queryParser = do
-  _ <- char '{'
-  _ <- skipSpace
+  _ <- lift $ char '{'
+  _ <- lift skipSpace
   p <- incrParser
-  _ <- skipSpace
-  _ <- char '}'
-  _ <- skipSpace
+  _ <- lift skipSpace
+  _ <- lift $ char '}'
+  _ <- lift skipSpace
   pure p
 
 
 ------------------------------------------------------------------------------
 -- |
 class ParseArgs (args :: [(Symbol, *)]) where
-  parseArgs :: Permutation Parser (Args args)
+  parseArgs :: Permutation (ReaderT Vars Parser) (Args args)
 
 instance ParseArgs '[] where
   parseArgs = pure ANil
