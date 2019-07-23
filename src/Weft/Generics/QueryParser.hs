@@ -137,7 +137,7 @@ parseRawArgValue = choice
         -- know it's the right type inside of the vars list
         Just res -> pure res
         Nothing -> lift (empty <?> ("Undefined variable " ++ ident))
-  , lift (char '"') >> (:) <$> pure '"' <*> lift parseStringValue
+  , lift $ (char '"') >> (:) <$> pure '"' <*> parseStringValue
   , lift $ many1 $ satisfy $ \c -> all ($ c)
       [ not . Data.Char.isSpace
       , (/= ')')
