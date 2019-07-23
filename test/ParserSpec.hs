@@ -15,6 +15,12 @@ import           Weft.Internal.Types
 import           Weft.Types
 
 
+
+foo :: Gql GqlQuery a b 'Query
+Right foo = parseOnly queryParser "{ query { getAllUsers { userId } } }"
+
+
+
 testQuery
     :: ( Eq (record 'Query)
        , Wefty record
