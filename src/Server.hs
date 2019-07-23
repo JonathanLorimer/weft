@@ -17,11 +17,11 @@ import Data.ByteString.Char8
 import Data.Text.Encoding
 import qualified Data.ByteString.Lazy as BL
 
-
-
-parseReqBody :: RequestType ByteString -> Either String (record 'Query)
+parseReqBody :: forall record . (HasEmptyQuery record, HasQueryParser record) 
+             => RequestType ByteString
+             -> Either String (record 'Query)
 parseReqBody (QueryRequest query)               = parseOnly
-                                                  queryParser
+                                                  (queryParser @record)
                                                   query
 parseReqBody (MutationRequest mutation)         = undefined
 parseReqBody (SubscriptionRequest subscription) = undefined
@@ -50,9 +50,10 @@ app req f = do
             textQuery <- note . maybeQuery $ rb
             reqBody <- parseServerRequest textQuery
             parseReqBody reqBody
-    case _eitherQuery of
+    response <- case _eitherQuery of
         Right query -> resolve queryResolver query
         Left s -> error $ "no bueno: " ++ s
+    print response
     f $ responseLBS status200 [(hContentType, "application/json")] "response"
 
 main :: IO ()
