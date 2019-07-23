@@ -79,21 +79,28 @@ instance ( KnownSymbol name
 class GQueryParser (rq :: * -> *) where
   gQueryParser :: ReaderT Vars Parser (rq x)
 
-instance {-# OVERLAPPABLE #-} GQueryParser fq => GQueryParser (M1 a b fq) where
+instance {-# OVERLAPPABLE #-} GQueryParser fq
+      => GQueryParser (M1 a b fq) where
   gQueryParser = M1 <$> gQueryParser
 
-instance ( GPermFieldsParser (fq :*: gq)) => GQueryParser (fq :*: gq) where
+instance ( GPermFieldsParser (fq :*: gq))
+      => GQueryParser (fq :*: gq) where
   gQueryParser = intercalateEffect (lift skipSpace) gPermFieldsParser
 
-instance GPermFieldsParser (M1 _1 _2 (K1 _3 f)) => GQueryParser (M1 _1 _2 (K1 _3 f)) where
+instance GPermFieldsParser (M1 _1 _2 (K1 _3 f))
+      => GQueryParser (M1 _1 _2 (K1 _3 f)) where
   gQueryParser = runPermutation gPermFieldsParser
 
 
 ------------------------------------------------------------------------------
 -- |
-parseOptionalArgs :: forall args. (ParseArgs args, IsAllMaybe args) => ReaderT Vars Parser (Args args)
+parseOptionalArgs
+    :: ( ParseArgs args
+       , IsAllMaybe args
+       )
+    => ReaderT Vars Parser (Args args)
 parseOptionalArgs =
-  case isAllMaybe @args of
+  case isAllMaybe of
     Nothing -> parseArgList
     Just argsOfNothing ->
       fmap (fromMaybe argsOfNothing)
