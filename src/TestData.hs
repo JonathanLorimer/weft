@@ -60,6 +60,7 @@ queryResolver = GqlQuery
 
 -- resolver = resolve (User @('Resolver)) (User @('Query))
 deriving instance Show (GqlQuery 'Response)
+deriving instance Show (GqlQuery 'Query)
 
 deriving instance Show (User 'Data)
 deriving instance Show (User 'Schema)
