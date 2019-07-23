@@ -13,7 +13,7 @@ import Data.Aeson
 import GHC.Generics
 import Test.QuickCheck
 
-newtype Id = Id String deriving (Generic, Show, Eq, Ord, Arbitrary)
+newtype Id = Id String deriving (Generic, Show, Read, Eq, Ord, Arbitrary)
 newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary)
 
 data GqlQuery ts = GqlQuery
@@ -60,8 +60,8 @@ queryResolver = GqlQuery
             }
 
 -- resolver = resolve (User @('Resolver)) (User @('Query))
--- deriving instance Show (GqlQuery 'Response)
--- deriving instance Show (GqlQuery 'Query)
+deriving instance Show (GqlQuery 'Response)
+deriving instance Show (GqlQuery 'Query)
 
 -- deriving instance Show (User 'Data)
 -- deriving instance Show (User 'Schema)
