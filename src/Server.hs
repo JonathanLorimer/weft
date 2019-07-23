@@ -54,7 +54,7 @@ app req f = do
     response <- case _eitherQuery of
         Right query -> resolve queryResolver query
         Left s -> error $ "no bueno: " ++ s
-    -- print response
+    print response
     f $ responseLBS status200 [(hContentType, "application/json")] "response"
 
 main :: IO ()
