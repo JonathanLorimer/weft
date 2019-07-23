@@ -2,6 +2,8 @@ module Server where
 
 import Weft.Internal.Types
 import Weft.Generics.QueryParser
+import Weft.Generics.Resolve
+import Weft.Generics.EmptyQuery
 import TestData
 import Lens.Micro
 import Lens.Micro.Aeson
@@ -48,7 +50,9 @@ app req f = do
             textQuery <- note . maybeQuery $ rb
             reqBody <- parseServerRequest textQuery
             parseReqBody reqBody
-    -- print _eitherQuery
+    case _eitherQuery of
+        Right query -> resolve queryResolver query
+        Left s -> error $ "no bueno: " ++ s
     f $ responseLBS status200 [(hContentType, "application/json")] "response"
 
 main :: IO ()
