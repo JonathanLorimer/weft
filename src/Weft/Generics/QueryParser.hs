@@ -225,12 +225,12 @@ parseRequestType = do
                 ]
 
 parseServerRequest :: BS.ByteString -> Either String (RequestType BS.ByteString)
-parseServerRequest s = foldResult $ AP.parse parseRequestType s
+parseServerRequest s = cleanResult $ AP.parse parseRequestType s
 
-foldResult :: AP.Result (RequestType BS.ByteString) -> Either String (RequestType BS.ByteString)
-foldResult (AP.Done body constructor) = Right $ (const body) <$> constructor
-foldResult (AP.Partial _) = Left "Partial"
-foldResult (AP.Fail _ _ _) = Left "server request failed to parse"
+cleanResult :: AP.Result (RequestType BS.ByteString) -> Either String (RequestType BS.ByteString)
+cleanResult (AP.Done body constructor) = Right $ (const body) <$> constructor
+cleanResult (AP.Partial _) = Left "Partial"
+cleanResult (AP.Fail _ _ _) = Left "server request failed to parse"
 ------------------------------------------------------------------------------
 -- |
 
