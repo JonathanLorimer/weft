@@ -121,10 +121,20 @@ parseAnArg arg_name = do
 
 parseRawArgValue :: ReaderT Vars Parser String
 parseRawArgValue = choice
-  [ lift (char '"') >> (:) <$> pure '"' <*> parseStringValue
+  [do
+      _ <- lift $ char '$'
+      ident <- lift parseAnIdentifier
+      vars <- ask
+      case M.lookup ident vars of
+        -- TODO(sandy): this shouldn't return a string, since we potentially
+        -- know it's the right type inside of the vars list
+        Just res -> pure res
+        Nothing -> lift (empty <?> ("Undefined variable " ++ ident))
+  , lift (char '"') >> (:) <$> pure '"' <*> parseStringValue
   , lift $ many1 $ satisfy $ \c -> all ($ c)
       [ not . Data.Char.isSpace
       , (/= ')')
+      , (/= '$')
       ]
   ]
 
@@ -141,6 +151,13 @@ parseStringValue = do
     Just _ -> (:) <$> lift anyChar
                   <*> parseStringValue
     Nothing -> empty
+
+
+parseAnIdentifier :: Parser String
+parseAnIdentifier = do
+  first <- satisfy $ inClass "_A-Za-z"
+  rest <- many $ satisfy $ inClass "_0-9A-Za-z"
+  pure $ first : rest
 
 
 ------------------------------------------------------------------------------
