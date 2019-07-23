@@ -130,7 +130,7 @@ parseRawArgValue = choice
         -- know it's the right type inside of the vars list
         Just res -> pure res
         Nothing -> lift (empty <?> ("Undefined variable " ++ ident))
-  , lift (char '"') >> (:) <$> pure '"' <*> parseStringValue
+  , lift (char '"') >> (:) <$> pure '"' <*> lift parseStringValue
   , lift $ many1 $ satisfy $ \c -> all ($ c)
       [ not . Data.Char.isSpace
       , (/= ')')
@@ -138,17 +138,17 @@ parseRawArgValue = choice
       ]
   ]
 
-parseStringValue :: ReaderT Vars Parser String
+parseStringValue :: Parser String
 parseStringValue = do
-  c <- lift peekChar
+  c <- peekChar
   case c of
-    Just '"' -> lift (char '"') >> pure "\""
+    Just '"' -> char '"' >> pure "\""
     Just '\\' -> do
-      c1 <- lift anyChar
-      c2 <- lift anyChar
+      c1 <- anyChar
+      c2 <- anyChar
       (++) <$> pure (c1 : c2 : [])
            <*> parseStringValue
-    Just _ -> (:) <$> lift anyChar
+    Just _ -> (:) <$> anyChar
                   <*> parseStringValue
     Nothing -> empty
 
