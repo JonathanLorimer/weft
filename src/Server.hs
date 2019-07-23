@@ -17,7 +17,7 @@ import qualified Data.ByteString.Lazy as BL
 
 
 
-parseReqBody :: RequestType ByteString -> Either String (User 'Query)
+parseReqBody :: RequestType ByteString -> Either String (record 'Query)
 parseReqBody (QueryRequest query)               = parseOnly
                                                   queryParser
                                                   query
