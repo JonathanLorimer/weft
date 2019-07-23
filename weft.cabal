@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 647d40c76c7b85c22d88efd4e076bb53a0817a9d686dec8b3b0b7e1d85a7a16c
+-- hash: 5694d445989fb584f7bde4784a89e9f83cbf2341574e207786acec75c575244d
 
 name:           weft
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
       Weft.Generics.PprQuery
       Weft.Generics.PprSchema
       Weft.Generics.QueryParser
+      Weft.Generics.RecordGen
       Weft.Generics.Resolve
       Weft.Generics.Schema
       Weft.Internal.Types
@@ -57,6 +58,7 @@ library
     , http-types
     , microlens
     , microlens-aeson
+    , mtl
     , parser-combinators
     , pretty
     , text
@@ -80,14 +82,15 @@ test-suite gql-test
     , base >=4.7 && <5
     , bytestring
     , containers
-    , gql
     , hspec
     , http-types
     , microlens
     , microlens-aeson
+    , mtl
     , parser-combinators
     , pretty
     , text
     , wai
     , warp
+    , weft
   default-language: Haskell2010

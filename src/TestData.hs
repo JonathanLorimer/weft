@@ -37,6 +37,7 @@ data Account ts = Account
 
 deriving instance AllHave Show (Account ts) => Show (Account ts)
 deriving instance AllHave Eq (Account ts)   => Eq (Account ts)
+
 jonathan :: User 'Data
 jonathan = User { userId = (Id "1"), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
 
@@ -59,22 +60,22 @@ queryResolver = GqlQuery
             }
 
 -- resolver = resolve (User @('Resolver)) (User @('Query))
-deriving instance Show (GqlQuery 'Response)
-deriving instance Show (GqlQuery 'Query)
+-- deriving instance Show (GqlQuery 'Response)
+-- deriving instance Show (GqlQuery 'Query)
 
-deriving instance Show (User 'Data)
-deriving instance Show (User 'Schema)
-deriving instance Show (User 'Response)
-deriving instance Show (User 'Query)
+-- deriving instance Show (User 'Data)
+-- deriving instance Show (User 'Schema)
+-- deriving instance Show (User 'Response)
+-- deriving instance Show (User 'Query)
 
-deriving instance Show (Account 'Data)
-deriving instance Show (Account 'Schema)
-deriving instance Show (Account 'Response)
-deriving instance Show (Account 'Query)
+-- deriving instance Show (Account 'Data)
+-- deriving instance Show (Account 'Schema)
+-- deriving instance Show (Account 'Response)
+-- deriving instance Show (Account 'Query)
 
-deriving instance Eq (User 'Data)
-deriving instance Eq (User 'Schema)
-deriving instance Eq (User 'Query)
+-- deriving instance Eq (User 'Data)
+-- deriving instance Eq (User 'Schema)
+-- deriving instance Eq (User 'Query)
 
 
 instance Arbitrary (Account 'Query) where
