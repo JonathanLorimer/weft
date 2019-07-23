@@ -35,19 +35,19 @@ jonathan = User { userId = (Id "1"), userName = ( Name "Jonathan"), userBestFrie
 sandy :: User 'Data
 sandy = User { userId = (Id "2"), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
 
-getUserResolver :: Id -> User 'Query -> User 'Response
+getUserResolver :: (Arg "id" Id) -> User 'Query -> IO (User 'Response)
 getUserResolver a q
-    | a == (Id "1") = hydrate jonathan q
-    | a == (Id "2") = hydrate sandy q
-    | otherwise = hydrate jonathan q
+    | (getArg a) == (Id "1") = pure $ hydrate jonathan q
+    | (getArg a) == (Id "2") = pure $ hydrate sandy q
+    | otherwise = pure $ hydrate jonathan q
 
-getAllUsersResolver :: User 'Query -> IO (User 'Response)
-getAllUsersResolver q = pure $ hydrate [sandy, jonathan] q
+getAllUsersResolver :: User 'Query -> IO ([User 'Response])
+getAllUsersResolver q = pure $ (flip hydrate q) <$> [sandy, jonathan]
 
 queryResolver :: GqlQuery 'Resolver
 queryResolver = GqlQuery 
             { getUser = getUserResolver
-            , getAllUsers = resolve getAllUsersResolver
+            , getAllUsers = getAllUsersResolver
             }
 
 -- resolver = resolve (User @('Resolver)) (User @('Query))
