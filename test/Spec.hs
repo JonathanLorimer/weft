@@ -13,8 +13,7 @@ import           Weft.Types
 import           Weft.Internal.Types
 
 testQuery
-    :: forall record
-     . ( Eq (record 'Query)
+    :: ( Eq (record 'Query)
        , Wefty record
        )
     => record 'Query -> Bool
@@ -23,7 +22,7 @@ testQuery q
   . parseOnly (flip runReaderT mempty queryParser)
   . BS8.pack
   . render
-  $ pprQuery @record q
+  $ pprQuery q
 
 
 main :: IO ()
