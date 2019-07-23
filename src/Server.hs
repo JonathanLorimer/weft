@@ -16,12 +16,13 @@ import Data.Attoparsec.ByteString.Char8
 import Data.ByteString.Char8
 import Data.Text.Encoding
 import qualified Data.ByteString.Lazy as BL
+import Control.Monad.Reader
 
 parseReqBody :: forall record . (HasEmptyQuery record, HasQueryParser record)
              => RequestType ByteString
              -> Either String (record 'Query)
 parseReqBody (QueryRequest query)               = parseOnly
-                                                  (queryParser @record)
+                                                  (runReaderT (queryParser @record) mempty)
                                                   query
 parseReqBody (MutationRequest mutation)         = undefined
 parseReqBody (SubscriptionRequest subscription) = undefined
