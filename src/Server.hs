@@ -7,7 +7,7 @@ import Weft.Generics.EmptyQuery
 import TestData
 import Lens.Micro
 import Lens.Micro.Aeson
-import Network.Wai (responseLBS, Application)
+import Network.Wai (responseLBS, Application, getRequestBodyChunk)
 import Network.Wai.Handler.Warp (run)
 import Network.HTTP.Types (status200)
 import Network.HTTP.Types.Header (hContentType)
