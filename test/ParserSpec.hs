@@ -17,7 +17,7 @@ import           Weft.Types
 
 
 foo :: Gql GqlQuery a b 'Query
-Right foo = parseOnly queryParser "{ query { getAllUsers { userId } } }"
+Right foo = parseOnly (runReaderT queryParser mempty) "{ query { getAllUsers { userId } } }"
 
 
 
