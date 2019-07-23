@@ -7,6 +7,12 @@ import           Weft.Generics.PprQuery
 import           Weft.Generics.QueryParser
 import           Weft.Types
 
+
+foo :: Gql GqlQuery a b 'Query
+Right foo = parseOnly queryParser "{ query { getAllUsers { userId } } }"
+
+
+
 testQuery
     :: forall record
      . ( Eq (record 'Query)

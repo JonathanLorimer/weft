@@ -14,6 +14,7 @@ import Weft.Generics.PprSchema
 import Weft.Generics.QueryParser
 import Weft.Generics.Resolve
 import Weft.Generics.Schema
+import GHC.Generics
 
 type Wefty record =
   ( HasAllTypes record
@@ -25,4 +26,13 @@ type Wefty record =
   , HasResolve record
   , HasSchema record
   )
+
+data Gql q m s (ts :: TypeState) = Gql
+  { query        :: Magic ts (q ts)
+  -- , mutation     :: m ts
+  -- , subscription :: s ts
+  }
+  deriving Generic
+
+deriving instance (Show (q 'Query)) => Show (Gql q m s 'Query)
 

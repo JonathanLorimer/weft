@@ -46,7 +46,7 @@ getAllUsersResolver :: User 'Query -> IO ([User 'Response])
 getAllUsersResolver q = pure $ (flip hydrate q) <$> [sandy, jonathan]
 
 queryResolver :: GqlQuery 'Resolver
-queryResolver = GqlQuery 
+queryResolver = GqlQuery
             { getUser = getUserResolver
             , getAllUsers = getAllUsersResolver
             }
