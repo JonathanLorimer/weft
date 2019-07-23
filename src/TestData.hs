@@ -9,6 +9,7 @@ import Weft.Types
 import Weft.Internal.Types
 import Weft.Generics.Resolve
 import Weft.Generics.Hydrate
+import Data.Aeson
 import GHC.Generics
 import Test.QuickCheck
 
@@ -18,7 +19,7 @@ newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary)
 data GqlQuery ts = GqlQuery
     { getUser :: Magic ts (Arg "id" Id -> User ts)
     , getAllUsers :: Magic ts [User ts]
-    }
+    } deriving (Generic)
 
 data User ts = User
   { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
@@ -58,6 +59,7 @@ queryResolver = GqlQuery
             }
 
 -- resolver = resolve (User @('Resolver)) (User @('Query))
+deriving instance Show (GqlQuery 'Response)
 
 deriving instance Show (User 'Data)
 deriving instance Show (User 'Schema)
