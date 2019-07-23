@@ -20,7 +20,7 @@ testQuery
     => record 'Query -> Bool
 testQuery q
   = (== Right q)
-  . parseOnly (flip runReaderT mempty $ queryParser @record)
+  . parseOnly (flip runReaderT mempty queryParser)
   . BS8.pack
   . render
   $ pprQuery @record q
@@ -36,12 +36,14 @@ main = hspec $ do
 
   describe "invalid arguments" $ do
     it "should fail if passed a fake argument" $ do
-      parseOnly (flip runReaderT mempty $ queryParser @User) "{ userId(NOT_A_REAL_ARG: False) }"
+      parseOnly (flip runReaderT mempty $ queryParser @User)
+                "{ userId(NOT_A_REAL_ARG: False) }"
         `shouldSatisfy` isLeft
 
   describe "variables" $ do
     it "should fail if referencing an unknown var" $ do
-      parseOnly (flip runReaderT mempty $ queryParser @User) "{ userId(arg: $missing_var) }"
+      parseOnly (flip runReaderT mempty $ queryParser @User)
+                "{ userId(arg: $missing_var) }"
         `shouldSatisfy` isLeft
     it "should inline a known variable" $ do
       parseOnly (flip runReaderT (M.singleton "known" "\"a string\"")
