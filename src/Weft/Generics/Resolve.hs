@@ -51,10 +51,11 @@ instance ( GResolve frv fqu frp
           <*> gResolve grv gqu
 
 -- | Q, RV1, RP3
-instance (ResolveField rv qu (IO rp)) =>
+instance (ResolveField rv (Maybe qu) (IO (Maybe rp))) =>
          GResolve (K1 x rv)
-                  (K1 x qu)
-                  (K1 x rp) where
+                  (K1 x (Maybe qu))
+                  (K1 x (Maybe rp)) where
+  gResolve _ (K1 Nothing) = pure $ K1 Nothing
   gResolve (K1 rv) (K1 qu) = K1 <$> resolveField rv qu
 
 
