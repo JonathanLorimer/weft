@@ -3,14 +3,31 @@ import           Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString.Char8 as BS8
 import           Data.Either
 import qualified Data.Map as M
-import           Test.Hspec
+import           GHC.Generics
+import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck
 import           TestData
 import           Text.PrettyPrint.HughesPJ
 import           Weft.Generics.PprQuery
 import           Weft.Generics.QueryParser
-import           Weft.Types
+import           Weft.Generics.Resolve
 import           Weft.Internal.Types
+import           Weft.Types
+
+data Tester ts = Tester
+  { testFoo :: Magic ts (Arg "name" String -> String)
+  , testBar :: Magic ts Int
+  } deriving Generic
+
+deriving instance AllHave Show (Tester ts) => Show (Tester ts)
+deriving instance AllHave Eq (Tester ts)   => Eq (Tester ts)
+
+
+testerResolver :: Tester 'Resolver
+testerResolver = Tester
+  { testFoo = pure . getArg
+  , testBar = pure 5
+  }
 
 testQuery
     :: ( Eq (record 'Query)
@@ -27,6 +44,21 @@ testQuery q
 
 main :: IO ()
 main = hspec $ do
+  describe "resolver" $ do
+    it "should not crash with an impossible case" $ do
+      res <- resolve testerResolver $ Tester Nothing $ Just (ANil, ())
+      res `shouldBe` Tester Nothing (Just 5)
+
+    it "should resolve arg fields" $ do
+      res <- resolve testerResolver $ Tester (Just (Arg "sandy":@@ ANil, ())) Nothing
+      res `shouldBe` Tester (Just "sandy") Nothing
+
+    it "should resolve everything" $ do
+      res <- resolve testerResolver $ Tester (Just (Arg "sandy":@@ ANil, ()))
+                                             (Just (ANil, ()))
+      res `shouldBe` Tester (Just "sandy") (Just 5)
+
+
   describe "roundtrip parser" $ do
     it "should roundtrip for User" $
       property $ testQuery @User
