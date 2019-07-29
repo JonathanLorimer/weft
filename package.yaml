@@ -65,11 +65,13 @@ library:
 
 tests:
   gql-test:
-    main: Spec.hs
+    main: Main.hs
     source-dirs: test
     ghc-options:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
+    build-tools:
+      - hspec-discover >= 2.0
     dependencies:
       - gql
