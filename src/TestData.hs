@@ -6,7 +6,6 @@
 module TestData where
 
 import Weft.Types
-import GHC.Generics
 import Test.QuickCheck
 
 newtype Id = Id String deriving (Generic, Show, Eq, Ord, Arbitrary)

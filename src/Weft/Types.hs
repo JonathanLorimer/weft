@@ -4,6 +4,7 @@ module Weft.Types
   , TypeState (..)
   , module Weft.Types
   , module Weft.Generics.RecordGen
+  , Generic
   ) where
 
 import Data.Kind

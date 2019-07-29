@@ -1,6 +1,7 @@
 module Weft.Generics.QueryParser
   ( HasQueryParser
   , queryParser
+  , Vars
   ) where
 
 import           Control.Applicative
