@@ -59,4 +59,4 @@ main :: IO ()
 main = do
     let port = 3000
     Prelude.putStrLn $ "Listening on port " ++ show port
-    run port $ app gqlResolver
+    run port $ app gqlResolver -- TODO: allow the user to pass in their resolvers, or Reader them

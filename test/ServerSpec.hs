@@ -65,8 +65,6 @@ gqlResolver = Gql { query = resolve queryResolver }
 getUserTestString :: ByteString
 getUserTestString = "{ query { \n getAllUsers { \n userId \n userName \n userFriends { \n userId \n userName \n } \n } \n } \n } \n"
 
--- getUserTestQuery :: Either String (Gql GqlQuery () () 'Query)
--- getUserTestQuery = Right (Gql { query = Just (,GqlQuery {getUser = Nothing, getAllUsers = Just (,User {userId = Just (arg=Nothing :@@ ,()), userName = Just (,()), userBestFriend = Nothing, userFriends = Just (,User {userId = Just (arg=Nothing :@@ ,()), userName = Just (,()), userBestFriend = Nothing, userFriends = Nothing})})})})
 getUserTestQuery :: Either String (Gql GqlQuery () () 'Query)
 getUserTestQuery = Right (Gql { query = Just (ANil
                                              , GqlQuery { getUser = Nothing
