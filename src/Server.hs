@@ -42,7 +42,6 @@ app req f = do
     let _eitherQuery = do
             textQuery <- note . maybeQuery $ rb
             parseReqBody $ Data.ByteString.Char8.concat ["{ ", textQuery, " }"]
-    print _eitherQuery
     case _eitherQuery of
         Right q -> do
             res <- resolve gqlResolver q
