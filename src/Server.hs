@@ -19,13 +19,14 @@ import Data.Text.Encoding
 import qualified Data.Map as M
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
+import GHC.Generics
 
-parseReqBody :: (HasEmptyQuery GqlQuery, HasQueryParser GqlQuery)
+parseReqBody :: (HasEmptyQuery query, HasQueryParser query)
              => ByteString
-             -> Either String ((Gql GqlQuery () ()) 'Query)
-parseReqBody query = parseOnly
-                     (runReaderT (queryParser) mempty)
-                     query
+             -> Either String ((Gql query () ()) 'Query)
+parseReqBody queryString = parseOnly
+                           (runReaderT (queryParser) mempty)
+                           queryString
 
 maybeQuery :: ByteString -> Maybe ByteString
 maybeQuery rb = do
@@ -36,15 +37,15 @@ note :: Maybe a -> Either String a
 note Nothing = Left ""
 note (Just x) = Right x
 
-app :: Application
-app req f = do
+app :: (ToJSON (q 'Response), HasEmptyQuery q, HasQueryParser q) => Gql q () () 'Resolver -> Application
+app resolver req f = do
     rb <- getRequestBodyChunk req
     let _eitherQuery = do
             textQuery <- note . maybeQuery $ rb
             parseReqBody $ Data.ByteString.Char8.concat ["{ ", textQuery, " }"]
     case _eitherQuery of
         Right q -> do
-            res <- resolve gqlResolver q
+            res <- resolve resolver q
             f $ successResponse res
         Left e  -> f $ errorResponse $ BL.fromStrict $ pack e
 
@@ -58,4 +59,4 @@ main :: IO ()
 main = do
     let port = 3000
     Prelude.putStrLn $ "Listening on port " ++ show port
-    run port app
+    run port $ app gqlResolver

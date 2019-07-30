@@ -14,7 +14,8 @@ import Weft.Generics.Resolve
 import Weft.Generics.Hydrate
 import Data.Aeson
 import GHC.Generics
-import Test.QuickCheck
+import Test.QuickCheck hiding (Args)
+import Data.ByteString.Char8
 
 newtype Id = Id String deriving (Generic, Show, Read, Eq, Ord, Arbitrary, ToJSON)
 newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary, ToJSON)
@@ -23,6 +24,8 @@ data GqlQuery ts = GqlQuery
     { getUser :: Magic ts (Arg "id" Id -> User ts)
     , getAllUsers :: Magic ts [User ts]
     } deriving (Generic)
+
+deriving instance AllHave Eq (GqlQuery ts)       => Eq (GqlQuery ts)
 
 data User ts = User
   { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
@@ -34,13 +37,6 @@ data User ts = User
 deriving instance AllHave Show (User ts)     => Show (User ts)
 deriving instance AllHave Eq (User ts)       => Eq (User ts)
 deriving instance AllHave ToJSON (User ts)   => ToJSON (User ts)
-
-data Account ts = Account
-  { accountBalance :: Magic ts (Arg "num" (Maybe Int) -> Int)
-  } deriving (Generic)
-
-deriving instance AllHave Show (Account ts) => Show (Account ts)
-deriving instance AllHave Eq (Account ts)   => Eq (Account ts)
 
 jonathan :: User 'Data
 jonathan = User { userId = (Id "1"), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
@@ -66,18 +62,36 @@ queryResolver = GqlQuery
 gqlResolver :: Gql GqlQuery () () 'Resolver
 gqlResolver = Gql { query = resolve queryResolver }
 
+getUserTestString :: ByteString
+getUserTestString = "{ query { \n getAllUsers { \n userId \n userName \n userFriends { \n userId \n userName \n } \n } \n } \n } \n"
+
+-- getUserTestQuery :: Either String (Gql GqlQuery () () 'Query)
+-- getUserTestQuery = Right (Gql { query = Just (,GqlQuery {getUser = Nothing, getAllUsers = Just (,User {userId = Just (arg=Nothing :@@ ,()), userName = Just (,()), userBestFriend = Nothing, userFriends = Just (,User {userId = Just (arg=Nothing :@@ ,()), userName = Just (,()), userBestFriend = Nothing, userFriends = Nothing})})})})
+getUserTestQuery :: Either String (Gql GqlQuery () () 'Query)
+getUserTestQuery = Right (Gql { query = Just (ANil
+                                             , GqlQuery { getUser = Nothing
+                                                        , getAllUsers = Just (ANil
+                                                                             , User { userId = Just (Arg Nothing :@@ ANil ,())
+                                                                                    , userName = Just (ANil ,())
+                                                                                    , userBestFriend = Nothing
+                                                                                    , userFriends = Just (ANil
+                                                                                                         , User { userId = Just (Arg Nothing :@@ ANil ,())
+                                                                                                                , userName = Just (ANil ,())
+                                                                                                                , userBestFriend = Nothing
+                                                                                                                , userFriends = Nothing }
+                                                                                                         )
+                                                                                    }
+                                                                             )
+                                                        }
+                                             )
+                              }
+                         )
 
 deriving instance Show (GqlQuery 'Response)
 deriving instance ToJSON (GqlQuery 'Response)
 deriving instance Show (GqlQuery 'Query)
 
-instance Arbitrary (Account 'Query) where
-  arbitrary = recordGen
-
 instance Arbitrary (User 'Query) where
-  arbitrary = recordGen
-
-instance Arbitrary (Account 'Data) where
   arbitrary = recordGen
 
 instance Arbitrary (User 'Data) where
@@ -85,5 +99,7 @@ instance Arbitrary (User 'Data) where
 
 spec :: Spec
 spec = describe "server" $ do
-    
+    describe "parseReqBody" $ do
+        it "should parse query with no args (getUser)" $
+            parseReqBody getUserTestString `shouldBe` getUserTestQuery
 
