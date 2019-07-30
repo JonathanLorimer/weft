@@ -85,33 +85,17 @@ instance ResolveField (IO scalar)
 -- | Args Case
 instance {-# OVERLAPPING #-}
          ( KnownSymbol n
-         , ResolveField rv
-                        (Args args, ru)
-                        rp
+         , ResolveField rv (Args args, ru) rp
          ) => ResolveField (Arg n (Maybe t) -> rv)
-                           ( Args ('(n, Maybe t) ': args)
-                           , ru
-                           )
+                           (Args ('(n, Maybe t) ': args), ru)
                            rp where
   resolveField f (arg :@@ args, query) =
-    resolveField @rv
-                 @(Args args, ru)
-                 @rp
-                 (f arg)
-                 (args, query)
+    resolveField (f arg) (args, query)
 
-instance ( ResolveField rv
-                        (Args args, ru)
-                        rp
-         ) => ResolveField (Arg n t -> rv)
-                           ( Args ('(n, t) ': args)
-                           , ru
-                           )
-                           rp where
+instance ResolveField rv (Args args, ru) rp
+      => ResolveField (Arg n t -> rv)
+                      (Args ('(n, t) ': args), ru)
+                      rp where
   resolveField f (arg :@@ args, query) =
-    resolveField @rv
-                 @(Args args, ru)
-                 @rp
-                 (f arg)
-                 (args, query)
+    resolveField (f arg) (args, query)
 
