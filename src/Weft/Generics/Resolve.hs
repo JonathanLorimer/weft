@@ -51,77 +51,51 @@ instance ( GResolve frv fqu frp
           <*> gResolve grv gqu
 
 -- | Q, RV1, RP3
-instance (ResolveField rv (Maybe qu) (IO (Maybe rp))) =>
+instance (ResolveField rv qu rp) =>
          GResolve (K1 x rv)
                   (K1 x (Maybe qu))
                   (K1 x (Maybe rp)) where
   gResolve _ (K1 Nothing) = pure $ K1 Nothing
-  gResolve (K1 rv) (K1 qu) = K1 <$> resolveField rv qu
+  gResolve (K1 rv) (K1 (Just qu)) = K1 . Just <$> resolveField rv qu
 
 
 ------------------------------------------------------------------------------
 -- |
 class ResolveField rv qu rp where
-  resolveField :: rv -> qu -> rp
+  resolveField :: rv -> qu -> IO rp
 
 
 -- | Base Cases
 instance ResolveField (record 'Query -> IO (record 'Response))
-                      (Maybe ((Args ('[]), record 'Query)))
-                      (IO (Maybe (record 'Response))) where
-  resolveField _ Nothing = pure Nothing
-  resolveField f (Just (ANil, query)) = Just <$> f query
+                      (Args '[], record 'Query)
+                      (record 'Response) where
+  resolveField f (ANil, query) = f query
 
 instance ResolveField (record 'Query -> IO ([record 'Response]))
-                      (Maybe ((Args ('[]), record 'Query)))
-                      (IO (Maybe ([record 'Response]))) where
-  resolveField _ Nothing = pure Nothing
-  resolveField f (Just (ANil, query)) = Just <$> f query
+                      (Args '[], record 'Query)
+                      [record 'Response] where
+  resolveField f (ANil, query) = f query
 
-instance ResolveField (IO (scalar))
-                      (Maybe ((Args ('[]), ())))
-                      (IO (Maybe (scalar))) where
-  resolveField _ (Nothing) = pure Nothing
-  resolveField s (Just (ANil, ())) = Just <$> s
+instance ResolveField (IO scalar)
+                      (Args '[], ())
+                      scalar where
+  resolveField s (ANil, ()) = s
 
 
 -- | Args Case
 instance {-# OVERLAPPING #-}
          ( KnownSymbol n
-         , ResolveField rv
-                        (Maybe (Args args, ru))
-                        rp
+         , ResolveField rv (Args args, ru) rp
          ) => ResolveField (Arg n (Maybe t) -> rv)
-                           (Maybe ( Args ('(n, Maybe t) ': args)
-                                  , ru
-                                  ))
+                           (Args ('(n, Maybe t) ': args), ru)
                            rp where
-  resolveField f Nothing =
-    resolveField @rv
-                 @(Maybe (Args args, ru))
-                 @rp
-                 (f $ Arg Nothing)
-                 Nothing
-  resolveField f (Just (arg :@@ args, query)) =
-    resolveField @rv
-                 @(Maybe (Args args, ru))
-                 @rp
-                 (f arg)
-                 (Just (args, query))
+  resolveField f (arg :@@ args, query) =
+    resolveField (f arg) (args, query)
 
-instance ( ResolveField rv
-                        (Maybe (Args args, ru))
-                        rp
-         ) => ResolveField (Arg n t -> rv)
-                           (Maybe ( Args ('(n, t) ': args)
-                                  , ru
-                                  ))
-                           rp where
-  resolveField _ Nothing = error "impossible"
-  resolveField f (Just (arg :@@ args, query)) =
-    resolveField @rv
-                 @(Maybe (Args args, ru))
-                 @rp
-                 (f arg)
-                 (Just (args, query))
+instance ResolveField rv (Args args, ru) rp
+      => ResolveField (Arg n t -> rv)
+                      (Args ('(n, t) ': args), ru)
+                      rp where
+  resolveField f (arg :@@ args, query) =
+    resolveField (f arg) (args, query)
 
