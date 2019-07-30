@@ -14,13 +14,6 @@ import           Weft.Generics.QueryParser
 import           Weft.Internal.Types
 import           Weft.Types
 
-
-
-foo :: Either String (Gql GqlQuery a b 'Query)
-foo = parseOnly (runReaderT queryParser mempty) "{ query { getAllUsers { userId } } }"
-
-
-
 testQuery
     :: ( Eq (record 'Query)
        , Wefty record
