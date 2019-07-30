@@ -1,6 +1,6 @@
-name: weft
+name: gql
 version: 0.1.0.0
-github: "jonathanlorimer/weft"
+github: "jonathanlorimer/gql"
 license: BSD3
 author: "Jonathan Lorimer"
 maintainer: "jonathan_lorimer@mac.com"
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description: Please see the README on GitHub at <https://github.com/jonathanlorimer/weft#readme>
+description: Please see the README on GitHub at <https://github.com/jonathanlorimer/gql#readme>
 
 dependencies:
   - base >= 4.7 && < 5
@@ -73,4 +73,4 @@ tests:
     build-tools:
       - hspec-discover >= 2.0
     dependencies:
-      - weft
+      - gql
