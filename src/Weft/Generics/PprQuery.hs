@@ -23,11 +23,7 @@ type HasPprQuery record =
 ------------------------------------------------------------------------------
 -- |
 pprQuery :: HasPprQuery record => record 'Query -> Doc
-pprQuery q = sep
-  [ char '{'
-  , nest 4 $ gPprQuery $ from q
-  , char '}'
-  ]
+pprQuery q = gPprQuery $ from q
 
 
 ------------------------------------------------------------------------------
@@ -52,7 +48,9 @@ instance ( KnownSymbol name
   gPprQuery (M1 (K1 (Just (args, rec)))) =
     sep
       [ text (symbolVal $ Proxy @name) <> pprArgs args
-      , pprQuery rec
+      , char '{'
+      , nest 4 $ pprQuery rec
+      , char '}'
       ]
 
 instance ( KnownSymbol name
