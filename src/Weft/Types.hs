@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass #-}
+
 module Weft.Types
   ( Magic
   , Arg (..)

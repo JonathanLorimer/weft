@@ -2,6 +2,7 @@
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE NoMonoLocalBinds           #-}
 {-# LANGUAGE NoMonomorphismRestriction  #-}
+{-# LANGUAGE DeriveAnyClass             #-}
 
 module TestData where
 
