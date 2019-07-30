@@ -42,7 +42,7 @@ app resolver req f = do
     rb <- getRequestBodyChunk req
     let _eitherQuery = do
             textQuery <- note . maybeQuery $ rb
-            parseReqBody $ Data.ByteString.Char8.concat ["{ ", textQuery, " }"]
+            parseReqBody textQuery
     case _eitherQuery of
         Right q -> do
             res <- resolve resolver q
