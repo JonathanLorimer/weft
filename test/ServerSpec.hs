@@ -62,11 +62,11 @@ queryResolver = GqlQuery
 gqlResolver :: Gql GqlQuery () () 'Resolver
 gqlResolver = Gql { query = resolve queryResolver }
 
-getUserTestString :: ByteString
-getUserTestString = "{ query { \n getAllUsers { \n userId \n userName \n userFriends { \n userId \n userName \n } \n } \n } \n } \n"
+getAllUsersTestString :: ByteString
+getAllUsersTestString = "{ query { \n getAllUsers { \n userId \n userName \n userFriends { \n userId \n userName \n } \n } \n } \n } \n"
 
-getUserTestQuery :: Either String (Gql GqlQuery () () 'Query)
-getUserTestQuery = Right (Gql { query = Just (ANil
+getAllUsersTestQuery :: Either String (Gql GqlQuery () () 'Query)
+getAllUsersTestQuery = Right (Gql { query = Just (ANil
                                              , GqlQuery { getUser = Nothing
                                                         , getAllUsers = Just (ANil
                                                                              , User { userId = Just (Arg Nothing :@@ ANil ,())
@@ -85,6 +85,31 @@ getUserTestQuery = Right (Gql { query = Just (ANil
                               }
                          )
 
+getUserTestString :: ByteString
+getUserTestString = "{ query { \n getUser(id: 1) { \n userId \n userName \n userBestFriend { \n userName \n } \n } \n } \n } \n"
+
+getUserTestQuery :: Either String (Gql GqlQuery () () 'Query)
+getUserTestQuery = Right (Gql { query = Just (ANil
+                                             , GqlQuery { getAllUsers = Nothing
+                                                        , getUser = Just (Arg (Id "1") :@@ ANil
+                                                                             , User { userId = Just (Arg Nothing :@@ ANil ,())
+                                                                                    , userName = Just (ANil ,())
+                                                                                    , userBestFriend = Just (Arg Nothing :@@ ANil
+                                                                                                            , User { userId = Nothing
+                                                                                                                   , userName = Just (ANil ,())
+                                                                                                                   , userBestFriend = Nothing
+                                                                                                                   , userFriends = Nothing 
+                                                                                                                   }
+                                                                                                            )
+                                                                                    , userFriends = Nothing
+                                                                                    }
+                                                                             )
+                                                        }
+                                             )
+                              }
+                         )
+
+
 deriving instance Show (GqlQuery 'Response)
 deriving instance ToJSON (GqlQuery 'Response)
 deriving instance Show (GqlQuery 'Query)
@@ -99,5 +124,7 @@ spec :: Spec
 spec = describe "server" $ do
     describe "parseReqBody" $ do
         it "should parse query with no args (getUser)" $
+            parseReqBody getAllUsersTestString `shouldBe` getAllUsersTestQuery
+        it "should parse query with args (getAllUsers)" $
             parseReqBody getUserTestString `shouldBe` getUserTestQuery
 
