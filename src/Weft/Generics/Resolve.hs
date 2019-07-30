@@ -6,7 +6,6 @@ module Weft.Generics.Resolve
 import qualified Data.Map as M
 import           Data.Text (Text)
 import           GHC.Generics
-import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Weft.Internal.Types
 
 
@@ -82,16 +81,6 @@ instance ResolveField (IO scalar)
                       scalar where
   resolveField s (ANil, ()) = s
 
-
--- | Args Case
-instance {-# OVERLAPPING #-}
-         ( KnownSymbol n
-         , ResolveField rv (Args args, ru) rp
-         ) => ResolveField (Arg n (M.Map Text t) -> rv)
-                           (Args ('(n, M.Map Text t) ': args), ru)
-                           rp where
-  resolveField f (arg :@@ args, query) =
-    resolveField (f arg) (args, query)
 
 instance ResolveField rv (Args args, ru) rp
       => ResolveField (Arg n t -> rv)
