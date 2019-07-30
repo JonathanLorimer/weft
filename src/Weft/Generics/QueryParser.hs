@@ -26,8 +26,8 @@ type HasQueryParser record =
      , GQueryParser (Rep (record 'Query))
      )
 
-incrParser :: HasQueryParser record => ReaderT Vars Parser (record 'Query)
-incrParser = fmap to gQueryParser
+queryParser :: HasQueryParser record => ReaderT Vars Parser (record 'Query)
+queryParser = lift skipSpace *> fmap to gQueryParser <* lift skipSpace
 
 
 type Vars = M.Map String String
@@ -72,7 +72,7 @@ instance ( KnownSymbol name
     lift skipSpace
     _ <- lift $ char '{'
     lift skipSpace
-    z <- incrParser
+    z <- queryParser
     _ <- lift $ char '}'
     lift skipSpace
     pure $ M.singleton (T.pack name) (args, z)
@@ -170,19 +170,6 @@ parseAnIdentifier = do
   first <- satisfy $ inClass "_A-Za-z"
   rest <- many $ satisfy $ inClass "_0-9A-Za-z"
   pure $ first : rest
-
-
-------------------------------------------------------------------------------
--- |
-queryParser :: (HasEmptyQuery record, HasQueryParser record) => ReaderT Vars Parser (record 'Query)
-queryParser = do
-  _ <- lift $ char '{'
-  _ <- lift skipSpace
-  p <- incrParser
-  _ <- lift skipSpace
-  _ <- lift $ char '}'
-  _ <- lift skipSpace
-  pure p
 
 
 ------------------------------------------------------------------------------

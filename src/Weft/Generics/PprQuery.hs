@@ -29,11 +29,7 @@ type HasPprQuery record =
 ------------------------------------------------------------------------------
 -- |
 pprQuery :: HasPprQuery record => record 'Query -> Doc
-pprQuery q = sep
-  [ char '{'
-  , nest 4 $ gPprQuery $ from q
-  , char '}'
-  ]
+pprQuery q = gPprQuery $ from q
 
 
 ------------------------------------------------------------------------------
@@ -54,12 +50,13 @@ instance ( KnownSymbol name
          , HasPprQuery record
          ) => GPprQuery (M1 S ('MetaSel ('Just name) b c d)
                               (K1 x (M.Map Text (Args args, record 'Query)))) where
-  -- TODO(sandy): use name
   gPprQuery (M1 (K1 m)) = vcat $ M.toList m <&> \(alias, (args, rec)) ->
     pprAliasIfDifferent name alias $
       sep
         [ text name <> pprArgs args
-        , pprQuery rec
+        , char '{'
+        , nest 4 $ pprQuery rec
+        , char '}'
         ]
     where
       name = symbolVal $ Proxy @name
