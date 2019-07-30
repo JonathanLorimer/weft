@@ -168,6 +168,22 @@ parseAnIdentifier = do
   rest <- many $ satisfy $ inClass "_0-9A-Za-z"
   pure $ first : rest
 
+<<<<<<< HEAD
+=======
+------------------------------------------------------------------------------
+-- |
+
+queryParser :: (HasEmptyQuery record, HasQueryParser record) => ReaderT Vars Parser (record 'Query)
+queryParser = do
+  _ <- lift $ char '{'
+  _ <- lift skipSpace
+  p <- incrParser
+  _ <- lift skipSpace
+  _ <- lift $ char '}'
+  _ <- lift skipSpace
+  pure p
+
+>>>>>>> can parse query from request
 
 ------------------------------------------------------------------------------
 -- |

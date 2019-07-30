@@ -89,4 +89,3 @@ instance Arbitrary (Account 'Data) where
 
 instance Arbitrary (User 'Data) where
   arbitrary = recordGen
-

@@ -1,6 +1,7 @@
 module Server where
 
 import Weft.Internal.Types
+import Weft.Types
 import Weft.Generics.QueryParser
 import Weft.Generics.Resolve
 import Weft.Generics.EmptyQuery
@@ -15,24 +16,21 @@ import Data.Aeson hiding (json)
 import Data.Attoparsec.ByteString.Char8
 import Data.ByteString.Char8
 import Data.Text.Encoding
+import qualified Data.Map as M
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 
-parseReqBody :: forall record . (HasEmptyQuery record, HasQueryParser record)
-             => RequestType ByteString
-             -> Either String (record 'Query)
-parseReqBody (QueryRequest query)               = parseOnly
-                                                  (runReaderT (queryParser @record) mempty)
-                                                  query
-parseReqBody (MutationRequest mutation)         = undefined
-parseReqBody (SubscriptionRequest subscription) = undefined
-
+parseReqBody :: (HasEmptyQuery GqlQuery, HasQueryParser GqlQuery)
+             => ByteString
+             -> Either String ((Gql GqlQuery () ()) 'Query)
+parseReqBody query = parseOnly
+                     (runReaderT (queryParser) mempty)
+                     query
 
 maybeQuery :: ByteString -> Maybe ByteString
 maybeQuery rb = do
     json <- decode @Value $ BL.fromStrict rb
     encodeUtf8 <$> ((^? key "query" . _String) json)
-
 
 note :: Maybe a -> Either String a
 note Nothing = Left ""
@@ -40,22 +38,11 @@ note (Just x) = Right x
 
 app :: Application
 app req f = do
-    rb <- getRequestBodyChunk req
-    Prelude.putStrLn $ unpack rb
-    let tq = note . maybeQuery $ rb
-    Prelude.putStrLn "tq"
-    print tq
-    Prelude.putStrLn "maybeQuery"
-    print $ note . maybeQuery $ rb
+    rb <- getRequestBodyChunk req    
     let _eitherQuery = do
             textQuery <- note . maybeQuery $ rb
-            reqBody <- parseServerRequest textQuery
-            parseReqBody reqBody
-    -- print $ (_eitherQuery :: GqlQuery 'Query)
-    response <- case _eitherQuery of
-        Right query -> resolve queryResolver query
-        Left s -> error $ "no bueno: " ++ s
-    print response
+            parseReqBody $ Data.ByteString.Char8.concat ["{ ", textQuery, " }"]
+    print _eitherQuery
     f $ responseLBS status200 [(hContentType, "application/json")] "response"
 
 main :: IO ()
@@ -63,4 +50,3 @@ main = do
     let port = 3000
     Prelude.putStrLn $ "Listening on port " ++ show port
     run port app
-
