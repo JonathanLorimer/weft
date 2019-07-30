@@ -19,6 +19,7 @@ import Weft.Generics.RecordGen
 import Weft.Generics.Resolve
 import Weft.Generics.Schema
 import Weft.Internal.Types
+import Data.Aeson
 
 type Wefty record =
   ( HasAllTypes record
@@ -48,5 +49,7 @@ data Gql q m s (ts :: TypeState) = Gql
   }
   deriving Generic
 
-deriving instance (Show (q 'Query)) => Show (Gql q m s 'Query)
+deriving instance (Show (q 'Query))    => Show (Gql q m s 'Query)
+deriving instance (Show (q 'Response)) => Show (Gql q m s 'Response)
+deriving instance (ToJSON (q 'Response)) => ToJSON (Gql q m s 'Response)
 

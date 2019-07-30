@@ -8,9 +8,9 @@ import Weft.Generics.EmptyQuery
 import TestData
 import Lens.Micro
 import Lens.Micro.Aeson
-import Network.Wai (responseLBS, Application, getRequestBodyChunk)
+import Network.Wai (responseLBS, Application, Response, getRequestBodyChunk)
 import Network.Wai.Handler.Warp (run)
-import Network.HTTP.Types (status200)
+import Network.HTTP.Types (status200, status500)
 import Network.HTTP.Types.Header (hContentType)
 import Data.Aeson hiding (json)
 import Data.Attoparsec.ByteString.Char8
@@ -43,7 +43,17 @@ app req f = do
             textQuery <- note . maybeQuery $ rb
             parseReqBody $ Data.ByteString.Char8.concat ["{ ", textQuery, " }"]
     print _eitherQuery
-    f $ responseLBS status200 [(hContentType, "application/json")] "response"
+    case _eitherQuery of
+        Right q -> do
+            res <- resolve gqlResolver q
+            f $ successResponse res
+        Left e  -> f $ errorResponse $ BL.fromStrict . pack $ e
+
+successResponse :: ToJSON a => a -> Response
+successResponse = responseLBS status200 [(hContentType, "application/json")] . encode
+
+errorResponse :: BL.ByteString -> Response
+errorResponse = responseLBS status500 [(hContentType, "application/json")]
 
 main :: IO ()
 main = do

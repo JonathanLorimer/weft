@@ -13,8 +13,8 @@ import Data.Aeson
 import GHC.Generics
 import Test.QuickCheck
 
-newtype Id = Id String deriving (Generic, Show, Read, Eq, Ord, Arbitrary)
-newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary)
+newtype Id = Id String deriving (Generic, Show, Read, Eq, Ord, Arbitrary, ToJSON)
+newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary, ToJSON)
 
 data GqlQuery ts = GqlQuery
     { getUser :: Magic ts (Arg "id" Id -> User ts)
@@ -28,8 +28,9 @@ data User ts = User
   , userFriends    :: Magic ts [User ts]
   } deriving (Generic)
 
-deriving instance AllHave Show (User ts) => Show (User ts)
-deriving instance AllHave Eq (User ts)   => Eq (User ts)
+deriving instance AllHave Show (User ts)     => Show (User ts)
+deriving instance AllHave Eq (User ts)       => Eq (User ts)
+deriving instance AllHave ToJSON (User ts)   => ToJSON (User ts)
 
 data Account ts = Account
   { accountBalance :: Magic ts (Arg "num" (Maybe Int) -> Int)
@@ -59,8 +60,12 @@ queryResolver = GqlQuery
             , getAllUsers = getAllUsersResolver
             }
 
+gqlResolver :: Gql GqlQuery () () 'Resolver
+gqlResolver = Gql { query = resolve queryResolver }
+
 -- resolver = resolve (User @('Resolver)) (User @('Query))
 deriving instance Show (GqlQuery 'Response)
+deriving instance ToJSON (GqlQuery 'Response)
 deriving instance Show (GqlQuery 'Query)
 
 -- deriving instance Show (User 'Data)
