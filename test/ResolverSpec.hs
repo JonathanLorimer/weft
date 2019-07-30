@@ -1,10 +1,9 @@
 module ResolverSpec where
 
-import           GHC.Generics
-import           Test.Hspec hiding (Arg)
-import           Weft.Generics.Resolve
-import           Weft.Internal.Types
-import           Weft.Types
+import Test.Hspec hiding (Arg)
+import Weft.Generics.Resolve
+import Weft.Internal.Types
+import Weft.Types
 
 
 data Tester ts = Tester
