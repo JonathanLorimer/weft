@@ -38,7 +38,7 @@ note (Just x) = Right x
 
 app :: Application
 app req f = do
-    rb <- getRequestBodyChunk req    
+    rb <- getRequestBodyChunk req
     let _eitherQuery = do
             textQuery <- note . maybeQuery $ rb
             parseReqBody $ Data.ByteString.Char8.concat ["{ ", textQuery, " }"]
@@ -46,7 +46,7 @@ app req f = do
         Right q -> do
             res <- resolve gqlResolver q
             f $ successResponse res
-        Left e  -> f $ errorResponse $ BL.fromStrict . pack $ e
+        Left e  -> f $ errorResponse $ BL.fromStrict $ pack e
 
 successResponse :: ToJSON a => a -> Response
 successResponse = responseLBS status200 [(hContentType, "application/json")] . encode

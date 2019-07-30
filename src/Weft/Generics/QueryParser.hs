@@ -8,7 +8,6 @@ import           Control.Applicative
 import           Control.Applicative.Permutations
 import           Control.Monad.Reader
 import           Data.Attoparsec.ByteString.Char8
-import qualified Data.Attoparsec.ByteString.Char8 as AP
 import qualified Data.ByteString.Char8 as BS
 import           Data.Char
 import qualified Data.Map as M
@@ -147,17 +146,17 @@ parseRawArgValue = choice
       ]
   ]
 
-parseStringValue :: AP.Parser String
+parseStringValue :: Parser String
 parseStringValue = do
-  c <- AP.peekChar
+  c <- peekChar
   case c of
-    Just '"' -> AP.char '"' >> pure "\""
+    Just '"' -> char '"' >> pure "\""
     Just '\\' -> do
-      c1 <- AP.anyChar
-      c2 <- AP.anyChar
+      c1 <- anyChar
+      c2 <- anyChar
       (++) <$> pure (c1 : c2 : [])
            <*> parseStringValue
-    Just _ -> (:) <$> AP.anyChar
+    Just _ -> (:) <$> anyChar
                   <*> parseStringValue
     Nothing -> empty
 
