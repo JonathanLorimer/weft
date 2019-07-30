@@ -13,8 +13,10 @@ import           Data.Char
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Proxy
+import           Data.Text (Text)
+import qualified Data.Text as T
 import           GHC.Generics
-import           GHC.TypeLits
+import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Weft.Generics.EmptyQuery
 import           Weft.Internal.Types
 
@@ -47,12 +49,13 @@ instance ( GPermFieldsParser fq
 
 instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
       => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                         (K1 _4 (Maybe (Args args, ())))) where
-  gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
-    _ <- lift $ string $ BS.pack $ symbolVal $ Proxy @name
+                               (K1 _4 (M.Map Text (Args args, ())))) where
+  gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault M.empty $ do
+    let name = symbolVal $ Proxy @name
+    _ <- lift $ string $ BS.pack name
     lift skipSpace
     args <- parseOptionalArgs @args
-    pure $ Just (args, ())
+    pure $ M.singleton (T.pack name) (args, ())
 
 instance ( KnownSymbol name
          , HasQueryParser t
@@ -60,9 +63,10 @@ instance ( KnownSymbol name
          , ParseArgs args
          , IsAllMaybe args
          ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                                    (K1 _4 (Maybe (Args args, t 'Query)))) where
-  gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
-    _ <- lift $ string $ BS.pack $ symbolVal $ Proxy @name
+                                    (K1 _4 (M.Map Text (Args args, t 'Query)))) where
+  gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault M.empty $ do
+    let name = symbolVal $ Proxy @name
+    _ <- lift $ string $ BS.pack name
     lift skipSpace
     args <- parseOptionalArgs @args
     lift skipSpace
@@ -71,7 +75,7 @@ instance ( KnownSymbol name
     z <- incrParser
     _ <- lift $ char '}'
     lift skipSpace
-    pure $ Just (args, z)
+    pure $ M.singleton (T.pack name) (args, z)
 
 
 

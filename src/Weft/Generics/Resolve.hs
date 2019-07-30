@@ -3,9 +3,11 @@ module Weft.Generics.Resolve
   , resolve
   ) where
 
-import GHC.Generics
-import GHC.TypeLits
-import Weft.Internal.Types
+import qualified Data.Map as M
+import           Data.Text (Text)
+import           GHC.Generics
+import           GHC.TypeLits hiding (ErrorMessage (..))
+import           Weft.Internal.Types
 
 
 ------------------------------------------------------------------------------
@@ -53,10 +55,9 @@ instance ( GResolve frv fqu frp
 -- | Q, RV1, RP3
 instance (ResolveField rv qu rp) =>
          GResolve (K1 x rv)
-                  (K1 x (Maybe qu))
-                  (K1 x (Maybe rp)) where
-  gResolve _ (K1 Nothing) = pure $ K1 Nothing
-  gResolve (K1 rv) (K1 (Just qu)) = K1 . Just <$> resolveField rv qu
+                  (K1 x (M.Map Text qu))
+                  (K1 x (M.Map Text rp)) where
+  gResolve (K1 rv) (K1 qu) = K1 <$> traverse (resolveField rv) qu
 
 
 ------------------------------------------------------------------------------
@@ -71,7 +72,7 @@ instance ResolveField (record 'Query -> IO (record 'Response))
                       (record 'Response) where
   resolveField f (ANil, query) = f query
 
-instance ResolveField (record 'Query -> IO ([record 'Response]))
+instance ResolveField (record 'Query -> IO [record 'Response])
                       (Args '[], record 'Query)
                       [record 'Response] where
   resolveField f (ANil, query) = f query
@@ -86,8 +87,8 @@ instance ResolveField (IO scalar)
 instance {-# OVERLAPPING #-}
          ( KnownSymbol n
          , ResolveField rv (Args args, ru) rp
-         ) => ResolveField (Arg n (Maybe t) -> rv)
-                           (Args ('(n, Maybe t) ': args), ru)
+         ) => ResolveField (Arg n (M.Map Text t) -> rv)
+                           (Args ('(n, M.Map Text t) ': args), ru)
                            rp where
   resolveField f (arg :@@ args, query) =
     resolveField (f arg) (args, query)

@@ -51,9 +51,9 @@ spec = do
       parseOnly (flip runReaderT (M.singleton "known" "\"a string\"")
                    $ queryParser @User)
                 "{ userId(arg: $known) }"
-        `shouldBe` Right ( User (Just ((Arg $ Just "a string") :@@ ANil, ()))
-                                Nothing
-                                Nothing
-                                Nothing
+        `shouldBe` Right ( User (M.singleton "userId" ((Arg $ Just "a string") :@@ ANil, ()))
+                                M.empty
+                                M.empty
+                                M.empty
                          )
 
