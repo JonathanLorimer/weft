@@ -64,25 +64,10 @@ queryResolver = GqlQuery
 gqlResolver :: Gql GqlQuery () () 'Resolver
 gqlResolver = Gql { query = resolve queryResolver }
 
--- resolver = resolve (User @('Resolver)) (User @('Query))
+
 deriving instance Show (GqlQuery 'Response)
 deriving instance ToJSON (GqlQuery 'Response)
 deriving instance Show (GqlQuery 'Query)
-
--- deriving instance Show (User 'Data)
--- deriving instance Show (User 'Schema)
--- deriving instance Show (User 'Response)
--- deriving instance Show (User 'Query)
-
--- deriving instance Show (Account 'Data)
--- deriving instance Show (Account 'Schema)
--- deriving instance Show (Account 'Response)
--- deriving instance Show (Account 'Query)
-
--- deriving instance Eq (User 'Data)
--- deriving instance Eq (User 'Schema)
--- deriving instance Eq (User 'Query)
-
 
 instance Arbitrary (Account 'Query) where
   arbitrary = recordGen
