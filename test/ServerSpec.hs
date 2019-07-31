@@ -45,62 +45,75 @@ deriving instance AllHave Eq (User ts)       => Eq (User ts)
 deriving instance AllHave ToJSON (User ts)   => ToJSON (User ts)
 
 getAllUsersTestString :: ByteString
-getAllUsersTestString = "query { \n getAllUsers { \n userId \n userName \n userFriends { \n userId \n userName \n } \n } \n } \n "
+getAllUsersTestString = 
+  "  query {          \
+  \    getAllUsers {  \
+  \      userId       \
+  \      userName     \
+  \      userFriends {\
+  \        userId     \
+  \        userName   \
+  \      }            \
+  \    }              \
+  \  }                \
+  \"
 
 getAllUsersTestQuery :: Either String (Gql GqlQuery () () 'Query)
-getAllUsersTestQuery = Right (Gql { query = Just (ANil
-                                             , GqlQuery { getUser = Nothing
-                                                        , getAllUsers = Just (ANil
-                                                                             , User { userId = Just (Arg Nothing :@@ ANil ,())
-                                                                                    , userName = Just (ANil ,())
-                                                                                    , userBestFriend = Nothing
-                                                                                    , userFriends = Just (ANil
-                                                                                                         , User { userId = Just (Arg Nothing :@@ ANil ,())
-                                                                                                                , userName = Just (ANil ,())
-                                                                                                                , userBestFriend = Nothing
-                                                                                                                , userFriends = Nothing }
-                                                                                                         )
-                                                                                    }
-                                                                             )
-                                                        }
-                                             )
-                              }
-                         )
-
+getAllUsersTestQuery = Right (Gql { query = Just (ANil, gqlQ) })
+  where
+    gqlQ         = GqlQuery         { getUser = Nothing
+                                    , getAllUsers = getAllUsersQ }
+    getAllUsersQ = Just (ANil, User { userId = Just (Arg Nothing :@@ ANil , ())
+                                    , userName = Just (ANil , ())
+                                    , userBestFriend = Nothing
+                                    , userFriends = userFriendsQ }
+                        )
+    userFriendsQ = Just (ANil, User { userId = Just (Arg Nothing :@@ ANil ,())
+                                    , userName = Just (ANil , ())
+                                    , userBestFriend = Nothing
+                                    , userFriends = Nothing }
+                        )
 getUserTestString :: ByteString
-getUserTestString = " query { \n getUser(id: 1) { \n userId \n userName \n userBestFriend { \n userName \n } \n } \n } \n "
+getUserTestString = 
+  "  query {              \
+  \    getUser(id: 1) {   \
+  \      userId           \
+  \      userName         \
+  \      userBestFriend { \
+  \        userName       \
+  \      }                \
+  \    }                  \
+  \ }                     \
+  \"
 
 getUserTestQuery :: Either String (Gql GqlQuery () () 'Query)
-getUserTestQuery = Right (Gql { query = Just (ANil
-                                             , GqlQuery { getAllUsers = Nothing
-                                                        , getUser = Just (Arg (Id 1) :@@ ANil
-                                                                             , User { userId = Just (Arg Nothing :@@ ANil ,())
-                                                                                    , userName = Just (ANil ,())
-                                                                                    , userBestFriend = Just (Arg Nothing :@@ ANil
-                                                                                                            , User { userId = Nothing
-                                                                                                                   , userName = Just (ANil ,())
-                                                                                                                   , userBestFriend = Nothing
-                                                                                                                   , userFriends = Nothing 
-                                                                                                                   }
-                                                                                                            )
-                                                                                    , userFriends = Nothing
-                                                                                    }
-                                                                             )
-                                                        }
-                                             )
-                              }
-                         )
+getUserTestQuery = Right (Gql { query = Just (ANil, gqlQ) })
+  where
+      gqlQ        = GqlQuery { getAllUsers = Nothing
+                            , getUser = getUserQ }
+      getUserQ    = Just (Arg (Id 1) :@@ ANil
+                        , User { userId = Just (Arg Nothing :@@ ANil , ())
+                                , userName = Just (ANil , ())
+                                , userBestFriend = bestFriendQ
+                                , userFriends = Nothing }
+                        )
+      bestFriendQ = Just (Arg Nothing :@@ ANil
+                        , User { userId = Nothing
+                                , userName = Just (ANil , ())
+                                , userBestFriend = Nothing
+                                , userFriends = Nothing }
+                        )
 
-
-deriving instance Show (GqlQuery 'Response)
-deriving instance ToJSON (GqlQuery 'Response)
-deriving instance Show (GqlQuery 'Query)
+deriving instance AllHave Show (GqlQuery ts) => Show (GqlQuery ts)
+deriving instance AllHave ToJSON (GqlQuery ts) => ToJSON (GqlQuery ts)
 
 instance Arbitrary (User 'Query) where
   arbitrary = recordGen
+  shrink = genericShrink
 
 instance Arbitrary (User 'Data) where
   arbitrary = recordGen
+  shrink = genericShrink
 
 spec :: Spec
 spec = describe "server" $ do

@@ -21,7 +21,7 @@ import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 import GHC.Generics
 
-parseReqBody :: (HasEmptyQuery query, HasQueryParser query)
+parseReqBody :: (Wefty query)
              => ByteString
              -> Either String ((Gql query () ()) 'Query)
 parseReqBody queryString = parseOnly
@@ -37,7 +37,7 @@ note :: Maybe a -> Either String a
 note Nothing = Left ""
 note (Just x) = Right x
 
-app :: (ToJSON (q 'Response), HasEmptyQuery q, HasQueryParser q) => Gql q () () 'Resolver -> Application
+app :: (ToJSON (q 'Response), Wefty q) => Gql q () () 'Resolver -> Application
 app resolver req f = do
     rb <- getRequestBodyChunk req
     let _eitherQuery = do

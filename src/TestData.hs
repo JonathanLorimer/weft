@@ -52,7 +52,7 @@ getUserResolver a q
     | (getArg a) == (Id "2") = pure $ hydrate sandy q
     | otherwise = pure $ hydrate jonathan q
 
-getAllUsersResolver :: User 'Query -> IO ([User 'Response])
+getAllUsersResolver :: User 'Query -> IO [User 'Response]
 getAllUsersResolver q = pure $ (flip hydrate q) <$> [sandy, jonathan]
 
 queryResolver :: GqlQuery 'Resolver

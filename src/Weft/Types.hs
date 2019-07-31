@@ -51,8 +51,8 @@ data Gql q m s (ts :: TypeState) = Gql
   }
   deriving Generic
 
-deriving instance (Show (q 'Query))       => Show (Gql q m s 'Query)
-deriving instance (Show (q 'Response))    => Show (Gql q m s 'Response)
-deriving instance (Eq (q 'Query))         => Eq (Gql q m s 'Query)
-deriving instance (ToJSON (q 'Response))  => ToJSON (Gql q m s 'Response)
+deriving instance AllHave Show (Gql q m s ts) => Show (Gql q m s ts)
+deriving instance AllHave Eq (Gql q m s ts) => Eq (Gql q m s ts)
+deriving instance AllHave ToJSON (Gql q m s ts) => ToJSON (Gql q m s ts)
+
 
