@@ -1,3 +1,8 @@
+{-# LANGUAGE DeriveFoldable        #-}
+{-# LANGUAGE DeriveFunctor         #-}
+{-# LANGUAGE DeriveTraversable     #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+
 module Weft.Generics.QueryParser
   ( HasQueryParser
   , queryParser
@@ -10,6 +15,7 @@ import           Control.Monad.Reader
 import           Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString.Char8 as BS
 import           Data.Char
+import           Data.Foldable
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Proxy
@@ -36,21 +42,24 @@ type Vars = M.Map String String
 ------------------------------------------------------------------------------
 -- |
 class GPermFieldsParser (rq :: * -> *) where
-  gPermFieldsParser :: Permutation (ReaderT Vars Parser) (rq x)
+  gPermFieldsParser :: [ReaderT Vars Parser (rq x)]
 
 instance {-# OVERLAPPABLE #-} GPermFieldsParser fq => GPermFieldsParser (M1 a b fq) where
-  gPermFieldsParser = M1 <$> gPermFieldsParser
+  gPermFieldsParser = fmap M1 <$> gPermFieldsParser
 
 instance ( GPermFieldsParser fq
          , GPermFieldsParser gq
+         , forall x. (Monoid (fq x), Monoid (gq x))
          ) => GPermFieldsParser (fq :*: gq) where
-  gPermFieldsParser = (:*:) <$> gPermFieldsParser
-                            <*> gPermFieldsParser
+  gPermFieldsParser =
+      (fmap (:*: mempty) <$> gPermFieldsParser @fq)
+      ++ (fmap (mempty :*:) <$> gPermFieldsParser @gq)
+      -- ]
 
 instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
       => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                (K1 _4 (M.Map Text (Args args, ())))) where
-  gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault M.empty $ do
+  gPermFieldsParser = pure . fmap (M1 . K1) $ do
     let name = symbolVal $ Proxy @name
     _ <- lift $ string $ BS.pack name
     lift skipSpace
@@ -64,7 +73,9 @@ instance ( KnownSymbol name
          , IsAllMaybe args
          ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                     (K1 _4 (M.Map Text (Args args, t 'Query)))) where
-  gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault M.empty $ do
+  gPermFieldsParser = pure
+                    . fmap (M1 . K1)
+                    $ do
     let name = symbolVal $ Proxy @name
     _ <- lift $ string $ BS.pack name
     lift skipSpace
@@ -72,7 +83,7 @@ instance ( KnownSymbol name
     lift skipSpace
     _ <- lift $ char '{'
     lift skipSpace
-    z <- queryParser
+    z <- queryParser @t
     _ <- lift $ char '}'
     lift skipSpace
     pure $ M.singleton (T.pack name) (args, z)
@@ -88,13 +99,17 @@ instance {-# OVERLAPPABLE #-} GQueryParser fq
       => GQueryParser (M1 a b fq) where
   gQueryParser = M1 <$> gQueryParser
 
-instance ( GPermFieldsParser (fq :*: gq))
+instance ( GPermFieldsParser (fq :*: gq)
+         , forall x. (Monoid (fq x), Monoid (gq x))
+         )
       => GQueryParser (fq :*: gq) where
-  gQueryParser = intercalateEffect (lift skipSpace) gPermFieldsParser
+  gQueryParser = foldManyOf gPermFieldsParser
 
-instance GPermFieldsParser (M1 _1 _2 (K1 _3 f))
+instance ( GPermFieldsParser (M1 _1 _2 (K1 _3 f))
+         , Monoid f
+         )
       => GQueryParser (M1 _1 _2 (K1 _3 f)) where
-  gQueryParser = runPermutation gPermFieldsParser
+  gQueryParser = foldManyOf gPermFieldsParser
 
 
 ------------------------------------------------------------------------------
@@ -114,8 +129,11 @@ parseOptionalArgs =
 parseArgList :: ParseArgs args => ReaderT Vars Parser (Args args)
 parseArgList = do
   _ <- lift $ char '('
+  lift skipSpace
   z <- intercalateEffect (lift $ skipSpace >> char ',' >> skipSpace) $ parseArgs
+  lift skipSpace
   _ <- lift $ char ')'
+  lift skipSpace
   pure z
 
 
@@ -206,4 +224,10 @@ instance ( Read t
                        $ Proxy @n
                        )
           <*> parseArgs
+
+
+------------------------------------------------------------------------------
+-- |
+foldManyOf :: (Foldable t, Alternative f, Monoid m) => t (f m) -> f m
+foldManyOf = fmap fold . many1 . asum
 
