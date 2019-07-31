@@ -39,6 +39,7 @@ dependencies:
 
 default-extensions:
   - DeriveGeneric
+  - DerivingVia
   - TypeFamilies
   - RankNTypes
   - GADTs

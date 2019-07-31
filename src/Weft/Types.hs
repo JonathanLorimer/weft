@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass #-}
+
 module Weft.Types
   ( Magic
   , Arg (..)
@@ -19,6 +21,7 @@ import Weft.Generics.RecordGen
 import Weft.Generics.Resolve
 import Weft.Generics.Schema
 import Weft.Internal.Types
+import Data.Aeson
 
 type Wefty record =
   ( HasAllTypes record
@@ -40,4 +43,16 @@ type instance GFields c (f :+: g)  = (GFields c f, GFields c g)
 type instance GFields c (f :*: g)  = (GFields c f, GFields c g)
 type instance GFields c U1         = ()
 type instance GFields c (K1 i a)   = c a
+
+data Gql q m s (ts :: TypeState) = Gql
+  { query        :: Magic ts (q ts)
+  -- , mutation     :: m ts
+  -- , subscription :: s ts
+  }
+  deriving Generic
+
+deriving instance AllHave Show (Gql q m s ts) => Show (Gql q m s ts)
+deriving instance AllHave Eq (Gql q m s ts) => Eq (Gql q m s ts)
+deriving instance AllHave ToJSON (Gql q m s ts) => ToJSON (Gql q m s ts)
+
 

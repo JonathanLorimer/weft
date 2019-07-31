@@ -14,7 +14,6 @@ import           Weft.Generics.QueryParser
 import           Weft.Internal.Types
 import           Weft.Types
 
-
 testQuery
     :: ( Eq (record 'Query)
        , Wefty record
