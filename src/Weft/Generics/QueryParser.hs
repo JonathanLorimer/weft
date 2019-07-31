@@ -61,10 +61,20 @@ instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
                                (K1 _4 (M.Map Text (Args args, ())))) where
   gPermFieldsParser = pure . fmap (M1 . K1) $ do
     let name = symbolVal $ Proxy @name
+    alias <- lift $ parseAlias name
     _ <- lift $ string $ BS.pack name
     lift skipSpace
     args <- parseOptionalArgs @args
-    pure $ M.singleton (T.pack name) (args, ())
+    pure $ M.singleton alias (args, ())
+
+
+parseAlias :: String -> Parser Text
+parseAlias defname = fmap (T.pack . fromMaybe defname) $ optional $ do
+  i <- parseAnIdentifier
+  skipSpace
+  _ <- char ':'
+  skipSpace
+  pure i
 
 instance ( KnownSymbol name
          , HasQueryParser t
@@ -77,6 +87,7 @@ instance ( KnownSymbol name
                     . fmap (M1 . K1)
                     $ do
     let name = symbolVal $ Proxy @name
+    alias <- lift $ parseAlias name
     _ <- lift $ string $ BS.pack name
     lift skipSpace
     args <- parseOptionalArgs @args
@@ -86,7 +97,7 @@ instance ( KnownSymbol name
     z <- queryParser @t
     _ <- lift $ char '}'
     lift skipSpace
-    pure $ M.singleton (T.pack name) (args, z)
+    pure $ M.singleton alias (args, z)
 
 
 
@@ -229,5 +240,5 @@ instance ( Read t
 ------------------------------------------------------------------------------
 -- |
 foldManyOf :: (Foldable t, Alternative f, Monoid m) => t (f m) -> f m
-foldManyOf = fmap fold . many1 . asum
+foldManyOf = fmap fold . many . asum
 
