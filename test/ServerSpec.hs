@@ -44,30 +44,6 @@ deriving instance AllHave Show (User ts)     => Show (User ts)
 deriving instance AllHave Eq (User ts)       => Eq (User ts)
 deriving instance AllHave ToJSON (User ts)   => ToJSON (User ts)
 
-jonathan :: User 'Data
-jonathan = User { userId = (Id 1), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
-
-sandy :: User 'Data
-sandy = User { userId = (Id 2), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
-
-getUserResolver :: (Arg "id" Id) -> User 'Query -> IO (User 'Response)
-getUserResolver a q
-    | (getArg a) == (Id 1) = pure $ hydrate jonathan q
-    | (getArg a) == (Id 2) = pure $ hydrate sandy q
-    | otherwise = pure $ hydrate jonathan q
-
-getAllUsersResolver :: User 'Query -> IO ([User 'Response])
-getAllUsersResolver q = pure $ (flip hydrate q) <$> [sandy, jonathan]
-
-queryResolver :: GqlQuery 'Resolver
-queryResolver = GqlQuery
-            { getUser = getUserResolver
-            , getAllUsers = getAllUsersResolver
-            }
-
-gqlResolver :: Gql GqlQuery () () 'Resolver
-gqlResolver = Gql { query = resolve queryResolver }
-
 getAllUsersTestString :: ByteString
 getAllUsersTestString = "query { \n getAllUsers { \n userId \n userName \n userFriends { \n userId \n userName \n } \n } \n } \n "
 
