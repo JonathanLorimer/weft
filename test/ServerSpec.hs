@@ -3,6 +3,7 @@
 {-# LANGUAGE NoMonoLocalBinds           #-}
 {-# LANGUAGE NoMonomorphismRestriction  #-}
 {-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DerivingStrategies        #-}
 
 module ServerSpec where
 
@@ -17,7 +18,12 @@ import GHC.Generics
 import Test.QuickCheck hiding (Args)
 import Data.ByteString.Char8
 
-newtype Id = Id String deriving (Generic, Show, Read, Eq, Ord, Arbitrary, ToJSON)
+newtype Id = Id Int 
+  deriving          (ToJSON, Generic)
+  deriving stock    (Show)
+  deriving newtype  (Eq, Ord, Arbitrary)
+  deriving Read via (Int)
+
 newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary, ToJSON)
 
 data GqlQuery ts = GqlQuery
@@ -28,9 +34,9 @@ data GqlQuery ts = GqlQuery
 deriving instance AllHave Eq (GqlQuery ts)       => Eq (GqlQuery ts)
 
 data User ts = User
-  { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
+  { userId         :: Magic ts (Arg "arg" (Maybe Int) -> Id)
   , userName       :: Magic ts Name
-  , userBestFriend :: Magic ts (Arg "arg" (Maybe String) -> User ts)
+  , userBestFriend :: Magic ts (Arg "arg" (Maybe Int) -> User ts)
   , userFriends    :: Magic ts [User ts]
   } deriving (Generic)
 
@@ -39,15 +45,15 @@ deriving instance AllHave Eq (User ts)       => Eq (User ts)
 deriving instance AllHave ToJSON (User ts)   => ToJSON (User ts)
 
 jonathan :: User 'Data
-jonathan = User { userId = (Id "1"), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
+jonathan = User { userId = (Id 1), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
 
 sandy :: User 'Data
-sandy = User { userId = (Id "2"), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
+sandy = User { userId = (Id 2), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
 
 getUserResolver :: (Arg "id" Id) -> User 'Query -> IO (User 'Response)
 getUserResolver a q
-    | (getArg a) == (Id "1") = pure $ hydrate jonathan q
-    | (getArg a) == (Id "2") = pure $ hydrate sandy q
+    | (getArg a) == (Id 1) = pure $ hydrate jonathan q
+    | (getArg a) == (Id 2) = pure $ hydrate sandy q
     | otherwise = pure $ hydrate jonathan q
 
 getAllUsersResolver :: User 'Query -> IO ([User 'Response])
@@ -91,7 +97,7 @@ getUserTestString = " query { \n getUser(id: 1) { \n userId \n userName \n userB
 getUserTestQuery :: Either String (Gql GqlQuery () () 'Query)
 getUserTestQuery = Right (Gql { query = Just (ANil
                                              , GqlQuery { getAllUsers = Nothing
-                                                        , getUser = Just (Arg (Id "1") :@@ ANil
+                                                        , getUser = Just (Arg (Id 1) :@@ ANil
                                                                              , User { userId = Just (Arg Nothing :@@ ANil ,())
                                                                                     , userName = Just (ANil ,())
                                                                                     , userBestFriend = Just (Arg Nothing :@@ ANil
