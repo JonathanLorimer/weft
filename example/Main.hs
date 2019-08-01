@@ -39,7 +39,8 @@ data User ts = User
 
 deriving instance AllHave Show (User ts)     => Show (User ts)
 deriving instance AllHave Eq (User ts)       => Eq (User ts)
-deriving instance AllHave ToJSON (User ts)   => ToJSON (User ts)
+deriving via (NoNothingJSON (User ts)) instance AllHave ToJSON (User ts)   => ToJSON (User ts)
+-- deriving via (NoNothingJSON (User 'Response)) instance ToJSON (User 'Response)   => ToJSON (User 'Response)
 
 data Account ts = Account
   { accountBalance :: Magic ts (Arg "num" (Maybe Int) -> Int)
@@ -74,7 +75,8 @@ gqlResolver = Gql { query = resolve queryResolver }
 
 
 deriving instance Show (GqlQuery 'Response)
-deriving instance ToJSON (GqlQuery 'Response)
+-- deriving via (NoNothingJSON (GqlQuery 'Response)) instance ToJSON (GqlQuery 'Response)
+deriving via (NoNothingJSON (GqlQuery ts)) instance AllHave ToJSON (GqlQuery ts)   => ToJSON (GqlQuery ts)
 deriving instance Show (GqlQuery 'Query)
 
 instance Arbitrary (Account 'Query) where
