@@ -8,10 +8,12 @@ import Weft.Generics.EmptyQuery
 import TestData
 import Lens.Micro
 import Lens.Micro.Aeson
-import Network.Wai (responseLBS, Application, Response, getRequestBodyChunk)
+import Network.Wai.Middleware.Cors
+import Network.Wai
 import Network.Wai.Handler.Warp (run)
 import Network.HTTP.Types (status200, status500)
 import Network.HTTP.Types.Header (hContentType)
+import Network.HTTP.Types.Method
 import Data.Aeson hiding (json)
 import Data.Attoparsec.ByteString.Char8
 import Data.ByteString.Char8
@@ -39,15 +41,16 @@ note (Just x) = Right x
 
 app :: (ToJSON (q 'Response), Wefty q) => Gql q () () 'Resolver -> Application
 app resolver req f = do
-    rb <- getRequestBodyChunk req
-    let _eitherQuery = do
-            textQuery <- note . maybeQuery $ rb
-            parseReqBody textQuery
-    case _eitherQuery of
-        Right q -> do
-            res <- resolve resolver q
-            f $ successResponse res
-        Left e  -> f $ errorResponse $ BL.fromStrict $ pack e
+        print req
+        rb <- getRequestBodyChunk req
+        let _eitherQuery = do
+                textQuery <- note . maybeQuery $ rb
+                parseReqBody textQuery
+        case _eitherQuery of
+            Right q -> do
+                res <- resolve resolver q
+                f $ successResponse res
+            Left e  -> f $ errorResponse $ BL.fromStrict $ pack e
 
 successResponse :: ToJSON a => a -> Response
 successResponse = responseLBS status200 [(hContentType, "application/json")] . encode
@@ -59,4 +62,16 @@ main :: IO ()
 main = do
     let port = 3000
     Prelude.putStrLn $ "Listening on port " ++ show port
-    run port $ app gqlResolver -- TODO: allow the user to pass in their resolvers, or Reader them
+    run port $ cors extremelyPermissiveCorsPolicy $ app gqlResolver -- TODO: allow the user to pass in their resolvers, or Reader them
+
+-- TODO: At some point you should make this less permissive
+extremelyPermissiveCorsPolicy :: Request -> Maybe CorsResourcePolicy
+extremelyPermissiveCorsPolicy _ = Just $ CorsResourcePolicy 
+    { corsOrigins           = Nothing 
+    , corsMethods           = [methodGet, methodPost, methodOptions]
+    , corsRequestHeaders    = [hContentType] 
+    , corsExposedHeaders    = Nothing
+    , corsMaxAge            = Nothing
+    , corsVaryOrigin        = False
+    , corsRequireOrigin     = False
+    , corsIgnoreFailures    = True }
