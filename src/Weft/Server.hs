@@ -4,8 +4,6 @@ import Weft.Internal.Types
 import Weft.Types
 import Weft.Generics.QueryParser
 import Weft.Generics.Resolve
-import Weft.Generics.EmptyQuery
-import TestData
 import Lens.Micro
 import Lens.Micro.Aeson
 import Network.Wai.Middleware.Cors
@@ -19,10 +17,8 @@ import Data.Aeson hiding (json)
 import Data.Attoparsec.ByteString.Char8
 import Data.ByteString.Char8
 import Data.Text.Encoding
-import qualified Data.Map as M
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
-import GHC.Generics
 
 parseReqBody :: (Wefty query)
              => ByteString
