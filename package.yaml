@@ -63,6 +63,14 @@ library:
   source-dirs: src
   ghc-options: -Wall
 
+executables:
+  example:
+    main: Main.hs
+    source-dirs: example
+    ghc-options: -Wall
+    dependencies:
+      - weft
+
 tests:
   weft-test:
     main: Main.hs
