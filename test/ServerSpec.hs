@@ -16,8 +16,11 @@ import Weft.Generics.Hydrate
 import Data.Aeson
 import GHC.Generics
 import Test.QuickCheck hiding (Args)
-import Data.ByteString.Char8
+import Data.ByteString.Char8 as C8
+import Data.ByteString.Lazy as BL
 
+------------------------------------------------------------------------------------------
+-- | Mock Data
 newtype Id = Id Int 
   deriving          (ToJSON, Generic)
   deriving stock    (Show)
@@ -44,7 +47,31 @@ deriving instance AllHave Show (User ts)     => Show (User ts)
 deriving instance AllHave Eq (User ts)       => Eq (User ts)
 deriving instance AllHave ToJSON (User ts)   => ToJSON (User ts)
 
-getAllUsersTestString :: ByteString
+jonathan :: User 'Data
+jonathan = User { userId = (Id 1), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
+
+sandy :: User 'Data
+sandy = User { userId = (Id 2), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
+
+getUserResolver :: (Arg "id" Id) -> User 'Query -> IO (User 'Response)
+getUserResolver a q
+    | (getArg a) == (Id 1) = pure $ hydrate jonathan q
+    | (getArg a) == (Id 2) = pure $ hydrate sandy q
+    | otherwise = pure $ hydrate jonathan q
+
+getAllUsersResolver :: User 'Query -> IO [User 'Response]
+getAllUsersResolver q = pure $ (flip hydrate q) <$> [sandy, jonathan]
+
+queryResolver :: GqlQuery 'Resolver
+queryResolver = GqlQuery
+            { getUser = getUserResolver
+            , getAllUsers = getAllUsersResolver
+            }
+
+gqlResolver :: Gql GqlQuery () () 'Resolver
+gqlResolver = Gql { query = resolve queryResolver }
+
+getAllUsersTestString :: C8.ByteString
 getAllUsersTestString = 
   "  query {          \
   \    getAllUsers {  \
@@ -57,6 +84,26 @@ getAllUsersTestString =
   \    }              \
   \  }                \
   \"
+
+getAllUsersTestJson :: BL.ByteString
+getAllUsersTestJson = "{\"query\":{\"getAllUsers\":[{\"userName\":\"Sandy\",\"userId\":2,\"userBestFriend\":{\"userName\":\"Jonathan\",\"userId\":1\"}},{\"userName\":\"Jonathan\",\"userId\":1,\"userBestFriend\":{\"userName\":\"Sandy\",\"userId\":2\"}}]}}"
+
+getAllUsersTestJsonQuery :: Gql GqlQuery () () 'Query
+getAllUsersTestJsonQuery = Gql { query = Just (ANil, gqlQ) }
+  where
+    gqlQ            = GqlQuery         { getUser = Nothing
+                                       , getAllUsers = getAllUsersQ }
+    getAllUsersQ    = Just (ANil, User { userId = Just (Arg Nothing :@@ ANil , ())
+                                       , userName = Just (ANil , ())
+                                       , userBestFriend = userBestFriendQ
+                                       , userFriends = Nothing }
+                           )
+    userBestFriendQ = Just (Arg Nothing :@@ ANil, User { userId = Just (Arg Nothing :@@ ANil ,())
+                                                       , userName = Just (ANil , ())
+                                                       , userBestFriend = Nothing
+                                                       , userFriends = Nothing }
+                           )
+
 
 getAllUsersTestQuery :: Either String (Gql GqlQuery () () 'Query)
 getAllUsersTestQuery = Right (Gql { query = Just (ANil, gqlQ) })
@@ -73,7 +120,7 @@ getAllUsersTestQuery = Right (Gql { query = Just (ANil, gqlQ) })
                                     , userBestFriend = Nothing
                                     , userFriends = Nothing }
                         )
-getUserTestString :: ByteString
+getUserTestString :: C8.ByteString
 getUserTestString = 
   "  query {              \
   \    getUser(id: 1) {   \
@@ -115,6 +162,9 @@ instance Arbitrary (User 'Data) where
   arbitrary = recordGen
   shrink = genericShrink
 
+------------------------------------------------------------------------------------------
+-- | Tests
+
 spec :: Spec
 spec = describe "server" $ do
     describe "parseReqBody" $ do
@@ -122,4 +172,8 @@ spec = describe "server" $ do
             parseReqBody getAllUsersTestString `shouldBe` getAllUsersTestQuery
         it "should parse query with args (getAllUsers)" $
             parseReqBody getUserTestString `shouldBe` getUserTestQuery
+    describe "JSON encoding responses" $ do
+        it "should encode a response for getAllUsers as JSON" $ do
+              response <- resolve gqlResolver $ getAllUsersTestJsonQuery
+              (encode response) `shouldBe` getAllUsersTestJson
 

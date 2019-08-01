@@ -39,7 +39,7 @@ data User ts = User
 
 deriving instance AllHave Show (User ts)     => Show (User ts)
 deriving instance AllHave Eq (User ts)       => Eq (User ts)
-deriving via (NoNothingJSON (User ts)) instance AllHave ToJSON (User ts)   => ToJSON (User ts)
+deriving via (NoNothingJSON (User 'Response)) instance AllHave ToJSON (User 'Response)   => ToJSON (User 'Response)
 -- deriving via (NoNothingJSON (User 'Response)) instance ToJSON (User 'Response)   => ToJSON (User 'Response)
 
 data Account ts = Account
@@ -76,7 +76,7 @@ gqlResolver = Gql { query = resolve queryResolver }
 
 deriving instance Show (GqlQuery 'Response)
 -- deriving via (NoNothingJSON (GqlQuery 'Response)) instance ToJSON (GqlQuery 'Response)
-deriving via (NoNothingJSON (GqlQuery ts)) instance AllHave ToJSON (GqlQuery ts)   => ToJSON (GqlQuery ts)
+deriving via (NoNothingJSON (GqlQuery 'Response)) instance AllHave ToJSON (GqlQuery 'Response)   => ToJSON (GqlQuery 'Response)
 deriving instance Show (GqlQuery 'Query)
 
 instance Arbitrary (Account 'Query) where
