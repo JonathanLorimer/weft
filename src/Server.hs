@@ -41,7 +41,6 @@ note (Just x) = Right x
 
 app :: (ToJSON (q 'Response), Wefty q) => Gql q () () 'Resolver -> Application
 app resolver req f = do
-        print req
         rb <- getRequestBodyChunk req
         let _eitherQuery = do
                 textQuery <- note . maybeQuery $ rb
