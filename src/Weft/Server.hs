@@ -17,6 +17,7 @@ import Data.Aeson hiding (json)
 import Data.Attoparsec.ByteString.Char8
 import Data.ByteString.Char8
 import Data.Text.Encoding
+import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 
@@ -54,11 +55,13 @@ successResponse = responseLBS status200 [(hContentType, "application/json")] . e
 errorResponse :: BL.ByteString -> Response
 errorResponse = responseLBS status500 [(hContentType, "application/json")]
 
-server :: (ToJSON (q 'Response), Wefty q) 
+server :: (Wefty q) 
        => [Settings -> Settings]
        -> Gql q () () 'Resolver
        -> IO ()
-server s r = runSettings (L.foldl' (&) defaultSettings s) (cors extremelyPermissiveCorsPolicy $ app r)
+server s r = runSettings 
+    (appEndo (foldMap Endo s) defaultSettings)
+    (cors extremelyPermissiveCorsPolicy $ app r)
 
 -- TODO(Jonathan): At some point you should make this less permissive
 extremelyPermissiveCorsPolicy :: Request -> Maybe CorsResourcePolicy

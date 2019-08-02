@@ -32,6 +32,7 @@ type Wefty record =
   , HasQueryParser record
   , HasResolve record
   , HasSchema record
+  , ToJSON (record 'Response)
   )
 
 
