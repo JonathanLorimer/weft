@@ -1,27 +1,25 @@
-module Server where
+module Weft.Server where
 
 import Weft.Internal.Types
 import Weft.Types
 import Weft.Generics.QueryParser
 import Weft.Generics.Resolve
-import Weft.Generics.EmptyQuery
-import TestData
 import Lens.Micro
 import Lens.Micro.Aeson
 import Network.Wai.Middleware.Cors
 import Network.Wai
-import Network.Wai.Handler.Warp (run)
+import Network.Wai.Handler.Warp
 import Network.HTTP.Types (status200, status500)
 import Network.HTTP.Types.Header (hContentType)
 import Network.HTTP.Types.Method
+import qualified Data.List as L
 import Data.Aeson hiding (json)
 import Data.Attoparsec.ByteString.Char8
 import Data.ByteString.Char8
 import Data.Text.Encoding
-import qualified Data.Map as M
+import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
-import GHC.Generics
 
 parseReqBody :: (Wefty query)
              => ByteString
@@ -57,11 +55,13 @@ successResponse = responseLBS status200 [(hContentType, "application/json")] . e
 errorResponse :: BL.ByteString -> Response
 errorResponse = responseLBS status500 [(hContentType, "application/json")]
 
-main :: IO ()
-main = do
-    let port = 3000
-    Prelude.putStrLn $ "Listening on port " ++ show port
-    run port $ cors extremelyPermissiveCorsPolicy $ app gqlResolver
+server :: (Wefty q) 
+       => [Settings -> Settings]
+       -> Gql q () () 'Resolver
+       -> IO ()
+server s r = runSettings 
+    (appEndo (foldMap Endo s) defaultSettings)
+    (cors extremelyPermissiveCorsPolicy $ app r)
 
 -- TODO(Jonathan): At some point you should make this less permissive
 extremelyPermissiveCorsPolicy :: Request -> Maybe CorsResourcePolicy

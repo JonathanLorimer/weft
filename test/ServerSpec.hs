@@ -3,12 +3,12 @@
 {-# LANGUAGE NoMonoLocalBinds           #-}
 {-# LANGUAGE NoMonomorphismRestriction  #-}
 {-# LANGUAGE DeriveAnyClass             #-}
-{-# LANGUAGE DerivingStrategies        #-}
+{-# LANGUAGE DerivingStrategies         #-}
 
 module ServerSpec where
 
 import Test.Hspec hiding (Arg)
-import Server
+import Weft.Server
 import Weft.Types
 import Weft.Internal.Types
 import Weft.Generics.Resolve

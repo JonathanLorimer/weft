@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass             #-}
+
 module ParserSpec where
 
 import           Control.Monad.Reader
@@ -5,14 +7,47 @@ import           Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString.Char8 as BS8
 import           Data.Either
 import qualified Data.Map as M
-import           Test.Hspec
+import           Data.Aeson
+import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck
-import           TestData
 import           Text.PrettyPrint.HughesPJ
 import           Weft.Generics.PprQuery
 import           Weft.Generics.QueryParser
 import           Weft.Internal.Types
 import           Weft.Types
+
+newtype Id = Id String deriving (Generic, Show, Read, Eq, Ord, Arbitrary, ToJSON)
+newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary, ToJSON)
+
+data User ts = User
+  { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
+  , userName       :: Magic ts Name
+  , userBestFriend :: Magic ts (Arg "arg" (Maybe String) -> User ts)
+  , userFriends    :: Magic ts [User ts]
+  } deriving (Generic)
+
+deriving instance AllHave Show (User ts)     => Show (User ts)
+deriving instance AllHave Eq (User ts)       => Eq (User ts)
+deriving instance AllHave ToJSON (User ts)   => ToJSON (User ts)
+
+data Account ts = Account
+  { accountBalance :: Magic ts (Arg "num" (Maybe Int) -> Int)
+  } deriving (Generic)
+
+deriving instance AllHave Show (Account ts) => Show (Account ts)
+deriving instance AllHave Eq (Account ts)   => Eq (Account ts)
+
+instance Arbitrary (Account 'Query) where
+  arbitrary = recordGen
+
+instance Arbitrary (User 'Query) where
+  arbitrary = recordGen
+
+instance Arbitrary (Account 'Data) where
+  arbitrary = recordGen
+
+instance Arbitrary (User 'Data) where
+  arbitrary = recordGen
 
 testQuery
     :: ( Eq (record 'Query)
