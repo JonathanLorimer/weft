@@ -30,6 +30,7 @@ dependencies:
   - containers
   - warp
   - wai
+  - wai-cors
   - http-types
   - pretty
   - QuickCheck
