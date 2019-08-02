@@ -3,7 +3,7 @@
 {-# LANGUAGE NoMonoLocalBinds           #-}
 {-# LANGUAGE NoMonomorphismRestriction  #-}
 {-# LANGUAGE DeriveAnyClass             #-}
-{-# LANGUAGE DerivingStrategies        #-}
+{-# LANGUAGE DerivingStrategies         #-}
 
 module ServerSpec where
 

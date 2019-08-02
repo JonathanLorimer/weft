@@ -3,6 +3,7 @@
 {-# LANGUAGE NoMonoLocalBinds           #-}
 {-# LANGUAGE NoMonomorphismRestriction  #-}
 {-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DerivingStrategies         #-}
 
 module Main where
 
@@ -16,7 +17,12 @@ import Data.Aeson
 import GHC.Generics
 import Test.QuickCheck
 
-newtype Id = Id String deriving (Generic, Show, Read, Eq, Ord, Arbitrary, ToJSON)
+newtype Id = Id Int 
+  deriving          (ToJSON, Generic)
+  deriving stock    (Show)
+  deriving newtype  (Eq, Ord, Arbitrary)
+  deriving Read via (Int)
+
 newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary, ToJSON)
 
 data GqlQuery ts = GqlQuery
@@ -25,9 +31,9 @@ data GqlQuery ts = GqlQuery
     } deriving (Generic)
 
 data User ts = User
-  { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
+  { userId         :: Magic ts (Arg "arg" (Maybe Int) -> Id)
   , userName       :: Magic ts Name
-  , userBestFriend :: Magic ts (Arg "arg" (Maybe String) -> User ts)
+  , userBestFriend :: Magic ts (Arg "arg" (Maybe Int) -> User ts)
   , userFriends    :: Magic ts [User ts]
   } deriving (Generic)
 
@@ -43,15 +49,15 @@ deriving instance AllHave Show (Account ts) => Show (Account ts)
 deriving instance AllHave Eq (Account ts)   => Eq (Account ts)
 
 jonathan :: User 'Data
-jonathan = User { userId = (Id "1"), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
+jonathan = User { userId = (Id 1), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
 
 sandy :: User 'Data
-sandy = User { userId = (Id "2"), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
+sandy = User { userId = (Id 2), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
 
 getUserResolver :: (Arg "id" Id) -> User 'Query -> IO (User 'Response)
 getUserResolver a q
-    | (getArg a) == (Id "1") = pure $ hydrate jonathan q
-    | (getArg a) == (Id "2") = pure $ hydrate sandy q
+    | (getArg a) == (Id 1) = pure $ hydrate jonathan q
+    | (getArg a) == (Id 2) = pure $ hydrate sandy q
     | otherwise = pure $ hydrate jonathan q
 
 getAllUsersResolver :: User 'Query -> IO [User 'Response]
