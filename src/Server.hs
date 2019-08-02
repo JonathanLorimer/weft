@@ -63,7 +63,7 @@ main = do
     Prelude.putStrLn $ "Listening on port " ++ show port
     run port $ cors extremelyPermissiveCorsPolicy $ app gqlResolver
 
--- TODO: At some point you should make this less permissive
+-- TODO(Jonathan): At some point you should make this less permissive
 extremelyPermissiveCorsPolicy :: Request -> Maybe CorsResourcePolicy
 extremelyPermissiveCorsPolicy _ = Just $ CorsResourcePolicy 
     { corsOrigins           = Nothing 
