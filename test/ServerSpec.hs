@@ -53,6 +53,9 @@ jonathan = User { userId = (Id 1), userName = ( Name "Jonathan"), userBestFriend
 sandy :: User 'Data
 sandy = User { userId = (Id 2), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
 
+------------------------------------------------------------------------------------------
+-- | Mock Resolvers
+
 getUserResolver :: (Arg "id" Id) -> User 'Query -> IO (User 'Response)
 getUserResolver a q
     | (getArg a) == (Id 1) = pure $ hydrate jonathan q
@@ -70,6 +73,9 @@ queryResolver = GqlQuery
 
 gqlResolver :: Gql GqlQuery () () 'Resolver
 gqlResolver = Gql { query = resolve queryResolver }
+
+------------------------------------------------------------------------------------------
+-- | Mock Queries
 
 getAllUsersTestString :: C8.ByteString
 getAllUsersTestString = 
@@ -150,6 +156,27 @@ getUserTestQuery = Right (Gql { query = Just (ANil, gqlQ) })
                                 , userBestFriend = Nothing
                                 , userFriends = Nothing }
                         )
+                        
+getUserTestJsonQuery :: Gql GqlQuery () () 'Query
+getUserTestJsonQuery = Gql { query = Just (ANil, gqlQ) }
+  where
+      gqlQ        = GqlQuery { getAllUsers = Nothing
+                            , getUser = getUserQ }
+      getUserQ    = Just (Arg (Id 1) :@@ ANil
+                        , User { userId = Just (Arg Nothing :@@ ANil , ())
+                                , userName = Just (ANil , ())
+                                , userBestFriend = bestFriendQ
+                                , userFriends = Nothing }
+                        )
+      bestFriendQ = Just (Arg Nothing :@@ ANil
+                        , User { userId = Nothing
+                                , userName = Just (ANil , ())
+                                , userBestFriend = Nothing
+                                , userFriends = Nothing }
+                        )
+
+getUserTestJson :: BL.ByteString
+getUserTestJson = "{\"query\":{\"getUser\":{\"userName\":\"Jonathan\",\"userId\":1,\"userBestFriend\":{\"userName\":\"Sandy\"}}}}"
 
 deriving instance AllHave Show (GqlQuery ts) => Show (GqlQuery ts)
 deriving instance AllHave ToJSON (GqlQuery ts) => ToJSON (GqlQuery ts)
@@ -173,7 +200,9 @@ spec = describe "server" $ do
         it "should parse query with args (getAllUsers)" $
             parseReqBody getUserTestString `shouldBe` getUserTestQuery
     describe "JSON encoding responses" $ do
+        it "should encode a response for getUser as JSON" $ do
+            response <- resolve gqlResolver $ getUserTestJsonQuery
+            (encode response) `shouldBe` getUserTestJson
         it "should encode a response for getAllUsers as JSON" $ do
-              response <- resolve gqlResolver $ getAllUsersTestJsonQuery
-              (encode response) `shouldBe` getAllUsersTestJson
-
+            response <- resolve gqlResolver $ getAllUsersTestJsonQuery
+            (encode response) `shouldBe` getAllUsersTestJson
