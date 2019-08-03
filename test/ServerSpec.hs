@@ -34,7 +34,10 @@ data GqlQuery ts = GqlQuery
     , getAllUsers :: Magic ts [User ts]
     } deriving (Generic)
 
-deriving instance AllHave Eq (GqlQuery ts)       => Eq (GqlQuery ts)
+deriving instance AllHave Eq (GqlQuery ts)            => Eq (GqlQuery ts)
+deriving instance AllHave Show (GqlQuery ts)          => Show (GqlQuery ts)
+deriving via (NoNothingJSON (GqlQuery 'Response)) 
+  instance AllHave ToJSON (GqlQuery 'Response)        => ToJSON (GqlQuery 'Response)
 
 data User ts = User
   { userId         :: Magic ts (Arg "arg" (Maybe Int) -> Id)
@@ -45,7 +48,8 @@ data User ts = User
 
 deriving instance AllHave Show (User ts)     => Show (User ts)
 deriving instance AllHave Eq (User ts)       => Eq (User ts)
-deriving instance AllHave ToJSON (User ts)   => ToJSON (User ts)
+deriving via (NoNothingJSON (User 'Response)) 
+  instance AllHave ToJSON (User 'Response)   => ToJSON (User 'Response)
 
 jonathan :: User 'Data
 jonathan = User { userId = (Id 1), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
@@ -92,7 +96,7 @@ getAllUsersTestString =
   \"
 
 getAllUsersTestJson :: BL.ByteString
-getAllUsersTestJson = "{\"query\":{\"getAllUsers\":[{\"userName\":\"Sandy\",\"userId\":2,\"userBestFriend\":{\"userName\":\"Jonathan\",\"userId\":1\"}},{\"userName\":\"Jonathan\",\"userId\":1,\"userBestFriend\":{\"userName\":\"Sandy\",\"userId\":2\"}}]}}"
+getAllUsersTestJson = "{\"query\":{\"getAllUsers\":[{\"userName\":\"Sandy\",\"userId\":2,\"userBestFriend\":{\"userName\":\"Jonathan\",\"userId\":1}},{\"userName\":\"Jonathan\",\"userId\":1,\"userBestFriend\":{\"userName\":\"Sandy\",\"userId\":2}}]}}"
 
 getAllUsersTestJsonQuery :: Gql GqlQuery () () 'Query
 getAllUsersTestJsonQuery = Gql { query = Just (ANil, gqlQ) }
@@ -177,9 +181,6 @@ getUserTestJsonQuery = Gql { query = Just (ANil, gqlQ) }
 
 getUserTestJson :: BL.ByteString
 getUserTestJson = "{\"query\":{\"getUser\":{\"userName\":\"Jonathan\",\"userId\":1,\"userBestFriend\":{\"userName\":\"Sandy\"}}}}"
-
-deriving instance AllHave Show (GqlQuery ts) => Show (GqlQuery ts)
-deriving instance AllHave ToJSON (GqlQuery ts) => ToJSON (GqlQuery ts)
 
 instance Arbitrary (User 'Query) where
   arbitrary = recordGen
