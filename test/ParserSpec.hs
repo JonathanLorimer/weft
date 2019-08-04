@@ -34,15 +34,9 @@ data Account ts = Account
   { accountBalance :: Magic ts (Arg "num" (Maybe Int) -> Int)
   } deriving (Generic)
 
-<<<<<<< HEAD
 deriving instance AllHave Show (Account ts)     => Show (Account ts)
 deriving instance AllHave Eq (Account ts)       => Eq (Account ts)
 deriving instance AllHave ToJSON (Account ts)   => ToJSON (Account ts)
-=======
-deriving instance AllHave Show (Account ts)   => Show (Account ts)
-deriving instance AllHave Eq (Account ts)     => Eq (Account ts)
-deriving instance AllHave ToJSON (Account ts) => ToJSON (Account ts)
->>>>>>> fixed tests
 
 instance Arbitrary (Account 'Query) where
   arbitrary = recordGen
