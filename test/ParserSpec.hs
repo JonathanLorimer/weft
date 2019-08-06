@@ -16,12 +16,9 @@ import           Weft.Generics.QueryParser
 import           Weft.Internal.Types
 import           Weft.Types
 
-newtype Id = Id String deriving (Generic, Show, Read, Eq, Ord, Arbitrary, ToJSON)
-newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary, ToJSON)
-
 data User ts = User
-  { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
-  , userName       :: Magic ts Name
+  { userId         :: Magic ts (Arg "arg" (Maybe String) -> Int)
+  , userName       :: Magic ts String
   , userBestFriend :: Magic ts (Arg "arg" (Maybe String) -> User ts)
   , userFriends    :: Magic ts [User ts]
   } deriving (Generic)

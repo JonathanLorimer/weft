@@ -10,20 +10,19 @@ module Main where
 import Network.Wai.Handler.Warp
 import Weft.Server
 import Weft.Types
-import Weft.Internal.Types
 import Weft.Generics.Resolve
 import Weft.Generics.Hydrate
 import Data.Aeson
-import GHC.Generics
 import Test.QuickCheck
 
 newtype Id = Id Int
-  deriving          (ToJSON, Generic)
-  deriving stock    (Show)
-  deriving newtype  (Eq, Ord, Arbitrary)
+  deriving stock (Generic, Show, Eq, Ord)
+  deriving newtype (Arbitrary, ToJSON)
   deriving Read via (Int)
 
-newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary, ToJSON)
+newtype Name = Name String
+  deriving stock (Generic, Show, Eq, Ord)
+  deriving newtype (Arbitrary, ToJSON)
 
 data GqlQuery ts = GqlQuery
     { getUser :: Magic ts (Arg "id" Id -> User ts)
@@ -71,7 +70,7 @@ queryResolver = GqlQuery
             }
 
 gqlResolver :: Gql GqlQuery m s 'Resolver
-gqlResolver = Gql { query = resolve queryResolver }
+gqlResolver = Gql $ resolve queryResolver
 
 
 deriving instance Show (GqlQuery 'Response)
@@ -79,21 +78,10 @@ deriving instance Show (GqlQuery 'Response)
 deriving via (NoNothingJSON (GqlQuery 'Response)) instance AllHave ToJSON (GqlQuery 'Response)   => ToJSON (GqlQuery 'Response)
 deriving instance Show (GqlQuery 'Query)
 
-instance Arbitrary (Account 'Query) where
-  arbitrary = recordGen
-
-instance Arbitrary (User 'Query) where
-  arbitrary = recordGen
-
-instance Arbitrary (Account 'Data) where
-  arbitrary = recordGen
-
-instance Arbitrary (User 'Data) where
-  arbitrary = recordGen
-
 main :: IO ()
 main = do
-    let port = 3000
+    let port = id @Int 3000
     let settings = [setPort port]
     Prelude.putStrLn $ "Listening on port " ++ show port
     server settings gqlResolver
+

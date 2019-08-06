@@ -14,7 +14,6 @@ import Weft.Internal.Types
 import Weft.Generics.Resolve
 import Weft.Generics.Hydrate
 import Data.Aeson
-import GHC.Generics
 import Test.QuickCheck hiding (Args)
 import Data.ByteString.Char8 as C8
 import Data.ByteString.Lazy as BL
@@ -22,12 +21,13 @@ import Data.ByteString.Lazy as BL
 ------------------------------------------------------------------------------------------
 -- | Mock Data
 newtype Id = Id Int
-  deriving          (ToJSON, Generic)
-  deriving stock    (Show)
-  deriving newtype  (Eq, Ord, Arbitrary)
+  deriving stock (Generic, Show, Eq, Ord)
+  deriving newtype (Arbitrary, ToJSON)
   deriving Read via (Int)
 
-newtype Name = Name String deriving (Generic, Show, Eq, Ord, Arbitrary, ToJSON)
+newtype Name = Name String
+  deriving stock (Generic, Show, Eq, Ord)
+  deriving newtype (Arbitrary, ToJSON)
 
 data GqlQuery ts = GqlQuery
     { getUser :: Magic ts (Arg "id" Id -> User ts)
