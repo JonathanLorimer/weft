@@ -26,7 +26,7 @@ type HasQueryParser record =
      )
 
 queryParser :: HasQueryParser record => ReaderT Vars Parser (record 'Query)
-queryParser = lift skipSpace *> fmap to gQueryParser <* lift skipSpace
+queryParser = lift skipCrap *> fmap to gQueryParser <* lift skipCrap
 
 
 anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)
@@ -35,6 +35,15 @@ anonymousQueryParser = do
   pure $ Gql $ Just (ANil, r)
 
 type Vars = M.Map String String
+
+
+skipCrap :: Parser ()
+skipCrap = do
+  skipSpace
+  _ <- optional $ do
+    char '#'
+    manyTill' anyChar $ char '\n'
+  skipSpace
 
 
 ------------------------------------------------------------------------------
@@ -56,7 +65,7 @@ instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
                          (K1 _4 (Maybe (Args args, ())))) where
   gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
     _ <- lift $ string $ BS.pack $ symbolVal $ Proxy @name
-    lift skipSpace
+    lift skipCrap
     args <- parseOptionalArgs @args
     pure $ Just (args, ())
 
@@ -69,7 +78,7 @@ instance ( KnownSymbol name
                                     (K1 _4 (Maybe (Args args, t 'Query)))) where
   gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
     _ <- lift $ string $ BS.pack $ symbolVal $ Proxy @name
-    lift skipSpace
+    lift skipCrap
     args <- parseOptionalArgs @args
     z <- parens '{' '}' queryParser
     pure $ Just (args, z)
@@ -87,7 +96,7 @@ instance {-# OVERLAPPABLE #-} GQueryParser fq
 
 instance ( GPermFieldsParser (fq :*: gq))
       => GQueryParser (fq :*: gq) where
-  gQueryParser = intercalateEffect (lift skipSpace) gPermFieldsParser
+  gQueryParser = intercalateEffect (lift skipCrap) gPermFieldsParser
 
 instance GPermFieldsParser (M1 _1 _2 (K1 _3 f))
       => GQueryParser (M1 _1 _2 (K1 _3 f)) where
@@ -97,14 +106,14 @@ instance GPermFieldsParser (M1 _1 _2 (K1 _3 f))
 parens :: Char -> Char -> ReaderT Vars Parser a -> ReaderT Vars Parser a
 parens l r p = do
   _ <- lift $ do
-    skipSpace
+    skipCrap
     _ <- char l
-    skipSpace
+    skipCrap
   res <- p
   _ <- lift $ do
-    skipSpace
+    skipCrap
     _ <- char r
-    skipSpace
+    skipCrap
   pure $ res
 
 
@@ -124,16 +133,16 @@ parseOptionalArgs =
 
 parseArgList :: ParseArgs args => ReaderT Vars Parser (Args args)
 parseArgList = parens '(' ')' $
-  intercalateEffect (lift $ skipSpace >> char ',' >> skipSpace) $ parseArgs
+  intercalateEffect (lift $ skipCrap >> char ',' >> skipCrap) $ parseArgs
 
 
 parseAnArg :: Read a => String -> ReaderT Vars Parser a
 parseAnArg arg_name = do
-  lift skipSpace
+  lift skipCrap
   _ <- lift $ string $ BS.pack arg_name
-  lift skipSpace
+  lift skipCrap
   _ <- lift $ char ':'
-  lift skipSpace
+  lift skipCrap
   -- TODO(sandy): make this less shitty
   result <- parseRawArgValue
   pure $ read result

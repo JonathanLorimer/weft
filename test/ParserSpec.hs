@@ -96,3 +96,27 @@ spec = do
                                 Nothing
                          )
 
+  describe "comments" $ do
+    it "should allow comments everywhere yall" $ do
+      parseAllOnly (flip runReaderT mempty $ queryParser @User) (BS8.pack $ unlines
+        [ "userId #this is a comment"
+        , "( # more"
+        , "arg: #ok \"5\""
+        , "\"6\" # dope"
+        , ") # finished"
+        ])
+        `shouldBe` Right (User (Just (Arg (Just "6") :@@ ANil, ()))
+                               Nothing
+                               Nothing
+                               Nothing
+                         )
+
+    it "should not parse #s in strings" $ do
+      parseAllOnly (flip runReaderT mempty $ queryParser @User) "userId(arg: \"# no problem\")"
+        `shouldBe` Right (User (Just (Arg (Just "# no problem") :@@ ANil, ()))
+                               Nothing
+                               Nothing
+                               Nothing
+                         )
+
+
