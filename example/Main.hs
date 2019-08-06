@@ -62,7 +62,7 @@ getUserResolver a q
     | otherwise = pure $ hydrate jonathan q
 
 getAllUsersResolver :: User 'Query -> IO [User 'Response]
-getAllUsersResolver q = pure $ (flip hydrate q) <$> [sandy, jonathan]
+getAllUsersResolver q = pure $ hydrateF [sandy, jonathan] q
 
 queryResolver :: GqlQuery 'Resolver
 queryResolver = GqlQuery
