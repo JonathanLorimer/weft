@@ -29,7 +29,7 @@ parseReqBody :: (Wefty query)
              => ByteString
              -> Either String ((Gql query () ()) 'Query)
 parseReqBody queryString = parseOnly
-                           (runReaderT (queryParser <|> queryParser) mempty)
+                           (runReaderT (queryParser <|> anonymousQueryParser) mempty)
                            queryString
 
 maybeQuery :: ByteString -> Maybe ByteString
