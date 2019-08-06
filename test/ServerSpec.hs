@@ -21,7 +21,7 @@ import Data.ByteString.Lazy as BL
 
 ------------------------------------------------------------------------------------------
 -- | Mock Data
-newtype Id = Id Int 
+newtype Id = Id Int
   deriving          (ToJSON, Generic)
   deriving stock    (Show)
   deriving newtype  (Eq, Ord, Arbitrary)
@@ -36,7 +36,7 @@ data GqlQuery ts = GqlQuery
 
 deriving instance AllHave Eq (GqlQuery ts)            => Eq (GqlQuery ts)
 deriving instance AllHave Show (GqlQuery ts)          => Show (GqlQuery ts)
-deriving via (NoNothingJSON (GqlQuery 'Response)) 
+deriving via (NoNothingJSON (GqlQuery 'Response))
   instance AllHave ToJSON (GqlQuery 'Response)        => ToJSON (GqlQuery 'Response)
 
 data User ts = User
@@ -48,7 +48,7 @@ data User ts = User
 
 deriving instance AllHave Show (User ts)     => Show (User ts)
 deriving instance AllHave Eq (User ts)       => Eq (User ts)
-deriving via (NoNothingJSON (User 'Response)) 
+deriving via (NoNothingJSON (User 'Response))
   instance AllHave ToJSON (User 'Response)   => ToJSON (User 'Response)
 
 jonathan :: User 'Data
@@ -75,14 +75,14 @@ queryResolver = GqlQuery
             , getAllUsers = getAllUsersResolver
             }
 
-gqlResolver :: Gql GqlQuery () () 'Resolver
+gqlResolver :: Gql GqlQuery m s 'Resolver
 gqlResolver = Gql { query = resolve queryResolver }
 
 ------------------------------------------------------------------------------------------
 -- | Mock Queries
 
 getAllUsersTestString :: C8.ByteString
-getAllUsersTestString = 
+getAllUsersTestString =
   "  query {          \
   \    getAllUsers {  \
   \      userId       \
@@ -98,7 +98,7 @@ getAllUsersTestString =
 getAllUsersTestJson :: BL.ByteString
 getAllUsersTestJson = "{\"query\":{\"getAllUsers\":[{\"userName\":\"Sandy\",\"userId\":2,\"userBestFriend\":{\"userName\":\"Jonathan\",\"userId\":1}},{\"userName\":\"Jonathan\",\"userId\":1,\"userBestFriend\":{\"userName\":\"Sandy\",\"userId\":2}}]}}"
 
-getAllUsersTestJsonQuery :: Gql GqlQuery () () 'Query
+getAllUsersTestJsonQuery :: Gql GqlQuery m s 'Query
 getAllUsersTestJsonQuery = Gql { query = Just (ANil, gqlQ) }
   where
     gqlQ            = GqlQuery         { getUser = Nothing
@@ -115,7 +115,7 @@ getAllUsersTestJsonQuery = Gql { query = Just (ANil, gqlQ) }
                            )
 
 
-getAllUsersTestQuery :: Either String (Gql GqlQuery () () 'Query)
+getAllUsersTestQuery :: Either String (Gql GqlQuery m s 'Query)
 getAllUsersTestQuery = Right (Gql { query = Just (ANil, gqlQ) })
   where
     gqlQ         = GqlQuery         { getUser = Nothing
@@ -131,7 +131,7 @@ getAllUsersTestQuery = Right (Gql { query = Just (ANil, gqlQ) })
                                     , userFriends = Nothing }
                         )
 getUserTestString :: C8.ByteString
-getUserTestString = 
+getUserTestString =
   "  query {              \
   \    getUser(id: 1) {   \
   \      userId           \
@@ -143,7 +143,7 @@ getUserTestString =
   \ }                     \
   \"
 
-getUserTestQuery :: Either String (Gql GqlQuery () () 'Query)
+getUserTestQuery :: Either String (Gql GqlQuery m s 'Query)
 getUserTestQuery = Right (Gql { query = Just (ANil, gqlQ) })
   where
       gqlQ        = GqlQuery { getAllUsers = Nothing
@@ -160,8 +160,8 @@ getUserTestQuery = Right (Gql { query = Just (ANil, gqlQ) })
                                 , userBestFriend = Nothing
                                 , userFriends = Nothing }
                         )
-                        
-getUserTestJsonQuery :: Gql GqlQuery () () 'Query
+
+getUserTestJsonQuery :: Gql GqlQuery m s 'Query
 getUserTestJsonQuery = Gql { query = Just (ANil, gqlQ) }
   where
       gqlQ        = GqlQuery { getAllUsers = Nothing

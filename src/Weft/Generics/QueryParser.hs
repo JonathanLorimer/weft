@@ -29,7 +29,7 @@ queryParser :: HasQueryParser record => ReaderT Vars Parser (record 'Query)
 queryParser = lift skipSpace *> fmap to gQueryParser <* lift skipSpace
 
 
-anonymousQueryParser :: HasQueryParser query => ReaderT Vars Parser (Gql query () () 'Query)
+anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)
 anonymousQueryParser = do
   r <- parens '{' '}' queryParser
   pure $ Gql $ Just (ANil, r)

@@ -116,7 +116,10 @@ instance {-# OVERLAPPING #-}
            ] `suchThat` maybe (isJust $ isAllMaybe @args) (const True)
 
 
-data Gql q m s (ts :: TypeState) = Gql
+data Gql (q :: TypeState -> *)
+         (m :: TypeState -> *)
+         (s :: TypeState -> *)
+         (ts :: TypeState) = Gql
   { query        :: Magic ts (q ts)
   -- , mutation     :: m ts
   -- , subscription :: s ts

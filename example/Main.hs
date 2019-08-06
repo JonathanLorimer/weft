@@ -17,7 +17,7 @@ import Data.Aeson
 import GHC.Generics
 import Test.QuickCheck
 
-newtype Id = Id Int 
+newtype Id = Id Int
   deriving          (ToJSON, Generic)
   deriving stock    (Show)
   deriving newtype  (Eq, Ord, Arbitrary)
@@ -70,7 +70,7 @@ queryResolver = GqlQuery
             , getAllUsers = getAllUsersResolver
             }
 
-gqlResolver :: Gql GqlQuery () () 'Resolver
+gqlResolver :: Gql GqlQuery m s 'Resolver
 gqlResolver = Gql { query = resolve queryResolver }
 
 
