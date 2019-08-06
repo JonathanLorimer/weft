@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Weft.Server where
 
 import Weft.Internal.Types
@@ -39,7 +41,11 @@ note (Just x) = Right x
 
 app :: (ToJSON (q 'Response), Wefty q) => Gql q () () 'Resolver -> Application
 app resolver req f = do
+#if MIN_VERSION_wai(3,2,2)
         rb <- getRequestBodyChunk req
+#else
+        rb <- requestBody req
+#endif
         let _eitherQuery = do
                 textQuery <- note . maybeQuery $ rb
                 parseReqBody textQuery
@@ -55,20 +61,20 @@ successResponse = responseLBS status200 [(hContentType, "application/json")] . e
 errorResponse :: BL.ByteString -> Response
 errorResponse = responseLBS status500 [(hContentType, "application/json")]
 
-server :: (Wefty q) 
+server :: (Wefty q)
        => [Settings -> Settings]
        -> Gql q () () 'Resolver
        -> IO ()
-server s r = runSettings 
+server s r = runSettings
     (appEndo (foldMap Endo s) defaultSettings)
     (cors extremelyPermissiveCorsPolicy $ app r)
 
 -- TODO(Jonathan): At some point you should make this less permissive
 extremelyPermissiveCorsPolicy :: Request -> Maybe CorsResourcePolicy
-extremelyPermissiveCorsPolicy _ = Just $ CorsResourcePolicy 
-    { corsOrigins           = Nothing 
+extremelyPermissiveCorsPolicy _ = Just $ CorsResourcePolicy
+    { corsOrigins           = Nothing
     , corsMethods           = [methodGet, methodPost, methodOptions]
-    , corsRequestHeaders    = [hContentType] 
+    , corsRequestHeaders    = [hContentType]
     , corsExposedHeaders    = Nothing
     , corsMaxAge            = Nothing
     , corsVaryOrigin        = False
