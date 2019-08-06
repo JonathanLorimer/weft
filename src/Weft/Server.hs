@@ -2,6 +2,7 @@
 
 module Weft.Server where
 
+import Control.Applicative
 import Weft.Internal.Types
 import Weft.Types
 import Weft.Generics.QueryParser
@@ -23,11 +24,12 @@ import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 
+
 parseReqBody :: (Wefty query)
              => ByteString
              -> Either String ((Gql query () ()) 'Query)
 parseReqBody queryString = parseOnly
-                           (runReaderT (queryParser) mempty)
+                           (runReaderT (queryParser <|> queryParser) mempty)
                            queryString
 
 maybeQuery :: ByteString -> Maybe ByteString
