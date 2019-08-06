@@ -4,7 +4,7 @@ module Weft.Generics.Hydrate
   , hydrateF
   ) where
 
-import Weft.Internal.Types
+import Weft.Internal.Types hiding (query)
 import GHC.Generics
 
 
@@ -25,8 +25,8 @@ type HasHydrate record =
 hydrate :: HasHydrate record => record 'Data -> record 'Query -> record 'Response
 hydrate d query = to $ gHydrate (from d) (from query)
 
-hydrateF :: (HasHydrate record, Functor f ) 
-         => f (record 'Data) 
+hydrateF :: (HasHydrate record, Functor f )
+         => f (record 'Data)
          -> record 'Query
          -> f (record 'Response)
 hydrateF fd q = (flip hydrate q) <$> fd

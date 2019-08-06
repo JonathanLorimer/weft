@@ -15,7 +15,6 @@ import Network.Wai.Handler.Warp
 import Network.HTTP.Types (status200, status500)
 import Network.HTTP.Types.Header (hContentType)
 import Network.HTTP.Types.Method
-import qualified Data.List as L
 import Data.Aeson hiding (json)
 import Data.Attoparsec.ByteString.Char8
 import Data.ByteString.Char8
@@ -28,9 +27,7 @@ import Control.Monad.Reader
 parseReqBody :: (Wefty q)
              => ByteString
              -> Either String (Gql q m s 'Query)
-parseReqBody queryString = parseOnly
-                           (runReaderT (queryParser <|> anonymousQueryParser) mempty)
-                           queryString
+parseReqBody = parseOnly (runReaderT (queryParser <|> anonymousQueryParser) mempty)
 
 maybeQuery :: ByteString -> Maybe ByteString
 maybeQuery rb = do

@@ -5,7 +5,7 @@ module Weft.Generics.Resolve
 
 import GHC.Generics
 import GHC.TypeLits
-import Weft.Internal.Types
+import Weft.Internal.Types hiding (query)
 
 
 ------------------------------------------------------------------------------

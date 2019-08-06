@@ -22,7 +22,7 @@ import Weft.Generics.QueryParser
 import Weft.Generics.RecordGen
 import Weft.Generics.Resolve
 import Weft.Generics.Schema
-import Weft.Internal.Types
+import Weft.Internal.Types hiding (query)
 import Data.Aeson
 
 type Wefty record =
