@@ -2,6 +2,7 @@
 
 module Weft.Server where
 
+import Control.Applicative
 import Weft.Internal.Types
 import Weft.Types
 import Weft.Generics.QueryParser
@@ -23,11 +24,12 @@ import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 
-parseReqBody :: (Wefty query)
+
+parseReqBody :: (Wefty q)
              => ByteString
-             -> Either String ((Gql query () ()) 'Query)
+             -> Either String (Gql q m s 'Query)
 parseReqBody queryString = parseOnly
-                           (runReaderT (queryParser) mempty)
+                           (runReaderT (queryParser <|> anonymousQueryParser) mempty)
                            queryString
 
 maybeQuery :: ByteString -> Maybe ByteString
@@ -39,7 +41,7 @@ note :: Maybe a -> Either String a
 note Nothing = Left ""
 note (Just x) = Right x
 
-app :: (ToJSON (q 'Response), Wefty q) => Gql q () () 'Resolver -> Application
+app :: (ToJSON (q 'Response), Wefty q) => Gql q m s 'Resolver -> Application
 app resolver req f = do
 #if MIN_VERSION_wai(3,2,2)
         rb <- getRequestBodyChunk req
@@ -63,7 +65,7 @@ errorResponse = responseLBS status500 [(hContentType, "application/json")]
 
 server :: (Wefty q)
        => [Settings -> Settings]
-       -> Gql q () () 'Resolver
+       -> Gql q m s 'Resolver
        -> IO ()
 server s r = runSettings
     (appEndo (foldMap Endo s) defaultSettings)

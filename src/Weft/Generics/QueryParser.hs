@@ -2,6 +2,7 @@ module Weft.Generics.QueryParser
   ( HasQueryParser
   , Vars
   , queryParser
+  , anonymousQueryParser
   ) where
 
 import           Control.Applicative
@@ -27,6 +28,11 @@ type HasQueryParser record =
 queryParser :: HasQueryParser record => ReaderT Vars Parser (record 'Query)
 queryParser = lift skipSpace *> fmap to gQueryParser <* lift skipSpace
 
+
+anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)
+anonymousQueryParser = do
+  r <- parens '{' '}' queryParser
+  pure $ Gql $ Just (ANil, r)
 
 type Vars = M.Map String String
 
@@ -65,12 +71,7 @@ instance ( KnownSymbol name
     _ <- lift $ string $ BS.pack $ symbolVal $ Proxy @name
     lift skipSpace
     args <- parseOptionalArgs @args
-    lift skipSpace
-    _ <- lift $ char '{'
-    lift skipSpace
-    z <- queryParser
-    _ <- lift $ char '}'
-    lift skipSpace
+    z <- parens '{' '}' queryParser
     pure $ Just (args, z)
 
 
@@ -93,6 +94,20 @@ instance GPermFieldsParser (M1 _1 _2 (K1 _3 f))
   gQueryParser = runPermutation gPermFieldsParser
 
 
+parens :: Char -> Char -> ReaderT Vars Parser a -> ReaderT Vars Parser a
+parens l r p = do
+  _ <- lift $ do
+    skipSpace
+    _ <- char l
+    skipSpace
+  res <- p
+  _ <- lift $ do
+    skipSpace
+    _ <- char r
+    skipSpace
+  pure $ res
+
+
 ------------------------------------------------------------------------------
 -- |
 parseOptionalArgs
@@ -108,11 +123,8 @@ parseOptionalArgs =
         $ optional parseArgList
 
 parseArgList :: ParseArgs args => ReaderT Vars Parser (Args args)
-parseArgList = do
-  _ <- lift $ char '('
-  z <- intercalateEffect (lift $ skipSpace >> char ',' >> skipSpace) $ parseArgs
-  _ <- lift $ char ')'
-  pure z
+parseArgList = parens '(' ')' $
+  intercalateEffect (lift $ skipSpace >> char ',' >> skipSpace) $ parseArgs
 
 
 parseAnArg :: Read a => String -> ReaderT Vars Parser a
