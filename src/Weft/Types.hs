@@ -54,6 +54,10 @@ data Gql q m s (ts :: TypeState) = Gql
 
 deriving instance AllHave Show (Gql q m s ts) => Show (Gql q m s ts)
 deriving instance AllHave Eq (Gql q m s ts) => Eq (Gql q m s ts)
-deriving instance AllHave ToJSON (Gql q m s ts) => ToJSON (Gql q m s ts)
+deriving via (NoNothingJSON (Gql q m s ts)) instance AllHave ToJSON (Gql q m s ts) => ToJSON (Gql q m s ts)
 
 
+newtype NoNothingJSON a = NoNothingJSON a deriving Generic
+
+instance (Generic a, ToJSON a, GToJSON Zero (Rep a)) => ToJSON (NoNothingJSON a) where
+  toJSON (NoNothingJSON a)  = genericToJSON (defaultOptions { omitNothingFields = True }) a
