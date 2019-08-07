@@ -10,7 +10,6 @@ module Weft.Generics.QueryParser
   , anonymousQueryParser
   ) where
 
-import qualified Data.Set as S
 import           Control.Applicative hiding (many, some)
 import           Control.Applicative.Permutations
 import           Control.Monad.Reader
@@ -20,6 +19,7 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Proxy
+import qualified Data.Set as S
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Void
@@ -31,9 +31,6 @@ import           Text.Megaparsec.Char.Lexer (charLiteral, skipLineComment)
 import           Weft.Generics.EmptyQuery
 import           Weft.Internal.Types
 
-
-anyChar :: Parser Char
-anyChar = satisfy $ const True
 
 identWithNum :: Parser Char
 identWithNum = alphaNumChar <|> char '_'
@@ -90,20 +87,31 @@ instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
                                (K1 _4 (M.Map Text (Args args, ())))) where
   gPermFieldsParser = pure . fmap (M1 . K1) $ do
     let name = symbolVal $ Proxy @name
-    alias <- lift $ parseAlias name
-    _ <- lift $ string $ T.pack name
+    alias <- lift $ try $ parseIdentOrAlias name
     lift skipCrap
     args <- parseOptionalArgs @args
     pure $ M.singleton alias (args, ())
 
 
-parseAlias :: String -> Parser Text
-parseAlias defname = fmap (T.pack . fromMaybe defname) $ optional $ do
-  i <- parseAnIdentifier
-  skipCrap
-  _ <- char ':'
-  skipCrap
-  pure i
+
+parseIdentOrAlias :: String -> Parser Text
+parseIdentOrAlias def = do
+  asum
+    [ try $ do
+        _ <- string $ T.pack def
+        skipCrap
+        notFollowedBy (char ':')
+        skipCrap
+        pure $ T.pack def
+    , do
+        a <- parseAnIdentifier
+        skipCrap
+        _ <- char ':'
+        skipCrap
+        _ <- string $ T.pack def
+        skipCrap
+        pure $ T.pack a
+    ]
 
 instance ( KnownSymbol name
          , HasQueryParser t
@@ -116,8 +124,7 @@ instance ( KnownSymbol name
                     . fmap (M1 . K1)
                     $ do
     let name = symbolVal $ Proxy @name
-    alias <- lift $ parseAlias name
-    _ <- lift $ string $ T.pack name
+    alias <- lift $ try $ parseIdentOrAlias name
     lift skipCrap
     args <- parseOptionalArgs @args
     z <- parens '{' '}' $ queryParser @t
@@ -197,8 +204,7 @@ wrapLabel t = Label $ '"' NE.:| t ++ "\""
 parseRawArgValue :: ReaderT Vars Parser String
 parseRawArgValue = choice
   [do
-      _ <- lift $ char '$'
-      ident <- lift parseAnIdentifier
+      ident <- lift $ char '$' *> parseAnIdentifier
       vars <- ask
       case M.lookup ident vars of
         -- TODO(sandy): this shouldn't return a string, since we potentially
@@ -206,7 +212,7 @@ parseRawArgValue = choice
         Just res -> pure res
         Nothing -> lift $
           failure (Just $ wrapLabel ident) $ S.fromList $ fmap wrapLabel $ M.keys vars
-  , lift parseStringValue
+  , lift $ parseStringValue <* skipCrap
   , lift $ some $ satisfy $ \c -> all ($ c)
       [ not . Data.Char.isSpace
       , (/= ')')
@@ -265,5 +271,5 @@ instance ( Read t
 ------------------------------------------------------------------------------
 -- |
 foldManyOf :: (Functor t, Foldable t, MonadPlus f, MonadParsec e s f, Monoid m) => t (f m) -> f m
-foldManyOf = fmap fold . many . asum . fmap try
+foldManyOf = fmap fold . many . asum
 

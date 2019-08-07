@@ -2,16 +2,15 @@
 
 module Weft.Internal.Types where
 
-import Lens.Micro.Aeson
-import Lens.Micro ((^?))
 import           Data.Aeson
 import           Data.Kind
 import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Proxy
 import           Data.Text (Text)
 import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
+import           Lens.Micro ((^?))
+import           Lens.Micro.Aeson
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
 
 

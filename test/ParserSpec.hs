@@ -2,24 +2,23 @@
 
 module ParserSpec where
 
-import Data.Bifunctor
-
-import           Text.Megaparsec
 import           Control.Monad.Reader
--- import           Data.Attoparsec.ByteString.Char8
+import           Data.Aeson
+import           Data.Bifunctor
 import           Data.Either
 import qualified Data.Map as M
-import           Data.Aeson
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Data.Void
 import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck
+import           Text.Megaparsec
 import           Text.PrettyPrint.HughesPJ hiding (first)
 import           Weft.Generics.PprQuery
 import           Weft.Generics.QueryParser
 import           Weft.Internal.Types
 import           Weft.Types
-import Data.Void
-import Data.Text (Text)
-import qualified Data.Text as T
+
 
 type Parser = Parsec Void Text
 
@@ -54,13 +53,31 @@ instance Arbitrary (Account 'Data) where
 instance Arbitrary (User 'Data) where
   arbitrary = recordGen
 
+
+-- | Like '==', but prints a counterexample when it fails.
+infix 4 ====
+(====) :: (Wefty record, Eq (record 'Query)) => Either String (record 'Query) -> record 'Query -> Property
+Left x ==== _ = counterexample x False
+Right x ==== y =
+  flip counterexample res $ mconcat
+    [ "\n\n --- got --- \n\n"
+    , render $ pprQuery x
+    , interpret res
+    , render $ pprQuery y
+    ]
+  where
+    res = x == y
+    interpret True  = " == "
+    interpret False = "\n\n --- but should be --- \n\n"
+
 testQuery
     :: ( Eq (record 'Query)
        , Wefty record
+       , Show (record 'Query)
        )
-    => record 'Query -> Bool
+    => record 'Query -> Property
 testQuery q
-  = (== Right q)
+  = (==== q)
   . parseAllOnly (flip runReaderT mempty queryParser)
   . T.pack
   . render
@@ -69,12 +86,6 @@ testQuery q
 
 parseAllOnly :: Parser a -> Text -> Either String a
 parseAllOnly p = first errorBundlePretty . parse p "<test>"
-
-
-foop :: User 'Query
-foop = User {userId = M.fromList [], userName = M.fromList [("U",(ANil,())),("V2",(ANil,()))], userBestFriend = M.fromList [("QM",(Arg(Just "\\") :@@ ANil,User {userId = M.fromList [], userName = M.fromList [], userBestFriend = M.fromList [], userFriends = M.fromList []}))], userFriends = M.fromList [("Y",(ANil,User {userId = M.fromList [], userName = M.fromList [], userBestFriend = M.fromList [], userFriends = M.fromList []}))]}
-
-
 
 
 spec :: Spec
@@ -127,5 +138,7 @@ spec = do
                                M.empty
                                M.empty
                          )
+
+
 
 
