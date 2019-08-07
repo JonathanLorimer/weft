@@ -42,9 +42,9 @@ maybeClientRequest :: C8.ByteString -> Maybe ClientRequest
 maybeClientRequest rb = do
   json  <- decode @Value $ BL.fromStrict rb
   q     <- json ^? key "query" . _String
-  let v = json ^? key "query" . _String
+  let v = json ^? key "variable" . _String
   let o = json ^? key "query" . _String
-  ClientRequest q v o
+  pure $ ClientRequest q v o
 
 
 
