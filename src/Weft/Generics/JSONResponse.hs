@@ -1,4 +1,7 @@
-module Weft.Generics.JSONResponse where
+module Weft.Generics.JSONResponse (
+  HasJSONResponse,
+  jsonResponse
+) where
 
 import Weft.Internal.Types
 import           GHC.Generics
