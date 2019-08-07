@@ -60,11 +60,11 @@ stringify = fmap f
               )
 
 
-note :: Maybe a -> Either String a
-note Nothing = Left "maybeClientRequest failed"
-note (Just x) = Right x
+note :: String -> Maybe a -> Either String a
+note s Nothing = Left s
+note _ (Just x) = Right x
 
-app :: (ToJSON (q 'Response), Wefty q, Show (q 'Query)) => Gql q m s 'Resolver -> Application
+app :: (ToJSON (q 'Response), Wefty q) => Gql q m s 'Resolver -> Application
 app resolver req f = do
 #if MIN_VERSION_wai(3,2,2)
   rb <- getRequestBodyChunk req
@@ -72,7 +72,7 @@ app resolver req f = do
   rb <- requestBody req
 #endif
   let _eitherQuery = do
-        clientRequest <- note . maybeClientRequest $ rb
+        clientRequest <- note "maybeClientRequest failed" . maybeClientRequest $ rb
         parseReqBody clientRequest
   case _eitherQuery of
           Right query' -> do
@@ -91,7 +91,7 @@ successResponse =
 errorResponse :: BL.ByteString -> Response
 errorResponse = responseLBS status500 [(hContentType, "application/json")]
 
-server :: (Wefty q, Show (q 'Query))
+server :: (Wefty q)
        => [Settings -> Settings]
        -> Gql q m s 'Resolver
        -> IO ()
