@@ -14,6 +14,7 @@ import           Data.Text (Text)
 import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck hiding (Args)
 import           Weft.Generics.Hydrate
+import           Weft.Generics.JSONResponse
 import           Weft.Generics.Resolve
 import           Weft.Internal.Types
 import           Weft.Server
@@ -258,11 +259,11 @@ spec = describe "server" $ do
     it "should parse query with args (getAllUsers)" $
       parseReqBody getUserTestString `shouldBe` getUserTestQuery
 
-  xdescribe "JSON encoding responses" $ do
+  describe "JSON encoding responses" $ do
     it "should encode a response for getUser as JSON" $ do
       response <- resolve gqlResolver $ getUserTestJsonQuery
-      (encode response) `shouldBe` getUserTestJson
+      (encode $ jsonResponse response) `shouldBe` getUserTestJson
     it "should encode a response for getAllUsers as JSON" $ do
       response <- resolve gqlResolver $ getAllUsersTestJsonQuery
-      (encode response) `shouldBe` getAllUsersTestJson
+      (encode $ jsonResponse response) `shouldBe` getAllUsersTestJson
 

@@ -36,9 +36,6 @@ deriving instance AllHave Show (Finger ts) => Show (Finger ts)
 deriving instance AllHave Eq (Finger ts)   => Eq (Finger ts)
 
 
-main = hspec spec
-
-
 spec :: Spec
 spec = do
   describe "allTypes" $ do
