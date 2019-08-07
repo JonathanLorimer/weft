@@ -8,6 +8,7 @@ import Weft.Internal.Types
 import Weft.Types
 import Weft.Generics.QueryParser
 import Weft.Generics.Resolve
+import Weft.Generics.JSONResponse
 import Lens.Micro
 import Lens.Micro.Aeson
 import Network.Wai.Middleware.Cors
@@ -19,26 +20,49 @@ import Network.HTTP.Types.Method
 import Data.Aeson hiding (json)
 import qualified Data.ByteString.Char8 as C8
 import Data.Monoid
+import Data.Maybe
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Map as M
 
 
 parseReqBody :: (Wefty query)
-             => Text
+             => ClientRequest
              -> Either String ((Gql query m s) 'Query)
-parseReqBody
+parseReqBody (ClientRequest q v _)
   = first errorBundlePretty
-  . parse (runReaderT queryParser mempty) "<server>"
+  . parse (runReaderT queryParser v) "<server>" $ q
 
-maybeQuery :: C8.ByteString -> Maybe Text
-maybeQuery rb = do
-  json <- decode @Value $ BL.fromStrict rb
-  json ^? key "query" . _String
+data ClientRequest = 
+  ClientRequest { queryContent  :: Text
+                , variables     :: Vars
+                , operationName :: Maybe Text
+                } deriving (Show, Eq, Ord)
 
-note :: Maybe a -> Either String a
-note Nothing = Left ""
-note (Just x) = Right x
+maybeClientRequest :: C8.ByteString -> Maybe ClientRequest
+maybeClientRequest rb = do
+  json  <- decode @Value $ BL.fromStrict rb
+  q     <- json ^? key "query" . _String
+  let v = fromMaybe M.empty $ do
+            vars     <- json ^? key "variables" . _Object
+            pure     $  M.fromList . stringify . HM.toList $ vars
+  let o = json ^? key "operationName" . _String
+  pure $ ClientRequest q v o
+
+stringify :: [(Text, Value)] -> [(String, String)]
+stringify = fmap f
+  where
+    f (t,v) = ( T.unpack t
+              , C8.unpack . BL.toStrict . encode $ v
+              )
+
+
+note :: String -> Maybe a -> Either String a
+note s Nothing = Left s
+note _ (Just x) = Right x
 
 app :: (ToJSON (q 'Response), Wefty q) => Gql q m s 'Resolver -> Application
 app resolver req f = do
@@ -48,16 +72,21 @@ app resolver req f = do
   rb <- requestBody req
 #endif
   let _eitherQuery = do
-        textQuery <- note . maybeQuery $ rb
-        parseReqBody textQuery
+        clientRequest <- note "maybeClientRequest failed" . maybeClientRequest $ rb
+        parseReqBody clientRequest
   case _eitherQuery of
           Right query' -> do
             res <- resolve resolver query'
             f $ successResponse res
           Left e  -> f $ errorResponse $ BL.fromStrict $ C8.pack e
 
-successResponse :: ToJSON a => a -> Response
-successResponse = responseLBS status200 [(hContentType, "application/json")] . encode
+successResponse :: HasJSONResponse record
+                => record 'Response
+                -> Response
+successResponse =
+  responseLBS status200 [(hContentType, "application/json")]
+  . encode
+  . jsonResponse
 
 errorResponse :: BL.ByteString -> Response
 errorResponse = responseLBS status500 [(hContentType, "application/json")]

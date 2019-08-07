@@ -10,16 +10,13 @@ module ServerSpec where
 import           Data.Aeson
 import           Data.ByteString.Lazy as BL
 import qualified Data.Map as M
-import           Data.Text (Text)
 import           Test.Hspec hiding (Arg)
-import           Test.QuickCheck hiding (Args)
 import           TestData
 import           Weft.Generics.Hydrate
 import           Weft.Generics.JSONResponse
 import           Weft.Generics.Resolve
 import           Weft.Internal.Types
 import           Weft.Server
-import           Weft.Types
 
 ------------------------------------------------------------------------------------------
 -- | Mock Resolvers
@@ -49,8 +46,8 @@ gqlResolver =
 ------------------------------------------------------------------------------------------
 -- | Mock Queries
 
-getAllUsersTestString :: Text
-getAllUsersTestString =
+getAllUsersTestString :: ClientRequest
+getAllUsersTestString = ClientRequest
   "  query {          \
   \    getAllUsers {  \
   \      userId       \
@@ -62,6 +59,8 @@ getAllUsersTestString =
   \    }              \
   \  }                \
   \"
+  mempty
+  Nothing
 
 getAllUsersTestJson :: BL.ByteString
 getAllUsersTestJson = "{\"query\":{\"getAllUsers\":[{\"userName\":\"Sandy\",\"userId\":\"2\",\"userBestFriend\":{\"userName\":\"Jonathan\",\"userId\":\"1\"}},{\"userName\":\"Jonathan\",\"userId\":\"1\",\"userBestFriend\":{\"userName\":\"Sandy\",\"userId\":\"2\"}}]}}"
@@ -122,8 +121,8 @@ getAllUsersTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })
         , userFingers    = M.empty
         }
 
-getUserTestString :: Text
-getUserTestString =
+getUserTestString :: ClientRequest
+getUserTestString = ClientRequest
   "  query {              \
   \    getUser(id: 1) {   \
   \      userId           \
@@ -134,6 +133,8 @@ getUserTestString =
   \    }                  \
   \ }                     \
   \"
+  mempty
+  Nothing
 
 getUserTestQuery :: Either String (Gql GqlQuery m s 'Query)
 getUserTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })

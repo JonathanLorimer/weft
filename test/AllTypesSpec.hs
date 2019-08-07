@@ -5,7 +5,6 @@ import Test.Hspec hiding (Arg)
 import TestData
 import Text.PrettyPrint.HughesPJ (render)
 import Weft.Generics.AllTypes
-import Weft.Types
 
 
 spec :: Spec
