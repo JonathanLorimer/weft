@@ -197,6 +197,7 @@ parseAnArg arg_name = do
   lift skipCrap
   -- TODO(sandy): make this less shitty
   result <- parseRawArgValue
+  lift skipCrap
   pure $ read result
 
 wrapLabel :: String -> ErrorItem Char
@@ -218,6 +219,7 @@ parseRawArgValue = choice
       [ not . Data.Char.isSpace
       , (/= ')')
       , (/= '$')
+      , (/= '#')
       ]
   ]
 
