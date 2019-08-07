@@ -4,7 +4,6 @@
 
 module Weft.Server where
 
-import Control.Applicative
 import Weft.Internal.Types
 import Weft.Types
 import Weft.Generics.QueryParser
@@ -27,17 +26,17 @@ import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 
 newtype DataResponse a = DataResponse { _data :: a } 
-    deriving (Generic)
+  deriving (Generic)
 
 instance (Generic a, ToJSON a, GToJSON Zero (Rep a)) => ToJSON (DataResponse a) where
-    toJSON d = genericToJSON (defaultOptions { fieldLabelModifier = \label -> Prelude.drop 1 label }) d
+  toJSON d = genericToJSON (defaultOptions { fieldLabelModifier = \label -> Prelude.drop 1 label }) d
 
 parseReqBody :: (Wefty query)
              => ByteString
-             -> Either String ((Gql query () ()) 'Query)
-parseReqBody queryString = parseOnly
-                           (runReaderT (queryParser) mempty)
-                           queryString
+             -> Either String ((Gql query m s) 'Query)
+parseReqBody reqBody = parseOnly
+                       (runReaderT (queryParser) mempty)
+                       reqBody
 
 maybeQuery :: ByteString -> Maybe ByteString
 maybeQuery rb = do
@@ -59,11 +58,10 @@ app resolver req f = do
                 textQuery <- note . maybeQuery $ rb
                 parseReqBody textQuery
         case _eitherQuery of
-            Right q -> do
-                res <- resolve resolver q
+            Right query' -> do
+                res <- resolve resolver query'
                 case res of
                     (Gql q) -> f $ successResponse $ DataResponse q
-                    _ -> f $ errorResponse "Something went horribly wrong"
             Left e  -> f $ errorResponse $ BL.fromStrict $ pack e
 
 successResponse :: ToJSON a => a -> Response
