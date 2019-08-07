@@ -2,13 +2,15 @@
 
 module Weft.Internal.Types where
 
-import Data.Aeson
-import Data.Proxy
-import GHC.TypeLits
-import Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
-import Data.Maybe
-import GHC.Generics
-import Data.Kind
+import           Data.Aeson
+import           Data.Kind
+import qualified Data.Map as M
+import           Data.Maybe
+import           Data.Proxy
+import           Data.Text (Text)
+import           GHC.Generics
+import           GHC.TypeLits hiding (ErrorMessage (..))
+import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
 
 
 ------------------------------------------------------------------------------
@@ -27,12 +29,12 @@ type family Magic (ts :: TypeState) a where
   Magic 'Data     (Arg n t -> a)     = Magic 'Data a                              -- D1
   Magic 'Data     a                  = a                                          -- D2
 
-  Magic 'Query    ts                 = (MagicQueryResult (UnravelArgs ts))
+  Magic 'Query    ts                 = M.Map Text (MagicQueryResult (UnravelArgs ts))
 
   Magic 'Response (Arg n t -> a)     = Magic 'Response a
-  Magic 'Response [record 'Response] = Maybe [record 'Response]                   -- RP1
-  Magic 'Response (record 'Response) = Maybe (record 'Response)                   -- RP2
-  Magic 'Response scalar             = Maybe scalar                               -- RP3
+  Magic 'Response [record 'Response] = M.Map Text [record 'Response]                   -- RP1
+  Magic 'Response (record 'Response) = M.Map Text (record 'Response)                   -- RP2
+  Magic 'Response scalar             = M.Map Text scalar                               -- RP3
 
   Magic 'Schema   ts                 = Field (Fst (UnravelArgs ts))
 
@@ -47,9 +49,9 @@ type family UnravelArgs (t :: *) :: ([(Symbol, *)], *) where
   UnravelArgs a        = '( '[], a)
 
 type family MagicQueryResult (u :: ([(Symbol, *)], *)) :: * where
-  MagicQueryResult '(ts, [record 'Query]) = Maybe (Args ts, record 'Query)
-  MagicQueryResult '(ts, record 'Query)   = Maybe (Args ts, record 'Query)
-  MagicQueryResult '(ts, a)               = Maybe (Args ts, ())
+  MagicQueryResult '(ts, [record 'Query]) = (Args ts, record 'Query)
+  MagicQueryResult '(ts, record 'Query)   = (Args ts, record 'Query)
+  MagicQueryResult '(ts, a)               = (Args ts, ())
 
 type family Fst (u :: (k1, k2)) :: k1 where
   Fst '(ts, a) = ts

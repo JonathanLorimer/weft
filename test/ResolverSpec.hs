@@ -1,9 +1,10 @@
 module ResolverSpec where
 
-import Test.Hspec hiding (Arg)
-import Weft.Generics.Resolve
-import Weft.Internal.Types
-import Weft.Types
+import qualified Data.Map as M
+import           Test.Hspec hiding (Arg)
+import           Weft.Generics.Resolve
+import           Weft.Internal.Types
+import           Weft.Types
 
 
 data Tester ts = Tester
@@ -25,15 +26,17 @@ testerResolver = Tester
 spec :: Spec
 spec = describe "resolver" $ do
   it "should not crash with an impossible case" $ do
-    res <- resolve testerResolver $ Tester Nothing $ Just (ANil, ())
-    res `shouldBe` Tester Nothing (Just 5)
+    res <- resolve testerResolver $ Tester M.empty $ M.singleton "bar" (ANil, ())
+    res `shouldBe` Tester M.empty (M.singleton "bar" 5)
 
   it "should resolve arg fields" $ do
-    res <- resolve testerResolver $ Tester (Just (Arg "sandy":@@ ANil, ())) Nothing
-    res `shouldBe` Tester (Just "sandy") Nothing
+    res <- resolve testerResolver $ Tester (M.singleton "foo" (Arg "sandy":@@ ANil, ())) M.empty
+    res `shouldBe` Tester (M.singleton "foo" "sandy") M.empty
 
   it "should resolve everything" $ do
-    res <- resolve testerResolver $ Tester (Just (Arg "sandy":@@ ANil, ()))
-                                           (Just (ANil, ()))
-    res `shouldBe` Tester (Just "sandy") (Just 5)
+    res <- resolve testerResolver
+         $ Tester (M.singleton "foo" (Arg "sandy":@@ ANil, ()))
+                  (M.singleton "bar" (ANil, ()))
+    res `shouldBe` Tester (M.singleton "foo" "sandy")
+                          (M.singleton "bar" 5)
 

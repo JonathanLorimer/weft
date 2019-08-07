@@ -3,8 +3,10 @@ module Weft.Generics.EmptyQuery
   , HasEmptyQuery
   ) where
 
-import Weft.Internal.Types
-import GHC.Generics
+import qualified Data.Map as M
+import           Data.Text (Text)
+import           GHC.Generics
+import           Weft.Internal.Types
 
 
 type HasEmptyQuery record =
@@ -29,6 +31,6 @@ instance GEmptyQuery (K1 x Bool) where
     gEmptyQuery = K1 False
 
 -- | Q2
-instance GEmptyQuery (K1 x (Maybe a)) where
-    gEmptyQuery = K1 Nothing
+instance GEmptyQuery (K1 x (M.Map Text a)) where
+    gEmptyQuery = K1 M.empty
 

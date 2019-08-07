@@ -1,3 +1,8 @@
+{-# LANGUAGE DeriveFoldable        #-}
+{-# LANGUAGE DeriveFunctor         #-}
+{-# LANGUAGE DeriveTraversable     #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+
 module Weft.Generics.QueryParser
   ( HasQueryParser
   , Vars
@@ -11,11 +16,14 @@ import           Control.Monad.Reader
 import           Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString.Char8 as BS
 import           Data.Char
+import           Data.Foldable
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Proxy
+import           Data.Text (Text)
+import qualified Data.Text as T
 import           GHC.Generics
-import           GHC.TypeLits
+import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Weft.Generics.EmptyQuery
 import           Weft.Internal.Types
 
@@ -32,7 +40,7 @@ queryParser = lift skipCrap *> fmap to gQueryParser <* lift skipCrap
 anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)
 anonymousQueryParser = do
   r <- parens '{' '}' queryParser
-  pure $ Gql $ Just (ANil, r)
+  pure $ Gql $ M.singleton "query" (ANil, r)
 
 type Vars = M.Map String String
 
@@ -41,7 +49,7 @@ skipCrap :: Parser ()
 skipCrap = do
   skipSpace
   _ <- optional $ do
-    char '#'
+    _ <- char '#'
     manyTill' anyChar $ char '\n'
   skipSpace
 
@@ -49,25 +57,39 @@ skipCrap = do
 ------------------------------------------------------------------------------
 -- |
 class GPermFieldsParser (rq :: * -> *) where
-  gPermFieldsParser :: Permutation (ReaderT Vars Parser) (rq x)
+  gPermFieldsParser :: [ReaderT Vars Parser (rq x)]
 
 instance {-# OVERLAPPABLE #-} GPermFieldsParser fq => GPermFieldsParser (M1 a b fq) where
-  gPermFieldsParser = M1 <$> gPermFieldsParser
+  gPermFieldsParser = fmap M1 <$> gPermFieldsParser
 
 instance ( GPermFieldsParser fq
          , GPermFieldsParser gq
+         , forall x. (Monoid (fq x), Monoid (gq x))
          ) => GPermFieldsParser (fq :*: gq) where
-  gPermFieldsParser = (:*:) <$> gPermFieldsParser
-                            <*> gPermFieldsParser
+  -- TODO(sandy): free perf gains here
+  gPermFieldsParser =
+      (fmap (:*: mempty) <$> gPermFieldsParser @fq)
+      ++ (fmap (mempty :*:) <$> gPermFieldsParser @gq)
 
 instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
       => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                         (K1 _4 (Maybe (Args args, ())))) where
-  gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
-    _ <- lift $ string $ BS.pack $ symbolVal $ Proxy @name
+                               (K1 _4 (M.Map Text (Args args, ())))) where
+  gPermFieldsParser = pure . fmap (M1 . K1) $ do
+    let name = symbolVal $ Proxy @name
+    alias <- lift $ parseAlias name
+    _ <- lift $ string $ BS.pack name
     lift skipCrap
     args <- parseOptionalArgs @args
-    pure $ Just (args, ())
+    pure $ M.singleton alias (args, ())
+
+
+parseAlias :: String -> Parser Text
+parseAlias defname = fmap (T.pack . fromMaybe defname) $ optional $ do
+  i <- parseAnIdentifier
+  skipSpace
+  _ <- char ':'
+  skipSpace
+  pure i
 
 instance ( KnownSymbol name
          , HasQueryParser t
@@ -75,13 +97,17 @@ instance ( KnownSymbol name
          , ParseArgs args
          , IsAllMaybe args
          ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                                    (K1 _4 (Maybe (Args args, t 'Query)))) where
-  gPermFieldsParser = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ do
-    _ <- lift $ string $ BS.pack $ symbolVal $ Proxy @name
+                                    (K1 _4 (M.Map Text (Args args, t 'Query)))) where
+  gPermFieldsParser = pure
+                    . fmap (M1 . K1)
+                    $ do
+    let name = symbolVal $ Proxy @name
+    alias <- lift $ parseAlias name
+    _ <- lift $ string $ BS.pack name
     lift skipCrap
     args <- parseOptionalArgs @args
-    z <- parens '{' '}' queryParser
-    pure $ Just (args, z)
+    z <- parens '{' '}' $ queryParser @t
+    pure $ M.singleton alias (args, z)
 
 
 
@@ -94,13 +120,17 @@ instance {-# OVERLAPPABLE #-} GQueryParser fq
       => GQueryParser (M1 a b fq) where
   gQueryParser = M1 <$> gQueryParser
 
-instance ( GPermFieldsParser (fq :*: gq))
+instance ( GPermFieldsParser (fq :*: gq)
+         , forall x. (Monoid (fq x), Monoid (gq x))
+         )
       => GQueryParser (fq :*: gq) where
-  gQueryParser = intercalateEffect (lift skipCrap) gPermFieldsParser
+  gQueryParser = foldManyOf gPermFieldsParser
 
-instance GPermFieldsParser (M1 _1 _2 (K1 _3 f))
+instance ( GPermFieldsParser (M1 _1 _2 (K1 _3 f))
+         , Monoid f
+         )
       => GQueryParser (M1 _1 _2 (K1 _3 f)) where
-  gQueryParser = runPermutation gPermFieldsParser
+  gQueryParser = foldManyOf gPermFieldsParser
 
 
 parens :: Char -> Char -> ReaderT Vars Parser a -> ReaderT Vars Parser a
@@ -223,4 +253,10 @@ instance ( Read t
                        $ Proxy @n
                        )
           <*> parseArgs
+
+
+------------------------------------------------------------------------------
+-- |
+foldManyOf :: (Foldable t, Alternative f, Monoid m) => t (f m) -> f m
+foldManyOf = fmap fold . many . asum
 

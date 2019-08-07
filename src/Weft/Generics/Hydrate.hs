@@ -4,8 +4,10 @@ module Weft.Generics.Hydrate
   , hydrateF
   ) where
 
-import Weft.Internal.Types hiding (query)
-import GHC.Generics
+import qualified Data.Map as M
+import           Data.Text (Text)
+import           GHC.Generics
+import           Weft.Internal.Types hiding (query)
 
 
 ------------------------------------------------------------------------------
@@ -50,22 +52,19 @@ instance (GHydrate fd fq fr, GHydrate gd gq gr) =>
     gHydrate (fd :*: gd) (fq :*: gq) = (gHydrate fd fq) :*: (gHydrate gd gq)
 
 instance GHydrate (K1 x a)
-                  (K1 x (Maybe (Args args, ())))
-                  (K1 x (Maybe a)) where
-    gHydrate (K1 _) (K1 Nothing) = K1 Nothing
-    gHydrate (K1 d) (K1 (Just (_, ()))) = K1 $ Just d
+                  (K1 x (M.Map Text (Args args, ())))
+                  (K1 x (M.Map Text a)) where
+    gHydrate (K1 d) (K1 q) = K1 $ fmap (const d) q
 
 instance HasHydrate record =>
          GHydrate (K1 x (record 'Data))
-                  (K1 x (Maybe (Args args, record 'Query)))
-                  (K1 x (Maybe (record 'Response))) where
-    gHydrate (K1 _) (K1 Nothing) = K1 Nothing
-    gHydrate (K1 d) (K1 (Just (_, q))) = K1 $ Just $ hydrate d q
+                  (K1 x (M.Map Text (Args args, record 'Query)))
+                  (K1 x (M.Map Text (record 'Response))) where
+    gHydrate (K1 d) (K1 q) = K1 $ fmap (hydrate d . snd) q
 
 instance HasHydrate record =>
          GHydrate (K1 x [record 'Data])
-                  (K1 x (Maybe (Args args, record 'Query)))
-                  (K1 x (Maybe [record 'Response])) where
-    gHydrate (K1 _) (K1 Nothing) = K1 Nothing
-    gHydrate (K1 d) (K1 (Just (_, q))) = K1 $ Just $ (flip hydrate $ q) <$> d
+                  (K1 x (M.Map Text (Args args, record 'Query)))
+                  (K1 x (M.Map Text [record 'Response])) where
+    gHydrate (K1 d) (K1 q) = K1 $ fmap ((<$> d) . flip hydrate . snd) q
 

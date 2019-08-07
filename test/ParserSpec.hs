@@ -87,10 +87,10 @@ spec = do
       parseAllOnly (flip runReaderT (M.singleton "known" "\"a string\"")
                    $ queryParser @User)
                 "userId(arg: $known)"
-        `shouldBe` Right ( User (Just ((Arg $ Just "a string") :@@ ANil, ()))
-                                Nothing
-                                Nothing
-                                Nothing
+        `shouldBe` Right ( User (M.singleton "userId" ((Arg $ Just "a string") :@@ ANil, ()))
+                                M.empty
+                                M.empty
+                                M.empty
                          )
 
   describe "comments" $ do
@@ -102,18 +102,18 @@ spec = do
         , "\"6\" # dope"
         , ") # finished"
         ])
-        `shouldBe` Right (User (Just (Arg (Just "6") :@@ ANil, ()))
-                               Nothing
-                               Nothing
-                               Nothing
+        `shouldBe` Right (User (M.singleton "userId" (Arg (Just "6") :@@ ANil, ()))
+                               M.empty
+                               M.empty
+                               M.empty
                          )
 
     it "should not parse #s in strings" $ do
       parseAllOnly (flip runReaderT mempty $ queryParser @User) "userId(arg: \"# no problem\")"
-        `shouldBe` Right (User (Just (Arg (Just "# no problem") :@@ ANil, ()))
-                               Nothing
-                               Nothing
-                               Nothing
+        `shouldBe` Right (User (M.singleton "userId" (Arg (Just "# no problem") :@@ ANil, ()))
+                               M.empty
+                               M.empty
+                               M.empty
                          )
 
 

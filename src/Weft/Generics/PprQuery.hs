@@ -1,15 +1,21 @@
+{-# LANGUAGE ViewPatterns #-}
+
 module Weft.Generics.PprQuery
   ( HasPprQuery
   , pprQuery
   ) where
 
-import Data.Proxy
-import GHC.Generics
-import GHC.TypeLits
-import Prelude hiding ((<>))
-import Text.PrettyPrint.HughesPJ
-import Weft.PprUtils
-import Weft.Internal.Types
+import           Data.Functor ((<&>))
+import qualified Data.Map as M
+import           Data.Proxy
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           GHC.Generics
+import           GHC.TypeLits hiding (ErrorMessage (..))
+import           Prelude hiding ((<>))
+import           Text.PrettyPrint.HughesPJ
+import           Weft.Internal.Types
+import           Weft.PprUtils
 
 
 ------------------------------------------------------------------------------
@@ -43,24 +49,37 @@ instance ( KnownSymbol name
          , PprEachArg args
          , HasPprQuery record
          ) => GPprQuery (M1 S ('MetaSel ('Just name) b c d)
-                              (K1 x (Maybe (Args args, record 'Query)))) where
-  gPprQuery (M1 (K1 Nothing)) = empty
-  gPprQuery (M1 (K1 (Just (args, rec)))) =
-    sep
-      [ text (symbolVal $ Proxy @name) <> pprArgs args
-      , char '{'
-      , nest 4 $ pprQuery rec
-      , char '}'
-      ]
+                              (K1 x (M.Map Text (Args args, record 'Query)))) where
+  gPprQuery (M1 (K1 m)) = vcat $ M.toList m <&> \(alias, (args, rec)) ->
+    pprAliasIfDifferent name alias $
+      sep
+        [ text name <> pprArgs args
+        , char '{'
+        , nest 4 $ pprQuery rec
+        , char '}'
+        ]
+    where
+      name = symbolVal $ Proxy @name
 
 instance ( KnownSymbol name
          , PprEachArg args
          ) => GPprQuery (M1 S ('MetaSel ('Just name) b c d)
-                              (K1 x (Maybe (Args args, ())))) where
-  gPprQuery (M1 (K1 Nothing)) = empty
-  gPprQuery (M1 (K1 (Just (args, ())))) =
-    mconcat
-      [ text $ symbolVal $ Proxy @name
-      , pprArgs args
+                              (K1 x (M.Map Text (Args args, ())))) where
+  gPprQuery (M1 (K1 m)) = vcat $ M.toList m <&> \(alias, (args, ())) ->
+    pprAliasIfDifferent name alias $
+      mconcat
+        [ text name
+        , pprArgs args
+        ]
+    where
+      name = symbolVal $ Proxy @name
+
+
+pprAliasIfDifferent :: String -> Text -> Doc -> Doc
+pprAliasIfDifferent name (T.unpack -> alias) doc
+  | name == alias = doc
+  | otherwise = sep
+      [ text alias <> char ':'
+      , doc
       ]
 
