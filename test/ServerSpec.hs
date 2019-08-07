@@ -8,9 +8,9 @@
 module ServerSpec where
 
 import           Data.Aeson
-import           Data.ByteString.Char8 as C8
 import           Data.ByteString.Lazy as BL
 import qualified Data.Map as M
+import           Data.Text (Text)
 import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck hiding (Args)
 import           Weft.Generics.Hydrate
@@ -98,7 +98,7 @@ gqlResolver =
 ------------------------------------------------------------------------------------------
 -- | Mock Queries
 
-getAllUsersTestString :: C8.ByteString
+getAllUsersTestString :: Text
 getAllUsersTestString =
   "  query {          \
   \    getAllUsers {  \
@@ -167,7 +167,7 @@ getAllUsersTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })
         , userFriends    = M.empty
         }
 
-getUserTestString :: C8.ByteString
+getUserTestString :: Text
 getUserTestString =
   "  query {              \
   \    getUser(id: 1) {   \

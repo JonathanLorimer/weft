@@ -2,16 +2,15 @@
 
 module Weft.Internal.Types where
 
-import Lens.Micro.Aeson
-import Lens.Micro ((^?))
 import           Data.Aeson
 import           Data.Kind
 import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Proxy
 import           Data.Text (Text)
 import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
+import           Lens.Micro ((^?))
+import           Lens.Micro.Aeson
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
 
 
@@ -79,13 +78,12 @@ data Args (ts :: [(Symbol, *)]) where
 infixr 5 :@@
 
 instance Show (Args '[]) where
-  show _ = ""
+  show ANil = "ANil"
 
 instance (Show t, KnownSymbol name, Show (Args args)) => Show (Args ('(name, t) ': args)) where
   show (Arg v :@@ args) = mconcat
-    [ symbolVal $ Proxy @name
-    , "="
-    , show v
+    [ "Arg "
+    , showsPrec 0 v ""
     , " :@@ "
     , show args
     ]

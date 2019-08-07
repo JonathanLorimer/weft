@@ -2,6 +2,8 @@
 
 module Weft.Server where
 
+import Data.Bifunctor
+import Text.Megaparsec
 import Weft.Internal.Types
 import Weft.Types
 import Weft.Generics.QueryParser
@@ -15,25 +17,24 @@ import Network.HTTP.Types (status200, status500)
 import Network.HTTP.Types.Header (hContentType)
 import Network.HTTP.Types.Method
 import Data.Aeson hiding (json)
-import Data.Attoparsec.ByteString.Char8
-import Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as C8
-import Data.Text.Encoding
 import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
+import Data.Text (Text)
+
 
 parseReqBody :: (Wefty query)
-             => ByteString
+             => Text
              -> Either String ((Gql query m s) 'Query)
-parseReqBody reqBody = parseOnly
-                       (runReaderT (queryParser) mempty)
-                       reqBody
+parseReqBody
+  = first errorBundlePretty
+  . parse (runReaderT queryParser mempty) "<server>"
 
-maybeQuery :: C8.ByteString -> Maybe ByteString
+maybeQuery :: C8.ByteString -> Maybe Text
 maybeQuery rb = do
   json <- decode @Value $ BL.fromStrict rb
-  encodeUtf8 <$> ((^? key "query" . _String) json)
+  json ^? key "query" . _String
 
 note :: Maybe a -> Either String a
 note Nothing = Left ""

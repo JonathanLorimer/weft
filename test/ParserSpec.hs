@@ -3,14 +3,16 @@
 module ParserSpec where
 
 import           Control.Monad.Reader
-import           Data.Attoparsec.ByteString.Char8
-import qualified Data.ByteString.Char8 as BS8
+import           Data.Aeson
+import           Data.Bifunctor
 import           Data.Either
 import qualified Data.Map as M
-import           Data.Aeson
+import           Data.Text (Text)
+import qualified Data.Text as T
 import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck
-import           Text.PrettyPrint.HughesPJ
+import           Text.Megaparsec
+import           Text.PrettyPrint.HughesPJ hiding (first)
 import           Weft.Generics.PprQuery
 import           Weft.Generics.QueryParser
 import           Weft.Internal.Types
@@ -47,22 +49,39 @@ instance Arbitrary (Account 'Data) where
 instance Arbitrary (User 'Data) where
   arbitrary = recordGen
 
+
+-- | Like '==', but prints a counterexample when it fails.
+infix 4 ====
+(====) :: (Wefty record, Eq (record 'Query)) => Either String (record 'Query) -> record 'Query -> Property
+Left x ==== _ = counterexample x False
+Right x ==== y =
+  flip counterexample res $ mconcat
+    [ "\n\n --- got --- \n\n"
+    , render $ pprQuery x
+    , interpret res
+    , render $ pprQuery y
+    ]
+  where
+    res = x == y
+    interpret True  = " == "
+    interpret False = "\n\n --- but should be --- \n\n"
+
 testQuery
     :: ( Eq (record 'Query)
        , Wefty record
+       , Show (record 'Query)
        )
-    => record 'Query -> Bool
+    => record 'Query -> Property
 testQuery q
-  = (== Right q)
+  = (==== q)
   . parseAllOnly (flip runReaderT mempty queryParser)
-  . BS8.pack
+  . T.pack
   . render
   $ pprQuery q
 
 
-parseAllOnly :: Parser a -> BS8.ByteString -> Either String a
-parseAllOnly p = parseOnly (p <* endOfInput)
-
+parseAllOnly :: Parser a -> Text -> Either String a
+parseAllOnly p = first errorBundlePretty . parse p "<test>"
 
 
 spec :: Spec
@@ -95,7 +114,7 @@ spec = do
 
   describe "comments" $ do
     it "should allow comments everywhere yall" $ do
-      parseAllOnly (flip runReaderT mempty $ queryParser @User) (BS8.pack $ unlines
+      parseAllOnly (flip runReaderT mempty $ queryParser @User) (T.pack $ unlines
         [ "userId #this is a comment"
         , "( # more"
         , "arg: #ok \"5\""
@@ -115,5 +134,4 @@ spec = do
                                M.empty
                                M.empty
                          )
-
 
