@@ -9,6 +9,7 @@ import           Data.Either
 import qualified Data.Map as M
 import           Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.List as L
 import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck
 import           TestData
@@ -82,6 +83,11 @@ spec = do
                                 M.empty
                                 M.empty
                          )
+    it "should fail when var type is Int but receives String" $ do
+      parseAllOnly (flip runReaderT (M.singleton "known" "\"1337\"")
+                   $ queryParser @User)
+                "userId(arg: $known)"
+        `shouldSatisfy` \(Left s) -> L.isInfixOf "value that should have parsed as: Int" s
 
   describe "comments" $ do
     it "should allow comments everywhere yall" $ do

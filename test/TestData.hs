@@ -11,17 +11,12 @@ import Weft.Types
 
 ------------------------------------------------------------------------------------------
 -- | Mock Data
-newtype Id = Id Int
-  deriving stock (Generic, Show, Eq, Ord)
-  deriving newtype (Arbitrary, ToJSON)
-  deriving Read via (Int)
-
 newtype Name = Name String
   deriving stock (Generic, Show, Eq, Ord)
   deriving newtype (Arbitrary, ToJSON)
 
 data GqlQuery ts = GqlQuery
-    { getUser :: Magic ts (Arg "id" Id -> User ts)
+    { getUser :: Magic ts (Arg "id" ID -> User ts)
     , getAllUsers :: Magic ts [User ts]
     } deriving (Generic)
 
@@ -31,7 +26,7 @@ deriving via (NoNothingJSON (GqlQuery 'Response))
   instance AllHave ToJSON (GqlQuery 'Response) => ToJSON (GqlQuery 'Response)
 
 data User ts = User
-  { userId         :: Magic ts (Arg "arg" (Maybe Int) -> Id)
+  { userId         :: Magic ts (Arg "arg" (Maybe Int) -> ID)
   , userName       :: Magic ts Name
   , userBestFriend :: Magic ts (Arg "arg" (Maybe Int) -> User ts)
   , userFriends    :: Magic ts [User ts]
@@ -88,7 +83,7 @@ instance Arbitrary (Finger 'Query) where
 jonathan :: User 'Data
 jonathan =
   User
-    { userId         = Id 1
+    { userId         = ID "1"
     , userName       = Name "Jonathan"
     , userBestFriend = sandy
     , userFriends    = []
@@ -98,7 +93,7 @@ jonathan =
 sandy :: User 'Data
 sandy =
   User
-    { userId         = Id 2
+    { userId         = ID "2"
     , userName       = Name "Sandy"
     , userBestFriend = jonathan
     , userFriends    = []

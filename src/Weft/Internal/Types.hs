@@ -1,4 +1,6 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Weft.Internal.Types where
 
@@ -151,7 +153,12 @@ instance (Generic a, ToJSON a, GToJSON Zero (Rep a)) => ToJSON (NoNothingJSON a)
 
 
 
+------------------------------------------------------------------------------
+-- |
 
+newtype ID = ID String
+  deriving newtype (ToJSON, Arbitrary)
+  deriving stock (Eq, Show, Ord)
 
 ------------------------------------------------------------------------------
 -- |
