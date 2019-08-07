@@ -66,10 +66,10 @@ instance ( GPermFieldsParser fq
          , GPermFieldsParser gq
          , forall x. (Monoid (fq x), Monoid (gq x))
          ) => GPermFieldsParser (fq :*: gq) where
+  -- TODO(sandy): free perf gains here
   gPermFieldsParser =
       (fmap (:*: mempty) <$> gPermFieldsParser @fq)
       ++ (fmap (mempty :*:) <$> gPermFieldsParser @gq)
-      -- ]
 
 instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
       => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
