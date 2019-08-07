@@ -2,6 +2,8 @@
 
 module Weft.Internal.Types where
 
+import Lens.Micro.Aeson
+import Lens.Micro ((^?))
 import           Data.Aeson
 import           Data.Kind
 import qualified Data.Map as M
@@ -131,7 +133,7 @@ data Gql (q :: TypeState -> *)
 type AllHave c a = GFields c (Rep a)
 
 type family GFields (c :: * -> Constraint) (f :: * -> *) :: Constraint
-type instance GFields c (M1 i d f) = GFields c f
+type instance GFields c (M1 i j f) = GFields c f
 type instance GFields c (f :+: g)  = (GFields c f, GFields c g)
 type instance GFields c (f :*: g)  = (GFields c f, GFields c g)
 type instance GFields c U1         = ()
@@ -140,7 +142,7 @@ type instance GFields c (K1 i a)   = c a
 deriving instance AllHave Show (Gql q m s ts) => Show (Gql q m s ts)
 deriving instance AllHave Eq (Gql q m s ts) => Eq (Gql q m s ts)
 instance ToJSON (q 'Response) => ToJSON (Gql q m s 'Response) where
-  toJSON (Gql q) = object ["data" .= q]
+  toJSON (Gql q) = object ["data" .= (toJSON q ^? key "query") ]
 
 
 newtype NoNothingJSON a = NoNothingJSON a deriving Generic
