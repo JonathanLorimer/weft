@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 786e440264a853e33c090012c8122dfdbb4569cb8613b90ba9559f05aaa133d5
+-- hash: b252cd9a2a294e3a0912686081020d3fe046e4110bc394fd550f2bd4c984879a
 
 name:           weft
 version:        0.1.0.0
@@ -49,7 +49,6 @@ library
   build-depends:
       QuickCheck
     , aeson
-    , attoparsec
     , base >=4.7 && <5
     , bytestring
     , containers
@@ -78,7 +77,6 @@ executable example
   build-depends:
       QuickCheck
     , aeson
-    , attoparsec
     , base >=4.7 && <5
     , bytestring
     , containers
@@ -116,7 +114,6 @@ test-suite weft-test
   build-depends:
       QuickCheck
     , aeson
-    , attoparsec
     , base >=4.7 && <5
     , bytestring
     , containers
