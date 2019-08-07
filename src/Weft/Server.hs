@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE CPP #-}
 
 module Weft.Server where
 
@@ -22,12 +22,6 @@ import Data.Text.Encoding
 import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
-
--- newtype DataResponse a = DataResponse { _data :: a } 
---   deriving (Generic)
-
--- instance (Generic a, ToJSON a, GToJSON Zero (Rep a)) => ToJSON (DataResponse a) where
---   toJSON d = object d
 
 parseReqBody :: (Wefty query)
              => ByteString
