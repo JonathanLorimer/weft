@@ -24,10 +24,10 @@ import           Weft.Types
 ------------------------------------------------------------------------------------------
 -- | Mock Resolvers
 
-getUserResolver :: (Arg "id" Id) -> User 'Query -> IO (User 'Response)
+getUserResolver :: (Arg "id" ID) -> User 'Query -> IO (User 'Response)
 getUserResolver a q
-    | (getArg a) == Id 1 = pure $ hydrate jonathan q
-    | (getArg a) == Id 2 = pure $ hydrate sandy q
+    | (getArg a) == ID "1" = pure $ hydrate jonathan q
+    | (getArg a) == ID "2" = pure $ hydrate sandy q
     | otherwise = pure $ hydrate jonathan q
 
 getAllUsersResolver :: User 'Query -> IO [User 'Response]
@@ -64,7 +64,7 @@ getAllUsersTestString =
   \"
 
 getAllUsersTestJson :: BL.ByteString
-getAllUsersTestJson = "{\"query\":{\"getAllUsers\":[{\"userName\":\"Sandy\",\"userId\":2,\"userBestFriend\":{\"userName\":\"Jonathan\",\"userId\":1}},{\"userName\":\"Jonathan\",\"userId\":1,\"userBestFriend\":{\"userName\":\"Sandy\",\"userId\":2}}]}}"
+getAllUsersTestJson = "{\"query\":{\"getAllUsers\":[{\"userName\":\"Sandy\",\"userId\":\"2\",\"userBestFriend\":{\"userName\":\"Jonathan\",\"userId\":\"1\"}},{\"userName\":\"Jonathan\",\"userId\":\"1\",\"userBestFriend\":{\"userName\":\"Sandy\",\"userId\":\"2\"}}]}}"
 
 getAllUsersTestJsonQuery :: Gql GqlQuery m s 'Query
 getAllUsersTestJsonQuery =
@@ -140,7 +140,7 @@ getUserTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })
   where
     gqlQ = GqlQuery
       { getAllUsers = M.empty
-      , getUser     = M.singleton "getUser" (Arg (Id 1) :@@ ANil, getUserQ)
+      , getUser     = M.singleton "getUser" (Arg (ID "1") :@@ ANil, getUserQ)
       }
 
     getUserQ =
@@ -171,7 +171,7 @@ getUserTestJsonQuery =
   where
     gqlQ = GqlQuery
       { getAllUsers = M.empty
-      , getUser     = M.singleton "getUser" (Arg (Id 1) :@@ ANil, getUserQ)
+      , getUser     = M.singleton "getUser" (Arg (ID "1") :@@ ANil, getUserQ)
       }
 
     getUserQ =
@@ -196,7 +196,7 @@ getUserTestJsonQuery =
 
 getUserTestJson :: BL.ByteString
 getUserTestJson =
-  "{\"query\":{\"getUser\":{\"userName\":\"Jonathan\",\"userId\":1,\"userBestFriend\":{\"userName\":\"Sandy\"}}}}"
+  "{\"query\":{\"getUser\":{\"userName\":\"Jonathan\",\"userId\":\"1\",\"userBestFriend\":{\"userName\":\"Sandy\"}}}}"
 
 ------------------------------------------------------------------------------------------
 -- | Tests

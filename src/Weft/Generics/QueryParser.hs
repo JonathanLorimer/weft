@@ -14,7 +14,6 @@ module Weft.Generics.QueryParser
 import           Control.Applicative hiding (many, some)
 import           Control.Applicative.Permutations
 import           Control.Monad.Reader
-import           Data.Char
 import           Data.Foldable
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as M
@@ -188,7 +187,7 @@ parseArgList = parens '(' ')' $
   intercalateEffect (lift $ skipCrap >> char ',' >> skipCrap) $ parseArgs
 
 
-parseAnArg :: Read a => String -> ReaderT Vars Parser a
+parseAnArg :: (ParseArgValue a) => String -> ReaderT Vars Parser a
 parseAnArg arg_name = do
   lift skipCrap
   _ <- lift $ string $ T.pack arg_name
@@ -198,12 +197,12 @@ parseAnArg arg_name = do
   -- TODO(sandy): make this less shitty
   result <- parseRawArgValue
   lift skipCrap
-  pure $ read result
+  pure result
 
 wrapLabel :: String -> ErrorItem Char
 wrapLabel t = Label $ '"' NE.:| t ++ "\""
 
-parseRawArgValue :: ReaderT Vars Parser String
+parseRawArgValue :: ParseArgValue a => ReaderT Vars Parser a
 parseRawArgValue = choice
   [do
       ident <- lift $ char '$' *> parseAnIdentifier
@@ -211,21 +210,14 @@ parseRawArgValue = choice
       case M.lookup ident vars of
         -- TODO(sandy): this shouldn't return a string, since we potentially
         -- know it's the right type inside of the vars list
-        Just res -> pure res
+        Just res -> undefined
         Nothing -> lift $
           failure (Just $ wrapLabel ident) $ S.fromList $ fmap wrapLabel $ M.keys vars
-  , lift $ parseStringValue <* skipCrap
-  , lift $ some $ satisfy $ \c -> all ($ c)
-      [ not . Data.Char.isSpace
-      , (/= ')')
-      , (/= '$')
-      , (/= '#')
-      ]
+  , lift parseArgValue
   ]
 
 parseStringValue :: Parser String
-parseStringValue =  fmap show $
-  char '"' >> manyTill charLiteral (char '"')
+parseStringValue = char '"' >> manyTill charLiteral (char '"')
 
 
 parseAnIdentifier :: Parser String
@@ -244,7 +236,7 @@ instance ParseArgs '[] where
   parseArgs = pure ANil
 
 instance {-# OVERLAPPING #-}
-         ( Read t
+         ( ParseArgValue t
          , ParseArgs args
          , KnownSymbol n
          ) => ParseArgs ('(n, Maybe t) ': args) where
@@ -258,7 +250,7 @@ instance {-# OVERLAPPING #-}
                        )
           <*> parseArgs
 
-instance ( Read t
+instance ( ParseArgValue t
          , ParseArgs args
          , KnownSymbol n
          ) => ParseArgs ('(n, t) ': args) where
@@ -270,6 +262,44 @@ instance ( Read t
                        )
           <*> parseArgs
 
+------------------------------------------------------------------------------
+-- |
+
+class ParseArgValue a where
+  parseArgValue :: Parser a
+
+instance ParseArgValue String where
+  parseArgValue = parseStringValue
+
+instance ParseArgValue Bool where
+  parseArgValue = asum 
+    [ False <$ string "false"
+    , True  <$ string "true"
+    ]
+
+instance ParseArgValue Integer where
+  parseArgValue = do
+    neg <- optional $ char '-'
+    num <- some digitChar
+    pure $ read $ maybe "" pure neg ++ num
+
+instance ParseArgValue Int where
+  parseArgValue = fromInteger <$> parseArgValue
+
+instance ParseArgValue Double where
+  parseArgValue = do
+    neg <- optional $ char '-'
+    num <- some digitChar
+    dec <- optional $ do
+      _ <- char '.'
+      ('.' :) <$> some digitChar
+    pure $ read $ maybe "" pure neg ++ num ++ fromMaybe "" dec
+
+instance ParseArgValue ID where
+  parseArgValue = asum
+    [ ID . show <$> parseArgValue @Integer
+    , ID <$> parseArgValue @String
+    ]
 
 ------------------------------------------------------------------------------
 -- |

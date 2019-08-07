@@ -10,6 +10,7 @@ module Weft.Types
   , Gql (..)
   , NoNothingJSON (..)
   , AllHave
+  , ID (..)
   ) where
 
 import GHC.Generics

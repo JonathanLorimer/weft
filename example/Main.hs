@@ -15,22 +15,22 @@ import Weft.Generics.Hydrate
 import Data.Aeson
 import Test.QuickCheck
 
-newtype Id = Id Int
-  deriving stock (Generic, Show, Eq, Ord)
-  deriving newtype (Arbitrary, ToJSON)
-  deriving Read via (Int)
+-- newtype ID = Id Int
+--   deriving stock (Generic, Show, Eq, Ord)
+--   deriving newtype (Arbitrary, ToJSON)
+--   deriving Read via (Int)
 
 newtype Name = Name String
   deriving stock (Generic, Show, Eq, Ord)
   deriving newtype (Arbitrary, ToJSON)
 
 data GqlQuery ts = GqlQuery
-    { getUser :: Magic ts (Arg "id" Id -> User ts)
+    { getUser :: Magic ts (Arg "id" ID -> User ts)
     , getAllUsers :: Magic ts [User ts]
     } deriving (Generic)
 
 data User ts = User
-  { userId         :: Magic ts (Arg "arg" (Maybe Int) -> Id)
+  { userId         :: Magic ts (Arg "arg" (Maybe Int) -> ID)
   , userName       :: Magic ts Name
   , userBestFriend :: Magic ts (Arg "arg" (Maybe Int) -> User ts)
   , userFriends    :: Magic ts [User ts]
@@ -49,15 +49,15 @@ deriving instance AllHave Show (Account ts) => Show (Account ts)
 deriving instance AllHave Eq (Account ts)   => Eq (Account ts)
 
 jonathan :: User 'Data
-jonathan = User { userId = (Id 1), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
+jonathan = User { userId = (ID "1"), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
 
 sandy :: User 'Data
-sandy = User { userId = (Id 2), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
+sandy = User { userId = (ID "2"), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
 
-getUserResolver :: (Arg "id" Id) -> User 'Query -> IO (User 'Response)
+getUserResolver :: (Arg "id" ID) -> User 'Query -> IO (User 'Response)
 getUserResolver a q
-    | (getArg a) == (Id 1) = pure $ hydrate jonathan q
-    | (getArg a) == (Id 2) = pure $ hydrate sandy q
+    | (getArg a) == (ID "1") = pure $ hydrate jonathan q
+    | (getArg a) == (ID "2") = pure $ hydrate sandy q
     | otherwise = pure $ hydrate jonathan q
 
 getAllUsersResolver :: User 'Query -> IO [User 'Response]
