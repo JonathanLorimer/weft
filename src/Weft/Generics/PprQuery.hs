@@ -75,6 +75,33 @@ instance ( KnownSymbol name
     where
       name = symbolVal $ Proxy @name
 
+class GPprThing rq where
+  gPprThing :: rq x -> Doc
+
+instance  GPprThing f => GPprThing (M1 _1 _2 f) where
+   gPprThing (M1 f) = gPprThing f
+
+instance  GPprInput (f :*: g) => GPprThing (f :*: g) where
+   gPprThing z = vcat
+    [ char '{'
+    , nest 4 $ gPprInput z
+    , char '}'
+    ]
+
+instance  GPprEnum (f :+: g) => GPprThing (f :+: g) where
+   gPprThing = gPprEnum
+
+class GPprEnum rq where
+  gPprEnum :: rq x -> Doc
+
+instance (GPprEnum f, GPprEnum g) => GPprEnum (f :+: g) where
+  gPprEnum (L1 f) = gPprEnum f
+  gPprEnum (R1 g) = gPprEnum g
+
+instance ( KnownSymbol name
+         ) => GPprEnum (M1 C ('MetaCons name _1 _2) U1) where
+  gPprEnum (M1 U1) = text $ fmap toUpper $ symbolVal $ Proxy @name
+
 class GPprInput rq where
   gPprInput :: rq x -> Doc
 
@@ -83,8 +110,6 @@ instance (GPprInput f, GPprInput g) => GPprInput (f :*: g) where
     [ gPprInput f <> char ','
     , gPprInput g
     ]
-instance {-# OVERLAPPABLE #-} GPprInput f => GPprInput (M1 _1 _2 f) where
-  gPprInput (M1 f) = gPprInput f
 
 instance ( KnownSymbol name
          , PprArg t
@@ -136,12 +161,10 @@ instance PprArg ID where
   pprArg (Arg (ID v) :: Arg n ID) =
     pprArgWithName @n $ show v
 
-instance {-# OVERLAPPABLE #-} (Generic t, GPprInput (Rep t)) => PprArg t where
+instance {-# OVERLAPPABLE #-} (Generic t, GPprThing (Rep t)) => PprArg t where
   pprArg (Arg v :: Arg n t) =
     sep [ text (symbolVal $ Proxy @n) <> char ':'
-        , char '{'
-        , nest 4 $ gPprInput $ from v
-        , char '}'
+        , gPprThing $ from v
         ]
 
 instance {-# OVERLAPPING #-} PprArg t => PprArg (Maybe t) where

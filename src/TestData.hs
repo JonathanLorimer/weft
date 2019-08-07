@@ -60,6 +60,8 @@ data MyInputType = MyInputType
 instance Arbitrary MyInputType where
   arbitrary = MyInputType <$> arbitrary <*> arbitrary
 
+data MyEnum = One | Two deriving (Generic, Eq, Ord, Show)
+
 deriving instance AllHave Show (Finger ts) => Show (Finger ts)
 deriving instance AllHave Eq (Finger ts)   => Eq (Finger ts)
 deriving via (NoNothingJSON (Finger 'Response))
