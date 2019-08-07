@@ -19,9 +19,11 @@ import Network.HTTP.Types.Method
 import Data.Aeson hiding (json)
 import qualified Data.ByteString.Char8 as C8
 import Data.Monoid
+import Data.Maybe
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 import Data.Text (Text)
+import Data.Text.Encoding
 import qualified Data.Map as M
 
 
@@ -34,7 +36,7 @@ parseReqBody (ClientRequest q v _)
 
 data ClientRequest = 
   ClientRequest { queryContent  :: Text
-                , variables     :: Maybe (Text)
+                , variables     :: Vars
                 , operationName :: Maybe Text
                 }
 
@@ -42,8 +44,11 @@ maybeClientRequest :: C8.ByteString -> Maybe ClientRequest
 maybeClientRequest rb = do
   json  <- decode @Value $ BL.fromStrict rb
   q     <- json ^? key "query" . _String
-  let v = json ^? key "variable" . _String
-  let o = json ^? key "query" . _String
+  let v = fromMaybe M.empty $ do
+      vars     <- json ^? key "variables" . _String
+      listVars <- decode . BL.fromStrict . encodeUtf8 $ vars
+      pure     $  M.fromList listVars
+  let o = json ^? key "operationName" . _String
   pure $ ClientRequest q v o
 
 
