@@ -211,7 +211,12 @@ parseRawArgValue = choice
       case M.lookup ident vars of
         Just res -> case parseMaybe parseArgValue (T.pack res) of
                       Just a -> pure a
-                      Nothing -> failure Nothing $ S.singleton $ Label $ NE.fromList $ show $ typeRep $ Proxy @a
+                      Nothing -> failure Nothing 
+                              $ S.singleton 
+                              $ Label 
+                              $ NE.fromList 
+                              $ ("value that should have parsed as: " ++)
+                              $ show $ typeRep $ Proxy @a
         Nothing -> lift $
           failure (Just $ wrapLabel ident) $ S.fromList $ fmap wrapLabel $ M.keys vars
   , lift parseArgValue
