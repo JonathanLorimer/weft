@@ -1,5 +1,6 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module TestData where
 
@@ -48,8 +49,16 @@ deriving via (NoNothingJSON (Account 'Response))
   instance AllHave ToJSON (Account 'Response) => ToJSON (Account 'Response)
 
 data Finger ts = Finger
-  { fingers :: Magic ts (Account ts)
+  { fingers :: Magic ts (Arg "input" (Maybe MyInputType) -> Account ts)
   } deriving (Generic)
+
+data MyInputType = MyInputType
+  { boots  :: Int
+  , hearts :: Bool
+  } deriving stock (Generic, Eq, Ord, Show)
+
+instance Arbitrary MyInputType where
+  arbitrary = MyInputType <$> arbitrary <*> arbitrary
 
 deriving instance AllHave Show (Finger ts) => Show (Finger ts)
 deriving instance AllHave Eq (Finger ts)   => Eq (Finger ts)

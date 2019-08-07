@@ -3,7 +3,6 @@
 module ParserSpec where
 
 import           Control.Monad.Reader
-import           Data.Aeson
 import           Data.Bifunctor
 import           Data.Either
 import qualified Data.Map as M
@@ -69,10 +68,23 @@ spec = do
                 " userId(NOT_A_REAL_ARG: False) "
         `shouldSatisfy` isLeft
 
+  describe "input types" $ do
+    it "should parse an input type literal" $ do
+      parseAllOnly (flip runReaderT mempty $ queryParser @Finger)
+                "fingers(input: {hearts: true, boots: 5}) { }"
+        `shouldBe`
+          Right ( Finger $
+                    M.singleton "fingers"
+                      ( (Arg $ Just $ MyInputType 5 True) :@@ ANil
+                      , Account M.empty
+                      )
+                )
+
   describe "variables" $ do
     it "should fail if referencing an unknown var" $ do
       parseAllOnly (flip runReaderT mempty $ queryParser @User) "userId(arg: $missing_var)"
         `shouldSatisfy` isLeft
+
     it "should inline a known variable" $ do
       parseAllOnly (flip runReaderT (M.singleton "known" "1337")
                    $ queryParser @User)
@@ -83,6 +95,19 @@ spec = do
                                 M.empty
                                 M.empty
                          )
+
+    it "should inline a known variable in an input type" $ do
+      parseAllOnly (flip runReaderT (M.singleton "known" "1337")
+                   $ queryParser @Finger)
+                "fingers(input: {hearts: true, boots: $known}) { }"
+        `shouldBe`
+          Right ( Finger $
+                    M.singleton "fingers"
+                      ( (Arg $ Just $ MyInputType 1337 True) :@@ ANil
+                      , Account M.empty
+                      )
+                )
+
     it "should fail when var type is Int but receives String" $ do
       parseAllOnly (flip runReaderT (M.singleton "known" "\"1337\"")
                    $ queryParser @User)

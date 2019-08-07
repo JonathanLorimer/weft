@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 511fc434268cf4a7dd9aaede7ac9c686ae0eb832fd6123c3cea874a2168a96c6
+-- hash: 9eeb1697b1ed23c49b45893f0dc56a0cd5e834ca9b6a4344922d32a532604dc9
 
 name:           weft
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      TestData
       Weft.Generics.AllTypes
       Weft.Generics.EmptyQuery
       Weft.Generics.Hydrate
@@ -106,7 +107,6 @@ test-suite test
       ParserSpec
       ResolverSpec
       ServerSpec
-      TestData
       Paths_weft
   hs-source-dirs:
       test
