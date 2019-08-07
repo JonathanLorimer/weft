@@ -54,9 +54,6 @@ parseAllOnly :: Parser a -> Text -> Either String a
 parseAllOnly p = first errorBundlePretty . parse p "<test>"
 
 
-foo :: User 'Query
-foo = User {userId = M.fromList [], userName = M.fromList [], userBestFriend = M.fromList [], userFriends = M.fromList [], userFingers = M.fromList [("Y",(ANil,Finger {fingers = M.fromList [("dA",(Arg (Just (MyInputType {boots = 0, hearts = False})) :@@ ANil,Account {accountTitle = M.fromList []}))]}))]}
-
 spec :: Spec
 spec = do
   describe "roundtrip parser" $ do
@@ -87,6 +84,7 @@ spec = do
     it "should fail if referencing an unknown var" $ do
       parseAllOnly (flip runReaderT mempty $ queryParser @User) "userId(arg: $missing_var)"
         `shouldSatisfy` isLeft
+
     it "should inline a known variable" $ do
       parseAllOnly (flip runReaderT (M.singleton "known" "1337")
                    $ queryParser @User)
@@ -97,6 +95,19 @@ spec = do
                                 M.empty
                                 M.empty
                          )
+
+    it "should inline a known variable in an input type" $ do
+      parseAllOnly (flip runReaderT (M.singleton "known" "1337")
+                   $ queryParser @Finger)
+                "fingers(input: {hearts: true, boots: $known}) { }"
+        `shouldBe`
+          Right ( Finger $
+                    M.singleton "fingers"
+                      ( (Arg $ Just $ MyInputType 1337 True) :@@ ANil
+                      , Account M.empty
+                      )
+                )
+
     it "should fail when var type is Int but receives String" $ do
       parseAllOnly (flip runReaderT (M.singleton "known" "\"1337\"")
                    $ queryParser @User)
