@@ -2,19 +2,26 @@
 
 module ParserSpec where
 
+import Data.Bifunctor
+
+import           Text.Megaparsec
 import           Control.Monad.Reader
-import           Data.Attoparsec.ByteString.Char8
-import qualified Data.ByteString.Char8 as BS8
+-- import           Data.Attoparsec.ByteString.Char8
 import           Data.Either
 import qualified Data.Map as M
 import           Data.Aeson
 import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck
-import           Text.PrettyPrint.HughesPJ
+import           Text.PrettyPrint.HughesPJ hiding (first)
 import           Weft.Generics.PprQuery
 import           Weft.Generics.QueryParser
 import           Weft.Internal.Types
 import           Weft.Types
+import Data.Void
+import Data.Text (Text)
+import qualified Data.Text as T
+
+type Parser = Parsec Void Text
 
 data User ts = User
   { userId         :: Magic ts (Arg "arg" (Maybe String) -> Int)
@@ -55,13 +62,18 @@ testQuery
 testQuery q
   = (== Right q)
   . parseAllOnly (flip runReaderT mempty queryParser)
-  . BS8.pack
+  . T.pack
   . render
   $ pprQuery q
 
 
-parseAllOnly :: Parser a -> BS8.ByteString -> Either String a
-parseAllOnly p = parseOnly (p <* endOfInput)
+parseAllOnly :: Parser a -> Text -> Either String a
+parseAllOnly p = first errorBundlePretty . parse p "<test>"
+
+
+foop :: User 'Query
+foop = User {userId = M.fromList [], userName = M.fromList [("U",(ANil,())),("V2",(ANil,()))], userBestFriend = M.fromList [("QM",(Arg(Just "\\") :@@ ANil,User {userId = M.fromList [], userName = M.fromList [], userBestFriend = M.fromList [], userFriends = M.fromList []}))], userFriends = M.fromList [("Y",(ANil,User {userId = M.fromList [], userName = M.fromList [], userBestFriend = M.fromList [], userFriends = M.fromList []}))]}
+
 
 
 
@@ -95,7 +107,7 @@ spec = do
 
   describe "comments" $ do
     it "should allow comments everywhere yall" $ do
-      parseAllOnly (flip runReaderT mempty $ queryParser @User) (BS8.pack $ unlines
+      parseAllOnly (flip runReaderT mempty $ queryParser @User) (T.pack $ unlines
         [ "userId #this is a comment"
         , "( # more"
         , "arg: #ok \"5\""

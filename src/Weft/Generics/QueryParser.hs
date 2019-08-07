@@ -10,22 +10,38 @@ module Weft.Generics.QueryParser
   , anonymousQueryParser
   ) where
 
-import           Control.Applicative
+import qualified Data.Set as S
+import           Control.Applicative hiding (many, some)
 import           Control.Applicative.Permutations
 import           Control.Monad.Reader
-import           Data.Attoparsec.ByteString.Char8
-import qualified Data.ByteString.Char8 as BS
 import           Data.Char
 import           Data.Foldable
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Text (Text)
 import qualified Data.Text as T
+import           Data.Void
 import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
+import           Text.Megaparsec
+import           Text.Megaparsec.Char
+import           Text.Megaparsec.Char.Lexer (charLiteral, skipLineComment)
 import           Weft.Generics.EmptyQuery
 import           Weft.Internal.Types
+
+
+anyChar :: Parser Char
+anyChar = satisfy $ const True
+
+identWithNum :: Parser Char
+identWithNum = alphaNumChar <|> char '_'
+
+identWithoutNum :: Parser Char
+identWithoutNum = letterChar <|> char '_'
+
+type Parser = Parsec Void Text
 
 
 type HasQueryParser record =
@@ -47,11 +63,9 @@ type Vars = M.Map String String
 
 skipCrap :: Parser ()
 skipCrap = do
-  skipSpace
-  _ <- optional $ do
-    _ <- char '#'
-    manyTill' anyChar $ char '\n'
-  skipSpace
+  space
+  _ <- optional $ skipLineComment "#"
+  space
 
 
 ------------------------------------------------------------------------------
@@ -77,7 +91,7 @@ instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
   gPermFieldsParser = pure . fmap (M1 . K1) $ do
     let name = symbolVal $ Proxy @name
     alias <- lift $ parseAlias name
-    _ <- lift $ string $ BS.pack name
+    _ <- lift $ string $ T.pack name
     lift skipCrap
     args <- parseOptionalArgs @args
     pure $ M.singleton alias (args, ())
@@ -86,9 +100,9 @@ instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
 parseAlias :: String -> Parser Text
 parseAlias defname = fmap (T.pack . fromMaybe defname) $ optional $ do
   i <- parseAnIdentifier
-  skipSpace
+  skipCrap
   _ <- char ':'
-  skipSpace
+  skipCrap
   pure i
 
 instance ( KnownSymbol name
@@ -103,7 +117,7 @@ instance ( KnownSymbol name
                     $ do
     let name = symbolVal $ Proxy @name
     alias <- lift $ parseAlias name
-    _ <- lift $ string $ BS.pack name
+    _ <- lift $ string $ T.pack name
     lift skipCrap
     args <- parseOptionalArgs @args
     z <- parens '{' '}' $ queryParser @t
@@ -169,7 +183,7 @@ parseArgList = parens '(' ')' $
 parseAnArg :: Read a => String -> ReaderT Vars Parser a
 parseAnArg arg_name = do
   lift skipCrap
-  _ <- lift $ string $ BS.pack arg_name
+  _ <- lift $ string $ T.pack arg_name
   lift skipCrap
   _ <- lift $ char ':'
   lift skipCrap
@@ -177,6 +191,8 @@ parseAnArg arg_name = do
   result <- parseRawArgValue
   pure $ read result
 
+wrapLabel :: String -> ErrorItem Char
+wrapLabel t = Label $ '"' NE.:| t ++ "\""
 
 parseRawArgValue :: ReaderT Vars Parser String
 parseRawArgValue = choice
@@ -188,9 +204,10 @@ parseRawArgValue = choice
         -- TODO(sandy): this shouldn't return a string, since we potentially
         -- know it's the right type inside of the vars list
         Just res -> pure res
-        Nothing -> lift (empty <?> ("Undefined variable " ++ ident))
-  , lift $ (char '"') >> (:) <$> pure '"' <*> parseStringValue
-  , lift $ many1 $ satisfy $ \c -> all ($ c)
+        Nothing -> lift $
+          failure (Just $ wrapLabel ident) $ S.fromList $ fmap wrapLabel $ M.keys vars
+  , lift parseStringValue
+  , lift $ some $ satisfy $ \c -> all ($ c)
       [ not . Data.Char.isSpace
       , (/= ')')
       , (/= '$')
@@ -198,24 +215,14 @@ parseRawArgValue = choice
   ]
 
 parseStringValue :: Parser String
-parseStringValue = do
-  c <- peekChar
-  case c of
-    Just '"' -> char '"' >> pure "\""
-    Just '\\' -> do
-      c1 <- anyChar
-      c2 <- anyChar
-      (++) <$> pure (c1 : c2 : [])
-           <*> parseStringValue
-    Just _ -> (:) <$> anyChar
-                  <*> parseStringValue
-    Nothing -> empty
+parseStringValue =  fmap show $
+  char '"' >> manyTill charLiteral (char '"')
 
 
 parseAnIdentifier :: Parser String
 parseAnIdentifier = do
-  first <- satisfy $ inClass "_A-Za-z"
-  rest <- many $ satisfy $ inClass "_0-9A-Za-z"
+  first <- identWithoutNum
+  rest <- many identWithNum
   pure $ first : rest
 
 
@@ -257,6 +264,6 @@ instance ( Read t
 
 ------------------------------------------------------------------------------
 -- |
-foldManyOf :: (Foldable t, Alternative f, Monoid m) => t (f m) -> f m
-foldManyOf = fmap fold . many . asum
+foldManyOf :: (Functor t, Foldable t, MonadPlus f, MonadParsec e s f, Monoid m) => t (f m) -> f m
+foldManyOf = fmap fold . many . asum . fmap try
 

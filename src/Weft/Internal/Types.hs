@@ -79,14 +79,14 @@ data Args (ts :: [(Symbol, *)]) where
 infixr 5 :@@
 
 instance Show (Args '[]) where
-  show _ = ""
+  show ANil = "ANil"
 
 instance (Show t, KnownSymbol name, Show (Args args)) => Show (Args ('(name, t) ': args)) where
   show (Arg v :@@ args) = mconcat
-    [ symbolVal $ Proxy @name
-    , "="
+    [ "Arg"
+    , "("
     , show v
-    , " :@@ "
+    , ") :@@ "
     , show args
     ]
 

@@ -27,6 +27,7 @@ dependencies:
   - microlens
   - microlens-aeson
   - attoparsec
+  - megaparsec
   - containers
   - warp
   - wai

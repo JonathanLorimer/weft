@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 33b0814d4a75d9803d529a5bc613ff696b83873f957f8f723f38f65ce7f0d566
+-- hash: 786e440264a853e33c090012c8122dfdbb4569cb8613b90ba9559f05aaa133d5
 
 name:           weft
 version:        0.1.0.0
@@ -55,6 +55,7 @@ library
     , containers
     , hspec
     , http-types
+    , megaparsec
     , microlens
     , microlens-aeson
     , mtl
@@ -83,6 +84,7 @@ executable example
     , containers
     , hspec
     , http-types
+    , megaparsec
     , microlens
     , microlens-aeson
     , mtl
@@ -120,6 +122,7 @@ test-suite weft-test
     , containers
     , hspec
     , http-types
+    , megaparsec
     , microlens
     , microlens-aeson
     , mtl
