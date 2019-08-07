@@ -2,10 +2,10 @@ module AllTypesSpec where
 
 import Data.List
 import Test.Hspec hiding (Arg)
+import TestData
 import Text.PrettyPrint.HughesPJ (render)
 import Weft.Generics.AllTypes
 import Weft.Types
-import TestData
 
 
 spec :: Spec

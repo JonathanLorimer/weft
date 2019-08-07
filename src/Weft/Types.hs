@@ -22,6 +22,7 @@ import Weft.Generics.QueryParser
 import Weft.Generics.RecordGen
 import Weft.Generics.Resolve
 import Weft.Generics.Schema
+import Weft.Generics.JSONResponse
 import Weft.Internal.Types hiding (query)
 import Data.Aeson
 
@@ -34,6 +35,7 @@ type Wefty record =
   , HasQueryParser record
   , HasResolve record
   , HasSchema record
+  , HasJSONResponse record
   , ToJSON (record 'Response)
   )
 
