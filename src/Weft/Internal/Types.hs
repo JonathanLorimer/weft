@@ -139,7 +139,8 @@ type instance GFields c (K1 i a)   = c a
 
 deriving instance AllHave Show (Gql q m s ts) => Show (Gql q m s ts)
 deriving instance AllHave Eq (Gql q m s ts) => Eq (Gql q m s ts)
-deriving via (NoNothingJSON (Gql q m s ts)) instance AllHave ToJSON (Gql q m s ts) => ToJSON (Gql q m s ts)
+instance ToJSON (q 'Response) => ToJSON (Gql q m s 'Response) where
+  toJSON (Gql q) = object ["data" .= q]
 
 
 newtype NoNothingJSON a = NoNothingJSON a deriving Generic
