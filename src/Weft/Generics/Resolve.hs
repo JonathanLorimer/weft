@@ -6,7 +6,7 @@ module Weft.Generics.Resolve
 import qualified Data.Map as M
 import           Data.Text (Text)
 import           GHC.Generics
-import           Weft.Internal.Types
+import           Weft.Internal.Types hiding (query)
 
 
 ------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ resolve
     => record 'Resolver
     -> record 'Query
     -> IO (record 'Response)
-resolve d query = to <$> gResolve (from d) (from query)
+resolve rv query = to <$> gResolve (from rv) (from query)
 
 
 ------------------------------------------------------------------------------

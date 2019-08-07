@@ -30,6 +30,7 @@ dependencies:
   - containers
   - warp
   - wai
+  - wai-cors
   - http-types
   - pretty
   - QuickCheck
@@ -39,6 +40,7 @@ dependencies:
 
 default-extensions:
   - DeriveGeneric
+  - DerivingVia
   - TypeFamilies
   - RankNTypes
   - GADTs
@@ -60,6 +62,14 @@ default-extensions:
 library:
   source-dirs: src
   ghc-options: -Wall
+
+executables:
+  example:
+    main: Main.hs
+    source-dirs: example
+    ghc-options: -Wall
+    dependencies:
+      - weft
 
 tests:
   weft-test:

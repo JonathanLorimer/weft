@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass #-}
+
 module Weft.Types
   ( Magic
   , Arg (..)
@@ -5,9 +7,11 @@ module Weft.Types
   , module Weft.Types
   , module Weft.Generics.RecordGen
   , Generic
+  , Gql (..)
+  , NoNothingJSON (..)
+  , AllHave
   ) where
 
-import Data.Kind
 import GHC.Generics
 import Weft.Generics.AllTypes
 import Weft.Generics.EmptyQuery
@@ -18,7 +22,8 @@ import Weft.Generics.QueryParser
 import Weft.Generics.RecordGen
 import Weft.Generics.Resolve
 import Weft.Generics.Schema
-import Weft.Internal.Types
+import Weft.Internal.Types hiding (query)
+import Data.Aeson
 
 type Wefty record =
   ( HasAllTypes record
@@ -29,15 +34,6 @@ type Wefty record =
   , HasQueryParser record
   , HasResolve record
   , HasSchema record
+  , ToJSON (record 'Response)
   )
-
-
-type AllHave c a = GFields c (Rep a)
-
-type family GFields (c :: * -> Constraint) (f :: * -> *) :: Constraint
-type instance GFields c (M1 i d f) = GFields c f
-type instance GFields c (f :+: g)  = (GFields c f, GFields c g)
-type instance GFields c (f :*: g)  = (GFields c f, GFields c g)
-type instance GFields c U1         = ()
-type instance GFields c (K1 i a)   = c a
 
