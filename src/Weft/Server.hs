@@ -79,5 +79,5 @@ extremelyPermissiveCorsPolicy _ = Just $ CorsResourcePolicy
   , corsMaxAge            = Nothing
   , corsVaryOrigin        = False
   , corsRequireOrigin     = False
-  , corsIgnoreFailures    = True 
+  , corsIgnoreFailures    = True
   }
