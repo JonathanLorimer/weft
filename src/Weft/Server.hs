@@ -1,6 +1,4 @@
 {-# LANGUAGE CPP                  #-}
-{-# LANGUAGE DeriveAnyClass       #-}
-{-# LANGUAGE DerivingStrategies   #-}
 
 module Weft.Server where
 
@@ -29,7 +27,7 @@ newtype DataResponse a = DataResponse { _data :: a }
   deriving (Generic)
 
 instance (Generic a, ToJSON a, GToJSON Zero (Rep a)) => ToJSON (DataResponse a) where
-  toJSON d = genericToJSON (defaultOptions { fieldLabelModifier = \label -> Prelude.drop 1 label }) d
+  toJSON d = genericToJSON (defaultOptions { fieldLabelModifier = Prelude.drop 1 }) d
 
 parseReqBody :: (Wefty query)
              => ByteString
@@ -40,8 +38,8 @@ parseReqBody reqBody = parseOnly
 
 maybeQuery :: ByteString -> Maybe ByteString
 maybeQuery rb = do
-    json <- decode @Value $ BL.fromStrict rb
-    encodeUtf8 <$> ((^? key "query" . _String) json)
+  json <- decode @Value $ BL.fromStrict rb
+  encodeUtf8 <$> ((^? key "query" . _String) json)
 
 note :: Maybe a -> Either String a
 note Nothing = Left ""
@@ -50,19 +48,19 @@ note (Just x) = Right x
 app :: (ToJSON (q 'Response), Wefty q) => Gql q m s 'Resolver -> Application
 app resolver req f = do
 #if MIN_VERSION_wai(3,2,2)
-        rb <- getRequestBodyChunk req
+  rb <- getRequestBodyChunk req
 #else
-        rb <- requestBody req
+  rb <- requestBody req
 #endif
-        let _eitherQuery = do
-                textQuery <- note . maybeQuery $ rb
-                parseReqBody textQuery
-        case _eitherQuery of
-            Right query' -> do
-                res <- resolve resolver query'
-                case res of
-                    (Gql q) -> f $ successResponse $ DataResponse q
-            Left e  -> f $ errorResponse $ BL.fromStrict $ pack e
+  let _eitherQuery = do
+    textQuery <- note . maybeQuery $ rb
+    parseReqBody textQuery
+  f $ case _eitherQuery of
+    Right query' -> do
+      res <- resolve resolver query'
+      case res of
+        Gql q -> successResponse $ DataResponse q
+    Left e  -> errorResponse $ BL.fromStrict $ pack e
 
 successResponse :: ToJSON a => a -> Response
 successResponse = responseLBS status200 [(hContentType, "application/json")] . encode
@@ -75,17 +73,17 @@ server :: (Wefty q)
        -> Gql q m s 'Resolver
        -> IO ()
 server s r = runSettings
-    (appEndo (foldMap Endo s) defaultSettings)
-    (cors extremelyPermissiveCorsPolicy $ app r)
+  (appEndo (foldMap Endo s) defaultSettings)
+  (cors extremelyPermissiveCorsPolicy $ app r)
 
 -- TODO(Jonathan): At some point you should make this less permissive
 extremelyPermissiveCorsPolicy :: Request -> Maybe CorsResourcePolicy
 extremelyPermissiveCorsPolicy _ = Just $ CorsResourcePolicy
-    { corsOrigins           = Nothing
-    , corsMethods           = [methodGet, methodPost, methodOptions]
-    , corsRequestHeaders    = [hContentType]
-    , corsExposedHeaders    = Nothing
-    , corsMaxAge            = Nothing
-    , corsVaryOrigin        = False
-    , corsRequireOrigin     = False
-    , corsIgnoreFailures    = True }
+  { corsOrigins           = Nothing
+  , corsMethods           = [methodGet, methodPost, methodOptions]
+  , corsRequestHeaders    = [hContentType]
+  , corsExposedHeaders    = Nothing
+  , corsMaxAge            = Nothing
+  , corsVaryOrigin        = False
+  , corsRequireOrigin     = False
+  , corsIgnoreFailures    = True }
