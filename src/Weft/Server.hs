@@ -22,22 +22,34 @@ import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 import Data.Text (Text)
+import qualified Data.Map as M
 
 
 parseReqBody :: (Wefty query)
-             => Text
+             => ClientRequest
              -> Either String ((Gql query m s) 'Query)
-parseReqBody
+parseReqBody (ClientRequest q v _)
   = first errorBundlePretty
-  . parse (runReaderT queryParser mempty) "<server>"
+  . parse (runReaderT queryParser v) "<server>" $ q
 
-maybeQuery :: C8.ByteString -> Maybe Text
-maybeQuery rb = do
-  json <- decode @Value $ BL.fromStrict rb
-  json ^? key "query" . _String
+data ClientRequest = 
+  ClientRequest { queryContent  :: Text
+                , variables     :: Maybe (Text)
+                , operationName :: Maybe Text
+                }
+
+maybeClientRequest :: C8.ByteString -> Maybe ClientRequest
+maybeClientRequest rb = do
+  json  <- decode @Value $ BL.fromStrict rb
+  q     <- json ^? key "query" . _String
+  let v = json ^? key "query" . _String
+  let o = json ^? key "query" . _String
+  ClientRequest q v o
+
+
 
 note :: Maybe a -> Either String a
-note Nothing = Left ""
+note Nothing = Left "maybeClientRequest failed"
 note (Just x) = Right x
 
 app :: (ToJSON (q 'Response), Wefty q) => Gql q m s 'Resolver -> Application
@@ -48,8 +60,8 @@ app resolver req f = do
   rb <- requestBody req
 #endif
   let _eitherQuery = do
-        textQuery <- note . maybeQuery $ rb
-        parseReqBody textQuery
+        clientRequest <- note . maybeClientRequest $ rb
+        parseReqBody clientRequest
   case _eitherQuery of
           Right query' -> do
             res <- resolve resolver query'
