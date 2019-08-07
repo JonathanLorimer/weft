@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b252cd9a2a294e3a0912686081020d3fe046e4110bc394fd550f2bd4c984879a
+-- hash: c7541d938e17419dff54c26b4f1e62825aa03acd9cbfb6f9c9de91f4bbf13ffa
 
 name:           weft
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Weft.Generics.AllTypes
       Weft.Generics.EmptyQuery
       Weft.Generics.Hydrate
+      Weft.Generics.JSONResponse
       Weft.Generics.PprQuery
       Weft.Generics.PprSchema
       Weft.Generics.QueryParser
@@ -101,6 +102,7 @@ test-suite weft-test
   other-modules:
       AllTypesSpec
       GenericsSpec
+      JSONResponseSpec
       ParserSpec
       ResolverSpec
       ServerSpec
