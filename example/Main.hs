@@ -15,11 +15,6 @@ import Weft.Generics.Hydrate
 import Data.Aeson
 import Test.QuickCheck
 
--- newtype ID = Id Int
---   deriving stock (Generic, Show, Eq, Ord)
---   deriving newtype (Arbitrary, ToJSON)
---   deriving Read via (Int)
-
 newtype Name = Name String
   deriving stock (Generic, Show, Eq, Ord)
   deriving newtype (Arbitrary, ToJSON)
