@@ -258,7 +258,7 @@ spec = describe "server" $ do
     it "should parse query with args (getAllUsers)" $
       parseReqBody getUserTestString `shouldBe` getUserTestQuery
 
-  describe "JSON encoding responses" $ do
+  xdescribe "JSON encoding responses" $ do
     it "should encode a response for getUser as JSON" $ do
       response <- resolve gqlResolver $ getUserTestJsonQuery
       (encode response) `shouldBe` getUserTestJson
