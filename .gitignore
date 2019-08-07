@@ -1,5 +1,4 @@
 .stack-work/
-weft.cabal
 dist/
 .DS_Store
 *~

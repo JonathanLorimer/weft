@@ -1,0 +1,133 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 33b0814d4a75d9803d529a5bc613ff696b83873f957f8f723f38f65ce7f0d566
+
+name:           weft
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/jonathanlorimer/weft#readme>
+homepage:       https://github.com/jonathanlorimer/weft#readme
+bug-reports:    https://github.com/jonathanlorimer/weft/issues
+author:         Jonathan Lorimer
+maintainer:     jonathan_lorimer@mac.com
+copyright:      2019 Jonathan Lorimer
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/jonathanlorimer/weft
+
+library
+  exposed-modules:
+      Weft.Generics.AllTypes
+      Weft.Generics.EmptyQuery
+      Weft.Generics.Hydrate
+      Weft.Generics.PprQuery
+      Weft.Generics.PprSchema
+      Weft.Generics.QueryParser
+      Weft.Generics.RecordGen
+      Weft.Generics.Resolve
+      Weft.Generics.Schema
+      Weft.Internal.Types
+      Weft.PprUtils
+      Weft.Server
+      Weft.Types
+  other-modules:
+      Paths_weft
+  hs-source-dirs:
+      src
+  default-extensions: DeriveGeneric DerivingVia TypeFamilies RankNTypes GADTs DataKinds PolyKinds ScopedTypeVariables TypeApplications MultiParamTypeClasses AllowAmbiguousTypes TypeOperators FlexibleInstances FlexibleContexts FunctionalDependencies StandaloneDeriving ConstraintKinds UndecidableInstances OverloadedStrings
+  ghc-options: -Wall
+  build-depends:
+      QuickCheck
+    , aeson
+    , attoparsec
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , hspec
+    , http-types
+    , microlens
+    , microlens-aeson
+    , mtl
+    , parser-combinators
+    , pretty
+    , text
+    , wai
+    , wai-cors
+    , warp
+  default-language: Haskell2010
+
+executable example
+  main-is: Main.hs
+  other-modules:
+      Paths_weft
+  hs-source-dirs:
+      example
+  default-extensions: DeriveGeneric DerivingVia TypeFamilies RankNTypes GADTs DataKinds PolyKinds ScopedTypeVariables TypeApplications MultiParamTypeClasses AllowAmbiguousTypes TypeOperators FlexibleInstances FlexibleContexts FunctionalDependencies StandaloneDeriving ConstraintKinds UndecidableInstances OverloadedStrings
+  ghc-options: -Wall
+  build-depends:
+      QuickCheck
+    , aeson
+    , attoparsec
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , hspec
+    , http-types
+    , microlens
+    , microlens-aeson
+    , mtl
+    , parser-combinators
+    , pretty
+    , text
+    , wai
+    , wai-cors
+    , warp
+    , weft
+  default-language: Haskell2010
+
+test-suite weft-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      AllTypesSpec
+      GenericsSpec
+      ParserSpec
+      ResolverSpec
+      ServerSpec
+      Paths_weft
+  hs-source-dirs:
+      test
+  default-extensions: DeriveGeneric DerivingVia TypeFamilies RankNTypes GADTs DataKinds PolyKinds ScopedTypeVariables TypeApplications MultiParamTypeClasses AllowAmbiguousTypes TypeOperators FlexibleInstances FlexibleContexts FunctionalDependencies StandaloneDeriving ConstraintKinds UndecidableInstances OverloadedStrings
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      hspec-discover:hspec-discover >=2.0
+  build-depends:
+      QuickCheck
+    , aeson
+    , attoparsec
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , hspec
+    , http-types
+    , microlens
+    , microlens-aeson
+    , mtl
+    , parser-combinators
+    , pretty
+    , text
+    , wai
+    , wai-cors
+    , warp
+    , weft
+  default-language: Haskell2010
