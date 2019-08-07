@@ -44,7 +44,7 @@ instance {-# OVERLAPPING #-}(Typeable record, ToJSON record)
       => GResToJSON (K1 x (M.Map T.Text record)) where
     gResToJSON (K1 r) = toJSON r
 
-instance (HasJSONResponse record, Typeable record) 
+instance (HasJSONResponse record, Typeable record)
       => GResToJSON (K1 x (record 'Response)) where
     gResToJSON (K1 r) = jsonResponse r
 
