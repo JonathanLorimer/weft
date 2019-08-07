@@ -72,7 +72,7 @@ executables:
       - weft
 
 tests:
-  weft-test:
+  test:
     main: Main.hs
     source-dirs: test
     ghc-options:
