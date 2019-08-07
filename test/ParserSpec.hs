@@ -3,7 +3,6 @@
 module ParserSpec where
 
 import           Control.Monad.Reader
-import           Data.Aeson
 import           Data.Bifunctor
 import           Data.Either
 import qualified Data.Map as M
@@ -68,6 +67,18 @@ spec = do
       parseAllOnly (flip runReaderT mempty $ queryParser @User)
                 " userId(NOT_A_REAL_ARG: False) "
         `shouldSatisfy` isLeft
+
+  describe "input types" $ do
+    it "should parse an input type literal" $ do
+      parseAllOnly (flip runReaderT mempty $ queryParser @Finger)
+                "fingers(input: {hearts: true, boots: 5}) { }"
+        `shouldBe`
+          Right ( Finger $
+                    M.singleton "fingers"
+                      ( (Arg $ Just $ MyInputType 5 True) :@@ ANil
+                      , Account M.empty
+                      )
+                )
 
   describe "variables" $ do
     it "should fail if referencing an unknown var" $ do

@@ -88,7 +88,7 @@ instance Show (Args '[]) where
 instance (Show t, KnownSymbol name, Show (Args args)) => Show (Args ('(name, t) ': args)) where
   show (Arg v :@@ args) = mconcat
     [ "Arg "
-    , showsPrec 0 v ""
+    , showsPrec 10 v ""
     , " :@@ "
     , show args
     ]

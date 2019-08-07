@@ -149,6 +149,12 @@ instance ( GPermFieldsParser (fq :*: gq)
       => GQueryParser (fq :*: gq) where
   gQueryParser = foldManyOf gPermFieldsParser
 
+instance ( GPermFieldsParser (M1 _1 _2 (K1 _3 f))
+         , Monoid f
+         )
+      => GQueryParser (M1 _1 _2 (K1 _3 f)) where
+  gQueryParser = foldManyOf gPermFieldsParser
+
 
 parens :: Char -> Char -> ReaderT Vars Parser a -> ReaderT Vars Parser a
 parens l r p = do
@@ -218,7 +224,7 @@ parseRawArgValue = choice
                               $ show $ typeRep $ Proxy @a
         Nothing -> lift $
           failure (Just $ wrapLabel ident) $ S.fromList $ fmap wrapLabel $ M.keys vars
-  , parseArgValue
+  , parseArgValue <* lift skipCrap
   ]
 
 parseStringValue :: Parser String
@@ -308,8 +314,8 @@ instance ParseArgValue ID where
     , ID <$> parseArgValue @String
     ]
 
--- instance {-# OVERLAPPABLE #-} (Generic a, GParseInputType (Rep a)) => ParseArgValue a where
---   parseArgValue = parens '{' '}' $ fmap to gParseInputType
+instance {-# OVERLAPPABLE #-} (Generic a, GParseInputType (Rep a)) => ParseArgValue a where
+  parseArgValue = parens '{' '}' $ fmap to gParseInputType
 
 ------------------------------------------------------------------------------
 -- |
@@ -322,7 +328,7 @@ foldManyOf = fmap fold . many . asum
 class GParseInputType (g :: * -> *) where
   gParseInputType :: ReaderT Vars Parser (g x)
 
-instance GParseInputType f => GParseInputType (M1 _1 _2 f) where
+instance  GParseInputType f => GParseInputType (M1 _1 _2 f) where
   gParseInputType = M1 <$> gParseInputType
 
 instance GPermInputFields (f :*: g) => GParseInputType (f :*: g) where
