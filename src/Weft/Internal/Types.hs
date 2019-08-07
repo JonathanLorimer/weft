@@ -158,7 +158,7 @@ data Gql (q :: TypeState -> *)
          (s :: TypeState -> *)
          (ts :: TypeState) = Gql
   { query        :: Magic ts (q ts)
-  -- , mutation     :: m ts
+  , mutation     :: Magic ts (m ts)
   -- , subscription :: s ts
   }
   deriving Generic
