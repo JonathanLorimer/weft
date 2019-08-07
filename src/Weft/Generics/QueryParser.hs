@@ -23,6 +23,7 @@ import qualified Data.Set as S
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Void
+import           Data.Typeable
 import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Text.Megaparsec
@@ -187,7 +188,7 @@ parseArgList = parens '(' ')' $
   intercalateEffect (lift $ skipCrap >> char ',' >> skipCrap) $ parseArgs
 
 
-parseAnArg :: (ParseArgValue a) => String -> ReaderT Vars Parser a
+parseAnArg :: (Typeable a, ParseArgValue a) => String -> ReaderT Vars Parser a
 parseAnArg arg_name = do
   lift skipCrap
   _ <- lift $ string $ T.pack arg_name
@@ -202,15 +203,15 @@ parseAnArg arg_name = do
 wrapLabel :: String -> ErrorItem Char
 wrapLabel t = Label $ '"' NE.:| t ++ "\""
 
-parseRawArgValue :: ParseArgValue a => ReaderT Vars Parser a
+parseRawArgValue :: forall a . (Typeable a, ParseArgValue a) => ReaderT Vars Parser a
 parseRawArgValue = choice
   [do
       ident <- lift $ char '$' *> parseAnIdentifier
       vars <- ask
       case M.lookup ident vars of
-        -- TODO(sandy): this shouldn't return a string, since we potentially
-        -- know it's the right type inside of the vars list
-        Just res -> undefined
+        Just res -> case parseMaybe parseArgValue (T.pack res) of
+                      Just a -> pure a
+                      Nothing -> failure Nothing $ S.singleton $ Label $ NE.fromList $ show $ typeRep $ Proxy @a
         Nothing -> lift $
           failure (Just $ wrapLabel ident) $ S.fromList $ fmap wrapLabel $ M.keys vars
   , lift parseArgValue
@@ -237,6 +238,7 @@ instance ParseArgs '[] where
 
 instance {-# OVERLAPPING #-}
          ( ParseArgValue t
+         , Typeable t
          , ParseArgs args
          , KnownSymbol n
          ) => ParseArgs ('(n, Maybe t) ': args) where
@@ -251,6 +253,7 @@ instance {-# OVERLAPPING #-}
           <*> parseArgs
 
 instance ( ParseArgValue t
+         , Typeable t
          , ParseArgs args
          , KnownSymbol n
          ) => ParseArgs ('(n, t) ': args) where
