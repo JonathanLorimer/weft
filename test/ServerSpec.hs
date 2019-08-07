@@ -10,16 +10,13 @@ module ServerSpec where
 import           Data.Aeson
 import           Data.ByteString.Lazy as BL
 import qualified Data.Map as M
--- import           Data.Text (Text)
 import           Test.Hspec hiding (Arg)
--- import           Test.QuickCheck hiding (Args)
 import           TestData
 import           Weft.Generics.Hydrate
 import           Weft.Generics.JSONResponse
 import           Weft.Generics.Resolve
 import           Weft.Internal.Types
 import           Weft.Server
--- import           Weft.Types
 
 ------------------------------------------------------------------------------------------
 -- | Mock Resolvers

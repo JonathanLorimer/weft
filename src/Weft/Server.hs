@@ -8,6 +8,7 @@ import Weft.Internal.Types
 import Weft.Types
 import Weft.Generics.QueryParser
 import Weft.Generics.Resolve
+import Weft.Generics.JSONResponse
 import Lens.Micro
 import Lens.Micro.Aeson
 import Network.Wai.Middleware.Cors
@@ -53,9 +54,9 @@ maybeClientRequest rb = do
 
 stringify :: [(Text, Value)] -> [(String, String)]
 stringify = fmap f
-  where 
+  where
     f (t,v) = ( T.unpack t
-              , C8.unpack . BL.toStrict . encode $ v 
+              , C8.unpack . BL.toStrict . encode $ v
               )
 
 
@@ -70,27 +71,22 @@ app resolver req f = do
 #else
   rb <- requestBody req
 #endif
-  putStrLn "request body"
-  print rb
-  putStrLn "---"
-  let m = note . maybeClientRequest $ rb
-  putStrLn "maybeClientRequest"
-  print m
-  putStrLn "---"
   let _eitherQuery = do
         clientRequest <- note . maybeClientRequest $ rb
         parseReqBody clientRequest
-  putStrLn "either query"
-  print _eitherQuery
-  putStrLn "---"
   case _eitherQuery of
           Right query' -> do
             res <- resolve resolver query'
             f $ successResponse res
           Left e  -> f $ errorResponse $ BL.fromStrict $ C8.pack e
 
-successResponse :: ToJSON a => a -> Response
-successResponse = responseLBS status200 [(hContentType, "application/json")] . encode
+successResponse :: HasJSONResponse record
+                => record 'Response
+                -> Response
+successResponse =
+  responseLBS status200 [(hContentType, "application/json")]
+  . encode
+  . jsonResponse
 
 errorResponse :: BL.ByteString -> Response
 errorResponse = responseLBS status500 [(hContentType, "application/json")]
