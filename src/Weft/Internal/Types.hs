@@ -13,7 +13,7 @@ import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Lens.Micro ((^?))
 import           Lens.Micro.Aeson
-import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
+import           Test.QuickCheck (Arbitrary (..), CoArbitrary (..), variant, suchThat, oneof, resize, sized)
 
 
 ------------------------------------------------------------------------------
@@ -66,6 +66,9 @@ data Arg (name :: Symbol) a = KnownSymbol name => Arg { getArg :: a }
 
 instance (KnownSymbol name, Arbitrary t) => Arbitrary (Arg name t) where
   arbitrary = Arg <$> arbitrary
+
+instance (KnownSymbol name, CoArbitrary t) => CoArbitrary (Arg name t) where
+  coarbitrary (Arg _) = variant (0 :: Int)
 
 deriving instance Eq t => Eq (Arg n t)
 deriving instance Show t => Show (Arg n t)

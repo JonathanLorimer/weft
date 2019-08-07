@@ -26,6 +26,7 @@ import           Data.Void
 import           Data.Typeable
 import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
+import qualified GHC.TypeLits as TL
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
 import           Text.Megaparsec.Char.Lexer (charLiteral, skipLineComment)
@@ -148,12 +149,6 @@ instance ( GPermFieldsParser (fq :*: gq)
       => GQueryParser (fq :*: gq) where
   gQueryParser = foldManyOf gPermFieldsParser
 
-instance ( GPermFieldsParser (M1 _1 _2 (K1 _3 f))
-         , Monoid f
-         )
-      => GQueryParser (M1 _1 _2 (K1 _3 f)) where
-  gQueryParser = foldManyOf gPermFieldsParser
-
 
 parens :: Char -> Char -> ReaderT Vars Parser a -> ReaderT Vars Parser a
 parens l r p = do
@@ -184,8 +179,11 @@ parseOptionalArgs =
         $ optional parseArgList
 
 parseArgList :: ParseArgs args => ReaderT Vars Parser (Args args)
-parseArgList = parens '(' ')' $
-  intercalateEffect (lift $ skipCrap >> char ',' >> skipCrap) $ parseArgs
+parseArgList = parens '(' ')' $ runPermutations parseArgs
+
+
+runPermutations :: Permutation (ReaderT Vars Parser) a -> ReaderT Vars Parser a
+runPermutations = intercalateEffect (lift $ skipCrap >> char ',' >> skipCrap)
 
 
 parseAnArg :: (Typeable a, ParseArgValue a) => String -> ReaderT Vars Parser a
@@ -209,17 +207,18 @@ parseRawArgValue = choice
       ident <- lift $ char '$' *> parseAnIdentifier
       vars <- ask
       case M.lookup ident vars of
-        Just res -> case parseMaybe parseArgValue (T.pack res) of
+        Just res ->
+          case parseMaybe (runReaderT parseArgValue vars) (T.pack res) of
                       Just a -> pure a
-                      Nothing -> failure Nothing 
-                              $ S.singleton 
-                              $ Label 
-                              $ NE.fromList 
+                      Nothing -> failure Nothing
+                              $ S.singleton
+                              $ Label
+                              $ NE.fromList
                               $ ("value that should have parsed as: " ++)
                               $ show $ typeRep $ Proxy @a
         Nothing -> lift $
           failure (Just $ wrapLabel ident) $ S.fromList $ fmap wrapLabel $ M.keys vars
-  , lift parseArgValue
+  , parseArgValue
   ]
 
 parseStringValue :: Parser String
@@ -274,19 +273,19 @@ instance ( ParseArgValue t
 -- |
 
 class ParseArgValue a where
-  parseArgValue :: Parser a
+  parseArgValue :: ReaderT Vars Parser a
 
 instance ParseArgValue String where
-  parseArgValue = parseStringValue
+  parseArgValue = lift parseStringValue
 
 instance ParseArgValue Bool where
-  parseArgValue = asum 
+  parseArgValue = lift $ asum
     [ False <$ string "false"
     , True  <$ string "true"
     ]
 
 instance ParseArgValue Integer where
-  parseArgValue = do
+  parseArgValue = lift $ do
     neg <- optional $ char '-'
     num <- some digitChar
     pure $ read $ maybe "" pure neg ++ num
@@ -295,7 +294,7 @@ instance ParseArgValue Int where
   parseArgValue = fromInteger <$> parseArgValue
 
 instance ParseArgValue Double where
-  parseArgValue = do
+  parseArgValue = lift $ do
     neg <- optional $ char '-'
     num <- some digitChar
     dec <- optional $ do
@@ -309,8 +308,52 @@ instance ParseArgValue ID where
     , ID <$> parseArgValue @String
     ]
 
+-- instance {-# OVERLAPPABLE #-} (Generic a, GParseInputType (Rep a)) => ParseArgValue a where
+--   parseArgValue = parens '{' '}' $ fmap to gParseInputType
+
 ------------------------------------------------------------------------------
 -- |
-foldManyOf :: (Functor t, Foldable t, MonadPlus f, MonadParsec e s f, Monoid m) => t (f m) -> f m
+foldManyOf
+    :: (Functor t, Foldable t, MonadPlus f, MonadParsec e s f, Monoid m)
+    => t (f m)
+    -> f m
 foldManyOf = fmap fold . many . asum
+
+class GParseInputType (g :: * -> *) where
+  gParseInputType :: ReaderT Vars Parser (g x)
+
+instance GParseInputType f => GParseInputType (M1 _1 _2 f) where
+  gParseInputType = M1 <$> gParseInputType
+
+instance GPermInputFields (f :*: g) => GParseInputType (f :*: g) where
+  gParseInputType = runPermutations gPermInputFields
+
+class GPermInputFields (g :: * -> *) where
+  gPermInputFields :: Permutation (ReaderT Vars Parser) (g x)
+
+instance GPermInputFields fq => GPermInputFields (M1 D b fq) where
+  gPermInputFields = M1 <$> gPermInputFields
+
+instance GPermInputFields fq => GPermInputFields (M1 C b fq) where
+  gPermInputFields = M1 <$> gPermInputFields
+
+instance ( GPermInputFields fq
+         , GPermInputFields gq
+         ) => GPermInputFields (fq :*: gq) where
+  gPermInputFields = (:*:) <$> gPermInputFields
+                           <*> gPermInputFields
+
+instance (TypeError (TL.Text "shit is FUCKED yo"))
+      => GPermInputFields (M1 S ('MetaSel 'Nothing _1 _2 _3) (K1 _4 a)) where
+  gPermInputFields = undefined
+
+instance (KnownSymbol name, ParseArgValue a, Typeable a)
+      => GPermInputFields (M1 S ('MetaSel ('Just name) _1 _2 _3)
+                                (K1 _4 a)) where
+  gPermInputFields = fmap (M1 . K1) $ toPermutation $ parseAnArg $ symbolVal $ Proxy @name
+
+instance {-# OVERLAPPING #-} (KnownSymbol name, ParseArgValue a, Typeable a)
+      => GPermInputFields (M1 S ('MetaSel ('Just name) _1 _2 _3)
+                                (K1 _4 (Maybe a))) where
+  gPermInputFields = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ fmap Just $ parseAnArg $ symbolVal $ Proxy @name
 
