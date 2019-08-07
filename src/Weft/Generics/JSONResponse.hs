@@ -45,8 +45,4 @@ instance {-# OVERLAPPING #-} (Typeable record, ToJSON record)
       => GJsonResponse (K1 x (M.Map T.Text record)) where
     gJsonResponse (K1 r) = toJSON r
 
-instance (HasJSONResponse record, Typeable record)
-      => GJsonResponse (K1 x (record 'Response)) where
-    gJsonResponse (K1 r) = jsonResponse r
-
 
