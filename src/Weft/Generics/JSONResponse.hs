@@ -13,46 +13,40 @@ import qualified Data.Map as M
 
 ------------------------------------------------------------------------------
 -- |
-type HasJSONResponse record = (Generic (record 'Response), GResToJSON (Rep (record 'Response)))
+type HasJSONResponse record = (Generic (record 'Response), GJsonResponse (Rep (record 'Response)))
 
 jsonResponse :: (HasJSONResponse record) => (record 'Response) -> Value
-jsonResponse = gResToJSON . from
+jsonResponse = gJsonResponse . from
 
-class GResToJSON (ri :: * -> *) where
-    gResToJSON :: ri x -> Value
+class GJsonResponse (ri :: * -> *) where
+    gJsonResponse :: ri x -> Value
 
-instance GResToJSON ri
-      => GResToJSON (M1 a b ri) where
-  gResToJSON (M1 r) = gResToJSON r
+instance GJsonResponse ri
+      => GJsonResponse (M1 a b ri) where
+  gJsonResponse (M1 r) = gJsonResponse r
 
-instance (GResToJSON ri, GResToJSON rj)
-      => GResToJSON (ri :*: rj) where
-  gResToJSON (ri :*: rj) = (gResToJSON ri) `combine` (gResToJSON rj)
+instance (GJsonResponse ri, GJsonResponse rj)
+      => GJsonResponse (ri :*: rj) where
+  gJsonResponse (ri :*: rj) = (gJsonResponse ri) `combine` (gJsonResponse rj)
 
 combine :: Value -> Value -> Value
 combine (Object a) (Object b) = Object $ a <> b
-combine _ (Object b)          = Object b 
-combine (Object a) _          = Object a
-combine _ _                   = Object mempty
+combine _ _                   = error "combine failed in JSONResponse, this should not have happened"
 
 instance {-# OVERLAPPING #-} (HasJSONResponse record, Typeable record) 
-      => GResToJSON (K1 x (M.Map T.Text [record 'Response])) where
-    gResToJSON (K1 r) = toJSON $ fmap (jsonResponse <$>) r
+      => GJsonResponse (K1 x (M.Map T.Text [record 'Response])) where
+    gJsonResponse (K1 r) = toJSON $ fmap jsonResponse <$> r
 
-instance {-# OVERLAPPING #-}(HasJSONResponse record, Typeable record) 
-      => GResToJSON (K1 x (M.Map T.Text (record 'Response))) where
-    gResToJSON (K1 r) = toJSON $ jsonResponse <$> r
+instance {-# OVERLAPPING #-} (HasJSONResponse record, Typeable record) 
+      => GJsonResponse (K1 x (M.Map T.Text (record 'Response))) where
+    gJsonResponse (K1 r) = toJSON $ jsonResponse <$> r
 
-instance {-# OVERLAPPING #-}(Typeable record, ToJSON record) 
-      => GResToJSON (K1 x (M.Map T.Text record)) where
-    gResToJSON (K1 r) = toJSON r
+instance {-# OVERLAPPING #-} (Typeable record, ToJSON record) 
+      => GJsonResponse (K1 x (M.Map T.Text record)) where
+    gJsonResponse (K1 r) = toJSON r
 
 instance (HasJSONResponse record, Typeable record)
-      => GResToJSON (K1 x (record 'Response)) where
-    gResToJSON (K1 r) = jsonResponse r
-
-
-instance (Typeable record, ToJSON record) => GResToJSON (K1 x record) where
-    gResToJSON (K1 r) = object [(T.pack $ show $ typeRep $ Proxy @record) .= r]
+      => GJsonResponse (K1 x (record 'Response)) where
+    gJsonResponse (K1 r) = jsonResponse r
 
 
