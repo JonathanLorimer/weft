@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b252cd9a2a294e3a0912686081020d3fe046e4110bc394fd550f2bd4c984879a
+-- hash: ce249bf1dd6e234ab8bf4c148c236673078cdbafc1e94e4535d02761e7b9ac7b
 
 name:           weft
 version:        0.1.0.0
@@ -95,7 +95,7 @@ executable example
     , weft
   default-language: Haskell2010
 
-test-suite weft-test
+test-suite test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
@@ -104,6 +104,7 @@ test-suite weft-test
       ParserSpec
       ResolverSpec
       ServerSpec
+      TestData
       Paths_weft
   hs-source-dirs:
       test

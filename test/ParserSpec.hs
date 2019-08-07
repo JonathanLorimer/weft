@@ -11,43 +11,13 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck
+import           TestData
 import           Text.Megaparsec
 import           Text.PrettyPrint.HughesPJ hiding (first)
 import           Weft.Generics.PprQuery
 import           Weft.Generics.QueryParser
 import           Weft.Internal.Types
 import           Weft.Types
-
-data User ts = User
-  { userId         :: Magic ts (Arg "arg" (Maybe String) -> Int)
-  , userName       :: Magic ts String
-  , userBestFriend :: Magic ts (Arg "arg" (Maybe String) -> User ts)
-  , userFriends    :: Magic ts [User ts]
-  } deriving (Generic)
-
-deriving instance AllHave Show (User ts)     => Show (User ts)
-deriving instance AllHave Eq (User ts)       => Eq (User ts)
-deriving instance AllHave ToJSON (User ts)   => ToJSON (User ts)
-
-data Account ts = Account
-  { accountBalance :: Magic ts (Arg "num" (Maybe Int) -> Int)
-  } deriving (Generic)
-
-deriving instance AllHave Show (Account ts)     => Show (Account ts)
-deriving instance AllHave Eq (Account ts)       => Eq (Account ts)
-deriving instance AllHave ToJSON (Account ts)   => ToJSON (Account ts)
-
-instance Arbitrary (Account 'Query) where
-  arbitrary = recordGen
-
-instance Arbitrary (User 'Query) where
-  arbitrary = recordGen
-
-instance Arbitrary (Account 'Data) where
-  arbitrary = recordGen
-
-instance Arbitrary (User 'Data) where
-  arbitrary = recordGen
 
 
 -- | Like '==', but prints a counterexample when it fails.
@@ -103,10 +73,11 @@ spec = do
       parseAllOnly (flip runReaderT mempty $ queryParser @User) "userId(arg: $missing_var)"
         `shouldSatisfy` isLeft
     it "should inline a known variable" $ do
-      parseAllOnly (flip runReaderT (M.singleton "known" "\"a string\"")
+      parseAllOnly (flip runReaderT (M.singleton "known" "1337")
                    $ queryParser @User)
                 "userId(arg: $known)"
-        `shouldBe` Right ( User (M.singleton "userId" ((Arg $ Just "a string") :@@ ANil, ()))
+        `shouldBe` Right ( User (M.singleton "userId" ((Arg $ Just 1337) :@@ ANil, ()))
+                                M.empty
                                 M.empty
                                 M.empty
                                 M.empty
@@ -117,21 +88,19 @@ spec = do
       parseAllOnly (flip runReaderT mempty $ queryParser @User) (T.pack $ unlines
         [ "userId #this is a comment"
         , "( # more"
-        , "arg: #ok \"5\""
-        , "\"6\" # dope"
+        , "arg: #ok 5"
+        , "6 # dope"
         , ") # finished"
         ])
-        `shouldBe` Right (User (M.singleton "userId" (Arg (Just "6") :@@ ANil, ()))
+        `shouldBe` Right (User (M.singleton "userId" (Arg (Just 6) :@@ ANil, ()))
+                               M.empty
                                M.empty
                                M.empty
                                M.empty
                          )
 
     it "should not parse #s in strings" $ do
-      parseAllOnly (flip runReaderT mempty $ queryParser @User) "userId(arg: \"# no problem\")"
-        `shouldBe` Right (User (M.singleton "userId" (Arg (Just "# no problem") :@@ ANil, ()))
-                               M.empty
-                               M.empty
-                               M.empty
+      parseAllOnly (flip runReaderT mempty $ queryParser @Account) "accountTitle(title: \"# no problem\")"
+        `shouldBe` Right (Account (M.singleton "accountTitle" (Arg (Just "# no problem") :@@ ANil, ()))
                          )
 

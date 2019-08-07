@@ -13,62 +13,12 @@ import qualified Data.Map as M
 import           Data.Text (Text)
 import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck hiding (Args)
+import           TestData
 import           Weft.Generics.Hydrate
 import           Weft.Generics.Resolve
 import           Weft.Internal.Types
 import           Weft.Server
 import           Weft.Types
-
-------------------------------------------------------------------------------------------
--- | Mock Data
-newtype Id = Id Int
-  deriving stock (Generic, Show, Eq, Ord)
-  deriving newtype (Arbitrary, ToJSON)
-  deriving Read via (Int)
-
-newtype Name = Name String
-  deriving stock (Generic, Show, Eq, Ord)
-  deriving newtype (Arbitrary, ToJSON)
-
-data GqlQuery ts = GqlQuery
-    { getUser :: Magic ts (Arg "id" Id -> User ts)
-    , getAllUsers :: Magic ts [User ts]
-    } deriving (Generic)
-
-deriving instance AllHave Eq (GqlQuery ts)   => Eq (GqlQuery ts)
-deriving instance AllHave Show (GqlQuery ts) => Show (GqlQuery ts)
-deriving via (NoNothingJSON (GqlQuery 'Response))
-  instance AllHave ToJSON (GqlQuery 'Response) => ToJSON (GqlQuery 'Response)
-
-data User ts = User
-  { userId         :: Magic ts (Arg "arg" (Maybe Int) -> Id)
-  , userName       :: Magic ts Name
-  , userBestFriend :: Magic ts (Arg "arg" (Maybe Int) -> User ts)
-  , userFriends    :: Magic ts [User ts]
-  } deriving (Generic)
-
-deriving instance AllHave Show (User ts) => Show (User ts)
-deriving instance AllHave Eq (User ts)   => Eq (User ts)
-deriving via (NoNothingJSON (User 'Response))
-  instance AllHave ToJSON (User 'Response) => ToJSON (User 'Response)
-
-jonathan :: User 'Data
-jonathan =
-  User
-    { userId         = Id 1
-    , userName       = Name "Jonathan"
-    , userBestFriend = sandy
-    , userFriends    = []
-    }
-
-sandy :: User 'Data
-sandy =
-  User
-    { userId         = Id 2
-    , userName       = Name "Sandy"
-    , userBestFriend = jonathan
-    , userFriends    = []
-    }
 
 ------------------------------------------------------------------------------------------
 -- | Mock Resolvers
@@ -134,6 +84,7 @@ getAllUsersTestJsonQuery =
                                                         , userBestFriendQ
                                                         )
         , userFriends    = M.empty
+        , userFingers    = M.empty
         }
 
     userBestFriendQ =
@@ -142,6 +93,7 @@ getAllUsersTestJsonQuery =
         , userName       = M.singleton "userName" (ANil , ())
         , userBestFriend = M.empty
         , userFriends    = M.empty
+        , userFingers    = M.empty
         }
 
 
@@ -158,6 +110,7 @@ getAllUsersTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })
         , userName       = M.singleton "userName" (ANil, ())
         , userBestFriend = M.empty
         , userFriends    = M.singleton "userFriends" (ANil, userFriendsQ)
+        , userFingers    = M.empty
         }
     userFriendsQ =
       User
@@ -165,6 +118,7 @@ getAllUsersTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })
         , userName       = M.singleton "userName" (ANil , ())
         , userBestFriend = M.empty
         , userFriends    = M.empty
+        , userFingers    = M.empty
         }
 
 getUserTestString :: Text
@@ -196,6 +150,7 @@ getUserTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })
                                                         , bestFriendQ
                                                         )
         , userFriends    = M.empty
+        , userFingers    = M.empty
         }
 
     bestFriendQ =
@@ -204,6 +159,7 @@ getUserTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })
         , userName       = M.singleton "userName" (ANil, ())
         , userBestFriend = M.empty
         , userFriends    = M.empty
+        , userFingers    = M.empty
         }
 
 getUserTestJsonQuery :: Gql GqlQuery m s 'Query
@@ -225,6 +181,7 @@ getUserTestJsonQuery =
                                                         , bestFriendQ
                                                         )
         , userFriends    = M.empty
+        , userFingers    = M.empty
         }
 
     bestFriendQ =
@@ -233,19 +190,12 @@ getUserTestJsonQuery =
         , userName       = M.singleton "userName" (ANil , ())
         , userBestFriend = M.empty
         , userFriends    = M.empty
+        , userFingers    = M.empty
         }
 
 getUserTestJson :: BL.ByteString
 getUserTestJson =
   "{\"query\":{\"getUser\":{\"userName\":\"Jonathan\",\"userId\":1,\"userBestFriend\":{\"userName\":\"Sandy\"}}}}"
-
-instance Arbitrary (User 'Query) where
-  arbitrary = recordGen
-  shrink = genericShrink
-
-instance Arbitrary (User 'Data) where
-  arbitrary = recordGen
-  shrink = genericShrink
 
 ------------------------------------------------------------------------------------------
 -- | Tests

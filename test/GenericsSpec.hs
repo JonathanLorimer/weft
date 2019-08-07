@@ -2,6 +2,7 @@ module GenericsSpec where
 
 import Control.Monad.Reader
 import Test.Hspec hiding (Arg)
+import TestData
 import Text.PrettyPrint.HughesPJ (Doc)
 import Weft.Generics.AllTypes
 import Weft.Generics.EmptyQuery
@@ -13,27 +14,6 @@ import Weft.Generics.Resolve
 import Weft.Generics.Schema
 import Weft.Types
 
-
-newtype Id = Id String deriving (Generic, Show, Eq, Ord)
-newtype Name = Name String deriving (Generic, Show, Eq, Ord)
-
-data User ts = User
-  { userId         :: Magic ts (Arg "arg" (Maybe String) -> Id)
-  , userName       :: Magic ts Name
-  , userBestFriend :: Magic ts (Arg "arg" (Maybe String) -> User ts)
-  , userFriends    :: Magic ts [User ts]
-  , userAccount    :: Magic ts (Account ts)
-  } deriving (Generic)
-
-deriving instance AllHave Show (User ts) => Show (User ts)
-deriving instance AllHave Eq (User ts)   => Eq (User ts)
-
-data Account ts = Account
-  { accountBalance :: Magic ts (Arg "num" (Maybe Int) -> Int)
-  } deriving (Generic)
-
-deriving instance AllHave Show (Account ts) => Show (Account ts)
-deriving instance AllHave Eq (Account ts)   => Eq (Account ts)
 
 
 ------------------------------------------------------------------------------
