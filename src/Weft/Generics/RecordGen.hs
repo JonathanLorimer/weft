@@ -32,7 +32,7 @@ instance (GRecordGen r1, GRecordGen r2) => GRecordGen (r1 :*: r2) where
                      <*> gRecordGen
 
 instance Arbitrary a => GRecordGen (K1 _1 a) where
-  gRecordGen = K1 <$> scale (`div` 4) arbitrary
+  gRecordGen = K1 <$> scale (`div` 5) arbitrary
 
 instance {-# OVERLAPPING #-} GRecordGen (K1 _1 Text) where
   gRecordGen = K1 <$> arbitrary @Text
@@ -51,7 +51,7 @@ instance {-# OVERLAPPING #-} HasRecordGen r ts => GRecordGen (K1 _1 (M.Map Text 
     case n <= 0 of
       True  -> pure M.empty
       False -> M.singleton <$> arbitrary @Text
-                           <*> resize (n `div` 4) recordGen
+                           <*> resize (n `div` 5) recordGen
 
 
 -- TODO(sandy): bad orphan bad!

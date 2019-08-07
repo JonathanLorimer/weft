@@ -54,6 +54,9 @@ parseAllOnly :: Parser a -> Text -> Either String a
 parseAllOnly p = first errorBundlePretty . parse p "<test>"
 
 
+foo :: User 'Query
+foo = User {userId = M.fromList [], userName = M.fromList [], userBestFriend = M.fromList [], userFriends = M.fromList [], userFingers = M.fromList [("Y",(ANil,Finger {fingers = M.fromList [("dA",(Arg (Just (MyInputType {boots = 0, hearts = False})) :@@ ANil,Account {accountTitle = M.fromList []}))]}))]}
+
 spec :: Spec
 spec = do
   describe "roundtrip parser" $ do
