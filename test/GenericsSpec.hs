@@ -1,7 +1,6 @@
 module GenericsSpec where
 
 import Control.Monad.Reader
-import Data.Attoparsec.ByteString.Char8
 import Test.Hspec hiding (Arg)
 import Text.PrettyPrint.HughesPJ (Doc)
 import Weft.Generics.AllTypes

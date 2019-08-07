@@ -6,6 +6,7 @@
 module Weft.Generics.QueryParser
   ( HasQueryParser
   , Vars
+  , Parser
   , queryParser
   , anonymousQueryParser
   ) where

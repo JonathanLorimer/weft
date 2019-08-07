@@ -9,7 +9,6 @@ import           Data.Either
 import qualified Data.Map as M
 import           Data.Text (Text)
 import qualified Data.Text as T
-import           Data.Void
 import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck
 import           Text.Megaparsec
@@ -18,9 +17,6 @@ import           Weft.Generics.PprQuery
 import           Weft.Generics.QueryParser
 import           Weft.Internal.Types
 import           Weft.Types
-
-
-type Parser = Parsec Void Text
 
 data User ts = User
   { userId         :: Magic ts (Arg "arg" (Maybe String) -> Int)
