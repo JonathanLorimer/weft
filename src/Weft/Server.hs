@@ -17,7 +17,8 @@ import Network.HTTP.Types.Header (hContentType)
 import Network.HTTP.Types.Method
 import Data.Aeson hiding (json)
 import Data.Attoparsec.ByteString.Char8
-import Data.ByteString.Char8
+import Data.ByteString.Char8 (ByteString)
+import qualified Data.ByteString.Char8 as C8
 import Data.Text.Encoding
 import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
@@ -27,7 +28,7 @@ newtype DataResponse a = DataResponse { _data :: a }
   deriving (Generic)
 
 instance (Generic a, ToJSON a, GToJSON Zero (Rep a)) => ToJSON (DataResponse a) where
-  toJSON d = genericToJSON (defaultOptions { fieldLabelModifier = Prelude.drop 1 }) d
+  toJSON d = genericToJSON (defaultOptions { fieldLabelModifier = drop 1 }) d
 
 parseReqBody :: (Wefty query)
              => ByteString
@@ -36,7 +37,7 @@ parseReqBody reqBody = parseOnly
                        (runReaderT (queryParser) mempty)
                        reqBody
 
-maybeQuery :: ByteString -> Maybe ByteString
+maybeQuery :: C8.ByteString -> Maybe ByteString
 maybeQuery rb = do
   json <- decode @Value $ BL.fromStrict rb
   encodeUtf8 <$> ((^? key "query" . _String) json)
@@ -53,14 +54,14 @@ app resolver req f = do
   rb <- requestBody req
 #endif
   let _eitherQuery = do
-    textQuery <- note . maybeQuery $ rb
-    parseReqBody textQuery
-  f $ case _eitherQuery of
-    Right query' -> do
-      res <- resolve resolver query'
-      case res of
-        Gql q -> successResponse $ DataResponse q
-    Left e  -> errorResponse $ BL.fromStrict $ pack e
+        textQuery <- note . maybeQuery $ rb
+        parseReqBody textQuery
+  case _eitherQuery of
+          Right query' -> do
+            res <- resolve resolver query'
+            case res of
+              Gql q -> f $ successResponse $ DataResponse q
+          Left e  -> f $ errorResponse $ BL.fromStrict $ C8.pack e
 
 successResponse :: ToJSON a => a -> Response
 successResponse = responseLBS status200 [(hContentType, "application/json")] . encode
