@@ -6,7 +6,6 @@ import Weft.Internal.Types
 import Weft.Types
 import Weft.Generics.QueryParser
 import Weft.Generics.Resolve
-import GHC.Generics
 import Lens.Micro
 import Lens.Micro.Aeson
 import Network.Wai.Middleware.Cors
@@ -24,11 +23,11 @@ import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 
-newtype DataResponse a = DataResponse { _data :: a } 
-  deriving (Generic)
+-- newtype DataResponse a = DataResponse { _data :: a } 
+--   deriving (Generic)
 
-instance (Generic a, ToJSON a, GToJSON Zero (Rep a)) => ToJSON (DataResponse a) where
-  toJSON d = genericToJSON (defaultOptions { fieldLabelModifier = drop 1 }) d
+-- instance (Generic a, ToJSON a, GToJSON Zero (Rep a)) => ToJSON (DataResponse a) where
+--   toJSON d = object d
 
 parseReqBody :: (Wefty query)
              => ByteString
@@ -59,8 +58,7 @@ app resolver req f = do
   case _eitherQuery of
           Right query' -> do
             res <- resolve resolver query'
-            case res of
-              Gql q -> f $ successResponse $ DataResponse q
+            f $ successResponse res
           Left e  -> f $ errorResponse $ BL.fromStrict $ C8.pack e
 
 successResponse :: ToJSON a => a -> Response
