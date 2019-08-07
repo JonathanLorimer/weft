@@ -1,12 +1,14 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE DeriveAnyClass       #-}
+{-# LANGUAGE DerivingStrategies   #-}
 
 module Weft.Server where
 
-import Control.Applicative
 import Weft.Internal.Types
 import Weft.Types
 import Weft.Generics.QueryParser
 import Weft.Generics.Resolve
+import GHC.Generics
 import Lens.Micro
 import Lens.Micro.Aeson
 import Network.Wai.Middleware.Cors
@@ -15,6 +17,7 @@ import Network.Wai.Handler.Warp
 import Network.HTTP.Types (status200, status500)
 import Network.HTTP.Types.Header (hContentType)
 import Network.HTTP.Types.Method
+import qualified Data.List as L
 import Data.Aeson hiding (json)
 import Data.Attoparsec.ByteString.Char8
 import Data.ByteString.Char8
@@ -23,11 +26,18 @@ import Data.Monoid
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad.Reader
 
+newtype DataResponse a = DataResponse { _data :: a } 
+    deriving (Generic)
 
-parseReqBody :: (Wefty q)
+instance (Generic a, ToJSON a, GToJSON Zero (Rep a)) => ToJSON (DataResponse a) where
+    toJSON d = genericToJSON (defaultOptions { fieldLabelModifier = \label -> Prelude.drop 1 label }) d
+
+parseReqBody :: (Wefty query)
              => ByteString
-             -> Either String (Gql q m s 'Query)
-parseReqBody = parseOnly (runReaderT (queryParser <|> anonymousQueryParser) mempty)
+             -> Either String ((Gql query () ()) 'Query)
+parseReqBody queryString = parseOnly
+                           (runReaderT (queryParser) mempty)
+                           queryString
 
 maybeQuery :: ByteString -> Maybe ByteString
 maybeQuery rb = do
@@ -38,7 +48,7 @@ note :: Maybe a -> Either String a
 note Nothing = Left ""
 note (Just x) = Right x
 
-app :: (ToJSON (q 'Response), Wefty q) => Gql q m s 'Resolver -> Application
+app :: (ToJSON (q 'Response), Wefty q) => Gql q () () 'Resolver -> Application
 app resolver req f = do
 #if MIN_VERSION_wai(3,2,2)
         rb <- getRequestBodyChunk req
@@ -51,7 +61,9 @@ app resolver req f = do
         case _eitherQuery of
             Right q -> do
                 res <- resolve resolver q
-                f $ successResponse res
+                case res of
+                    (Gql q) -> f $ successResponse $ DataResponse q
+                    _ -> f $ errorResponse "Something went horribly wrong"
             Left e  -> f $ errorResponse $ BL.fromStrict $ pack e
 
 successResponse :: ToJSON a => a -> Response
@@ -62,7 +74,7 @@ errorResponse = responseLBS status500 [(hContentType, "application/json")]
 
 server :: (Wefty q)
        => [Settings -> Settings]
-       -> Gql q m s 'Resolver
+       -> Gql q () () 'Resolver
        -> IO ()
 server s r = runSettings
     (appEndo (foldMap Endo s) defaultSettings)
