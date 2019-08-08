@@ -11,7 +11,7 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Void
 import           GHC.Generics
-import           Test.QuickCheck
+import           Test.QuickCheck hiding (Args)
 import           Weft.Internal.Types
 
 
@@ -42,30 +42,66 @@ instance (GRecordGen r1, GRecordGen r2) => GRecordGen (r1 :*: r2) where
   gRecordGen = (:*:) <$> gRecordGen
                      <*> gRecordGen
 
-instance (GRecordGen (M1 _2 _3 _4)) => GRecordGen (K1 _1 (M1 _2 _3 _4 Void)) where
-  gRecordGen = K1 <$> gRecordGen
+instance TermGen a => GRecordGen (K1 _1 a) where
+  gRecordGen = K1 <$> termGen
 
-instance {-# OVERLAPPABLE #-} Arbitrary a => GRecordGen (K1 _1 a) where
-  gRecordGen = K1 <$> scale (`div` 5) arbitrary
+class TermGen (t :: *) where
+  termGen :: Gen t
 
-instance GRecordGen (K1 _1 Text) where
-  gRecordGen = K1 <$> arbitrary @Text
+instance TermGen Text where
+  termGen = arbitrary
 
-instance HasRecordGen r ts => GRecordGen (K1 _1 (r ts)) where
-  gRecordGen = K1 <$> scale (subtract 1) recordGen
+instance TermGen Int where
+  termGen = arbitrary
 
-instance HasRecordGen r ts => GRecordGen (K1 _1 (Maybe (r ts))) where
-  gRecordGen = fmap K1 . sized $ \n ->
+instance TermGen Integer where
+  termGen = arbitrary
+
+instance {-# OVERLAPPING #-} TermGen String where
+  termGen = arbitrary
+
+instance TermGen Float where
+  termGen = arbitrary
+
+instance TermGen Double where
+  termGen = arbitrary
+
+instance TermGen ID where
+  termGen = arbitrary
+
+instance TermGen () where
+  termGen = arbitrary
+
+instance TermGen (Magic ts t) => TermGen (ToMagic ts t) where
+  termGen = ToMagic <$> termGen
+
+instance GRecordGen (M1 _1 _2 _3) => TermGen (M1 _1 _2 _3 Void) where
+  termGen = gRecordGen
+
+instance TermGen a => TermGen [a] where
+  termGen = sized $ \n ->
+    case n <= 0 of
+      True  -> pure []
+      False -> resize (max 0 $ n - 1) $ listOf termGen
+
+instance HasRecordGen r ts => TermGen (r ts) where
+  termGen = scale (max 0 . subtract 1) recordGen
+
+instance TermGen a => TermGen (Maybe a) where
+  termGen = sized $ \n ->
     case n <= 0 of
       True  -> pure Nothing
-      False -> Just <$> resize (n - 1) recordGen
+      False -> Just <$> resize (max 0 $ n - 1) termGen
 
-instance HasRecordGen r ts => GRecordGen (K1 _1 (M.Map Text (r ts))) where
-  gRecordGen = fmap K1 . sized $ \n ->
+instance TermGen t => TermGen (M.Map Text t) where
+  termGen = sized $ \n ->
     case n <= 0 of
       True  -> pure M.empty
-      False -> M.singleton <$> arbitrary @Text
-                           <*> resize (n `div` 5) recordGen
+      False -> M.singleton <$> termGen
+                           <*> resize (n `div` 5) termGen
+
+instance (Arbitrary (Args args), TermGen t) => TermGen (Args args, t) where
+  termGen = (,) <$> arbitrary <*> termGen
 
 
 -- TODO(sandy): bad orphan bad!
