@@ -1,9 +1,11 @@
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE ViewPatterns          #-}
 
 module Weft.Generics.PprQuery
   ( HasPprQuery
   , pprQuery
   , pprArg
+  , gPprQuery
   ) where
 
 import           Data.Functor ((<&>))
@@ -35,7 +37,7 @@ pprQuery q = gPprQuery $ from q
 
 ------------------------------------------------------------------------------
 -- |
-class GPprQuery rq where
+class GPprQuery (rq :: * -> *) where
   gPprQuery :: rq x -> Doc
 
 instance (GPprQuery f, GPprQuery g) => GPprQuery (f :*: g) where
@@ -45,6 +47,10 @@ instance (GPprQuery f, GPprQuery g) => GPprQuery (f :*: g) where
     ]
 instance {-# OVERLAPPABLE #-} GPprQuery f => GPprQuery (M1 _1 _2 f) where
   gPprQuery (M1 f) = gPprQuery f
+
+instance ( GPprQuery (M1 S ('MetaSel ('Just name) b c d) (K1 _2 (Magic 'Query t)))
+         ) => GPprQuery (M1 S ('MetaSel ('Just name) b c d) (K1 _2 (ToMagic 'Query t))) where
+    gPprQuery (M1 (K1 (ToMagic t))) = gPprQuery @(M1 S ('MetaSel ('Just name) b c d) (K1 _2 (Magic 'Query t))) $ M1 $ K1 t
 
 instance ( KnownSymbol name
          , PprEachArg args

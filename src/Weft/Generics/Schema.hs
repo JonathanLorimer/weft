@@ -1,6 +1,7 @@
 module Weft.Generics.Schema
   ( HasSchema
   , schema
+  , gSchema
   ) where
 
 import Data.List.NonEmpty
@@ -32,16 +33,22 @@ schema = to $ gSchema @(Rep (record 'Data))
 
 ------------------------------------------------------------------------------
 -- |
-class GHasSchema i o where
+class GHasSchema (i :: * -> *) (o :: * -> *) where
     gSchema :: o x
 
 instance (GHasSchema fi fo, GHasSchema gi go) => GHasSchema (fi :*: gi) (fo :*: go) where
     gSchema = gSchema @fi :*: gSchema @gi
 
 instance {-# OVERLAPPING #-} (KnownSymbol a, HasGqlType t, ReifyArgs args)
-      => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (Rec0 t))
-                    (M1 S ('MetaSel ('Just a) b c d) (Rec0 (Field args))) where
+      => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 t))
+                    (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Field args))) where
     gSchema = M1 $ K1 $ Field (reifyNameType @a @t) (reifyArgs @args)
+
+instance {-# OVERLAPPING #-}
+         GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Data t))) (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Schema t)))
+      => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (ToMagic 'Data t)))
+                    (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (ToMagic 'Schema t))) where
+    gSchema = M1 $ K1 $ ToMagic $ unK1 $ unM1 $ gSchema @(M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Data t))) @(M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Schema t)))
 
 instance (GHasSchema fi fo)
       => GHasSchema (M1 x y fi)

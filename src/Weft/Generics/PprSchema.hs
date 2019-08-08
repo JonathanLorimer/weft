@@ -1,6 +1,7 @@
 module Weft.Generics.PprSchema
   ( HasPprSchema
   , pprSchema
+  , gPprSchema
   ) where
 
 import Data.Proxy
@@ -31,7 +32,7 @@ pprSchema = gPprSchema . from
 
 ------------------------------------------------------------------------------
 -- |
-class GPprSchema rs where
+class GPprSchema (rs :: * -> *) where
   gPprSchema :: rs x -> Doc
 
 instance ( KnownSymbol name
@@ -50,6 +51,9 @@ instance {-# OVERLAPPABLE #-} GPprSchema f => GPprSchema (M1 _1 _2 f) where
 
 instance GPprSchema (K1 _1 (Field args)) where
   gPprSchema (K1 f) = pprField f
+
+instance GPprSchema (K1 _1 (Magic 'Schema t)) => GPprSchema (K1 _1 (ToMagic 'Schema t)) where
+  gPprSchema (K1 (ToMagic f)) = gPprSchema @(K1 _1 (Magic 'Schema t)) $ K1 f
 
 
 ------------------------------------------------------------------------------

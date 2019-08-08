@@ -47,6 +47,11 @@ type family Magic (ts :: TypeState) a where
   Magic 'Schema   ts                 = Field (Fst (UnravelArgs ts))
 
 
+newtype ToMagic (ts :: TypeState) a = ToMagic
+  { unMagic :: Magic ts a
+  }
+
+
 ------------------------------------------------------------------------------
 -- |
 type family ConsFirst (a :: k1) (b :: ([k1], k2)) :: ([k1], k2) where
@@ -70,7 +75,7 @@ type family MagicQueryInputOutput (t :: *) (use :: *) :: * where
   MagicQueryInputOutput String  _ = ()
   MagicQueryInputOutput ID      _ = ()
   MagicQueryInputOutput ()      _ = ()
-  MagicQueryInputOutput a     use = MagicQueryFromRep a use (Rep a)
+  MagicQueryInputOutput a     use = ToMagic 'Query a
 
 type family MagicQueryFromRep (t :: *) (use :: *) (rep :: * -> *) :: * where
   -- | It's a newtype

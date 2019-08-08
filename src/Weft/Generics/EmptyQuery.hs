@@ -1,6 +1,7 @@
 module Weft.Generics.EmptyQuery
   ( emptyQuery
   , HasEmptyQuery
+  , gEmptyQuery
   ) where
 
 import qualified Data.Map as M
@@ -33,4 +34,8 @@ instance GEmptyQuery (K1 x Bool) where
 -- | Q2
 instance GEmptyQuery (K1 x (M.Map Text a)) where
     gEmptyQuery = K1 M.empty
+
+-- | Q2
+instance GEmptyQuery (K1 x (Magic 'Query t)) => GEmptyQuery (K1 x (ToMagic 'Query t)) where
+    gEmptyQuery = K1 $ ToMagic $ unK1 $ gEmptyQuery @(K1 x (Magic 'Query t))
 
