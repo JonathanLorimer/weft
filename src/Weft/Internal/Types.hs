@@ -6,6 +6,7 @@ module Weft.Internal.Types where
 
 import           Data.Aeson
 import           Data.Kind
+import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Text (Text)
@@ -58,9 +59,35 @@ type family UnravelArgs (t :: *) :: ([(Symbol, *)], *) where
   UnravelArgs a        = '( '[], a)
 
 type family MagicQueryResult (u :: ([(Symbol, *)], *)) :: * where
-  MagicQueryResult '(ts, [record 'Query]) = (Args ts, record 'Query)
-  MagicQueryResult '(ts, record 'Query)   = (Args ts, record 'Query)
-  MagicQueryResult '(ts, a)               = (Args ts, ())
+  MagicQueryResult '(ts, NonEmpty (record 'Query)) = (Args ts, record 'Query)
+  MagicQueryResult '(ts, [record 'Query])          = (Args ts, record 'Query)
+  MagicQueryResult '(ts, record 'Query)            = (Args ts, record 'Query)
+  MagicQueryResult '(ts, a)                        = (Args ts, MagicQueryInputOutput a)
+
+type family MagicQueryInputOutput (t :: *) :: * where
+  MagicQueryInputOutput Int     = ()
+  MagicQueryInputOutput Integer = ()
+  MagicQueryInputOutput Double  = ()
+  MagicQueryInputOutput Bool    = ()
+  MagicQueryInputOutput String  = ()
+  MagicQueryInputOutput ID      = ()
+  MagicQueryInputOutput a       = MagicQueryFromRep a (Rep a)
+
+type family MagicQueryFromRep (t :: *) (rep :: * -> *) :: * where
+  -- | It's a newtype
+  MagicQueryFromRep t (M1 D ('MetaData _1 _2 _3 'True) (M1 C _ (M1 _4 _5 (K1 _6 a))))
+    = MagicQueryInputOutput a
+  -- | It's an enum
+  MagicQueryFromRep t (M1 D _1 (_2 :+: _3)) = ()
+  -- | It's an input type
+  MagicQueryFromRep t (M1 D _1 (M1 C _2 (a :*: b))) = AnonSelector (a :*: b)
+
+type family AnonSelector (rep :: * -> *) :: * where
+  AnonSelector (f :*: g) = Tree (AnonSelector g) (AnonSelector g)
+  AnonSelector (M1 S ('MetaSel ('Just name) _2 _3 _4) (K1 _5 a)) = Tagged name a
+
+data Tagged (n :: Symbol) t = Tagged t
+data Tree a b = Both a b
 
 type family Fst (u :: (k1, k2)) :: k1 where
   Fst '(ts, a) = ts
