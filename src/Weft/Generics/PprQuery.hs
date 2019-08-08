@@ -85,6 +85,22 @@ instance PprEachArg args => GPprTerm (M.Map Text (Args args, ())) where
           , pprArgs args
           ]
 
+instance GPprTerm (Magic 'Query rec) => GPprTerm (ToMagic 'Query rec) where
+  gPprTerm name = gPprTerm @(Magic 'Query rec) name . unMagic
+
+instance ( GPprQuery (M1 _1 _2 _3)
+         , PprEachArg args
+         ) => GPprTerm (M.Map Text (Args args, M1 _1 _2 _3 Void)) where
+  gPprTerm name m =
+    vcat $ M.toList m <&> \(alias, (args, rec)) ->
+      pprAliasIfDifferent name alias $
+        sep
+          [ text name <> pprArgs args
+          , char '{'
+          , nest 4 $ gPprQuery rec
+          , char '}'
+          ]
+
 instance ( KnownSymbol name
          , GPprTerm t
          ) => GPprQuery (M1 S ('MetaSel ('Just name) b c d)

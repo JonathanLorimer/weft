@@ -77,10 +77,10 @@ spec = do
     it "should roundtrip for Account" $
       property $ testQuery @Account
 
---     it "should roundtrip for User'" $
---       property $ do
---         t <- magicRecordGen @User' @'Query
---         pure $ testMagicQuery @User' t
+    it "should roundtrip for User'" $
+      property $ do
+        t <- magicRecordGen @User' @'Query
+        pure $ testMagicQuery @User' t
 
   describe "invalid arguments" $ do
     it "should fail if passed a fake argument" $ do

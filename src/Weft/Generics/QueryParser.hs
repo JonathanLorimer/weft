@@ -89,6 +89,9 @@ instance (ParseArgs args, IsAllMaybe args)
     args <- parseOptionalArgs @args
     pure $ M.singleton alias (args, ())
 
+instance  GPermTermParser (Magic 'Query t) => GPermTermParser (ToMagic 'Query t) where
+  gPermTermParser name = fmap ToMagic <$> gPermTermParser @(Magic 'Query t) name
+
 instance ( HasQueryParser t
          , ParseArgs args
          , IsAllMaybe args
@@ -100,8 +103,7 @@ instance ( HasQueryParser t
     z <- parens '{' '}' $ queryParser @t
     pure $ M.singleton alias (args, z)
 
-instance ( KnownSymbol name
-         , ParseArgs args
+instance ( ParseArgs args
          , IsAllMaybe args
          , GQueryParser (M1 _5 _6 _7)
          ) => GPermTermParser (M.Map Text (Args args, (M1 _5 _6 _7) Void)) where
@@ -122,11 +124,6 @@ instance ( GPermFieldsParser fq
   gPermFieldsParser =
       (fmap (:*: mempty) <$> gPermFieldsParser @fq)
       ++ (fmap (mempty :*:) <$> gPermFieldsParser @gq)
-
-#define INST(magic) (M1 S ('MetaSel ('Just name) _1 _2 _3) (K1 _4 (magic 'Query t)))
-instance GPermFieldsParser INST(Magic)
-      => GPermFieldsParser INST(ToMagic) where
-  gPermFieldsParser = fmap (M1 . K1 . ToMagic . unK1 . unM1) <$> gPermFieldsParser @INST(Magic)
 
 
 parseIdentOrAlias :: String -> Parser Text
