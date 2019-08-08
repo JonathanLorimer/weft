@@ -65,7 +65,10 @@ anonymousQueryParser = do
 class GPermFieldsParser (rq :: * -> *) where
   gPermFieldsParser :: [ReaderT Vars Parser (rq x)]
 
-instance {-# OVERLAPPABLE #-} GPermFieldsParser fq => GPermFieldsParser (M1 a b fq) where
+instance  GPermFieldsParser fq => GPermFieldsParser (M1 D b fq) where
+  gPermFieldsParser = fmap M1 <$> gPermFieldsParser
+
+instance  GPermFieldsParser fq => GPermFieldsParser (M1 C b fq) where
   gPermFieldsParser = fmap M1 <$> gPermFieldsParser
 
 instance ( GPermFieldsParser fq
@@ -78,13 +81,11 @@ instance ( GPermFieldsParser fq
       ++ (fmap (mempty :*:) <$> gPermFieldsParser @gq)
 
 #define INST(magic) (M1 S ('MetaSel ('Just name) _1 _2 _3) (K1 _4 (magic 'Query t)))
-
 instance GPermFieldsParser INST(Magic)
       => GPermFieldsParser INST(ToMagic) where
   gPermFieldsParser = fmap (M1 . K1 . ToMagic . unK1 . unM1) <$> gPermFieldsParser @INST(Magic)
 
-
-instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
+instance  (KnownSymbol name, ParseArgs args, IsAllMaybe args)
       => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                  (K1 _4 (M.Map Text (Args args, ())))) where
   gPermFieldsParser = pure . fmap (M1 . K1) $ do
@@ -108,6 +109,22 @@ instance ( KnownSymbol name
     lift skipCrap
     args <- parseOptionalArgs @args
     z <- parens '{' '}' $ queryParser @t
+    pure $ M.singleton alias (args, z)
+
+instance ( KnownSymbol name
+         , ParseArgs args
+         , IsAllMaybe args
+         , GQueryParser (M1 _5 _6 _7)
+         ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
+                                    (K1 _4 (M.Map Text (Args args, (M1 _5 _6 _7) Void)))) where
+  gPermFieldsParser = pure
+                    . fmap (M1 . K1)
+                    $ do
+    let name = symbolVal $ Proxy @name
+    alias <- lift $ try $ parseIdentOrAlias name
+    lift skipCrap
+    args <- parseOptionalArgs @args
+    z <- parens '{' '}' $ lift skipCrap *> gQueryParser <* lift skipCrap
     pure $ M.singleton alias (args, z)
 
 
