@@ -24,6 +24,14 @@ data GqlQuery ts = GqlQuery
 deriving instance AllHave Eq (GqlQuery ts)   => Eq (GqlQuery ts)
 deriving instance AllHave Show (GqlQuery ts) => Show (GqlQuery ts)
 
+data GqlMutation ts = GqlMutation
+    { mutateUser :: Magic ts (Arg "id" ID -> User ts)
+    , mutateAllUsers :: Magic ts [User ts]
+    } deriving (Generic)
+
+deriving instance AllHave Eq (GqlMutation ts)   => Eq (GqlMutation ts)
+deriving instance AllHave Show (GqlMutation ts) => Show (GqlMutation ts)
+
 data User ts = User
   { userId         :: Magic ts (Arg "arg" (Maybe Int) -> ID)
   , userName       :: Magic ts Name
