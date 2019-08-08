@@ -9,12 +9,10 @@ import           Data.Kind
 import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Text (Text)
 import           Data.Void
+import           Data.Text (Text)
 import           GHC.Generics
 import           GHC.TypeLits
-import           Lens.Micro ((^?))
-import           Lens.Micro.Aeson
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
 import           Text.Megaparsec
 
@@ -152,6 +150,16 @@ instance {-# OVERLAPPING #-}
            , fmap Just $ (,) <$> arbitrary <*> arbitrary
            ] `suchThat` maybe (isJust $ isAllMaybe @args) (const True)
 
+data Empty (ts :: TypeState) =
+  Empty { dontTouch :: Magic ts Void }
+    deriving (Generic)
+
+instance Show (Empty ts) where
+  show _ = ""
+
+instance Eq (Empty ts) where
+  (==) (Empty _) (Empty _) = True
+
 
 data Gql (q :: TypeState -> *)
          (m :: TypeState -> *)
@@ -174,8 +182,6 @@ type instance GFields c (K1 i a)   = c a
 
 deriving instance AllHave Show (Gql q m s ts) => Show (Gql q m s ts)
 deriving instance AllHave Eq (Gql q m s ts) => Eq (Gql q m s ts)
-instance ToJSON (q 'Response) => ToJSON (Gql q m s 'Response) where
-  toJSON (Gql q) = object ["data" .= (toJSON q ^? key "query") ]
 
 
 newtype NoNothingJSON a = NoNothingJSON a deriving Generic

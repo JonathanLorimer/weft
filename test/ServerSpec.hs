@@ -37,11 +37,12 @@ queryResolver =
     , getAllUsers = getAllUsersResolver
     }
 
-gqlResolver :: Gql GqlQuery m s 'Resolver
+emptyResolver :: Empty 'Resolver
+emptyResolver = Empty undefined
+
+gqlResolver :: Gql GqlQuery Empty s 'Resolver
 gqlResolver =
-  Gql
-    { query = resolve queryResolver
-    }
+  Gql (resolve queryResolver) (resolve emptyResolver)
 
 ------------------------------------------------------------------------------------------
 -- | Mock Queries
@@ -65,10 +66,9 @@ getAllUsersTestString = ClientRequest
 getAllUsersTestJson :: BL.ByteString
 getAllUsersTestJson = "{\"query\":{\"getAllUsers\":[{\"userName\":\"Sandy\",\"userId\":\"2\",\"userBestFriend\":{\"userName\":\"Jonathan\",\"userId\":\"1\"}},{\"userName\":\"Jonathan\",\"userId\":\"1\",\"userBestFriend\":{\"userName\":\"Sandy\",\"userId\":\"2\"}}]}}"
 
-getAllUsersTestJsonQuery :: Gql GqlQuery m s 'Query
+getAllUsersTestJsonQuery :: Gql GqlQuery Empty s 'Query
 getAllUsersTestJsonQuery =
-  Gql { query = M.singleton "query" (ANil, gqlQ)
-      }
+  Gql (M.singleton "query" (ANil, gqlQ)) M.empty
   where
     gqlQ =
       GqlQuery
@@ -97,8 +97,8 @@ getAllUsersTestJsonQuery =
         }
 
 
-getAllUsersTestQuery :: Either String (Gql GqlQuery m s 'Query)
-getAllUsersTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })
+getAllUsersTestQuery :: Either String (Gql GqlQuery Empty s 'Query)
+getAllUsersTestQuery = Right (Gql (M.singleton "query" (ANil, gqlQ)) M.empty )
   where
     gqlQ = GqlQuery
       { getUser     = M.empty
@@ -136,8 +136,8 @@ getUserTestString = ClientRequest
   mempty
   Nothing
 
-getUserTestQuery :: Either String (Gql GqlQuery m s 'Query)
-getUserTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })
+getUserTestQuery :: Either String (Gql GqlQuery Empty s 'Query)
+getUserTestQuery = Right (Gql (M.singleton "query" (ANil, gqlQ)) M.empty)
   where
     gqlQ = GqlQuery
       { getAllUsers = M.empty
@@ -166,9 +166,7 @@ getUserTestQuery = Right (Gql { query = M.singleton "query" (ANil, gqlQ) })
 
 getUserTestJsonQuery :: Gql GqlQuery m s 'Query
 getUserTestJsonQuery =
-  Gql
-    { query = M.singleton "query" (ANil, gqlQ)
-    }
+  Gql (M.singleton "query" (ANil, gqlQ)) M.empty
   where
     gqlQ = GqlQuery
       { getAllUsers = M.empty

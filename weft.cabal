@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a500e570579567fec239f0494030759ea493e2dd5283be4c931a6dea0543f3a0
+-- hash: 1c0a862a0016c6d109c942c36ffa53805122a7a76b3db7c7f88e64e42a7999ae
 
 name:           weft
 version:        0.1.0.0
@@ -78,7 +78,7 @@ executable example
   hs-source-dirs:
       example
   default-extensions: DeriveGeneric DerivingVia TypeFamilies RankNTypes GADTs DataKinds PolyKinds ScopedTypeVariables TypeApplications MultiParamTypeClasses AllowAmbiguousTypes TypeOperators FlexibleInstances FlexibleContexts FunctionalDependencies StandaloneDeriving ConstraintKinds UndecidableInstances OverloadedStrings
-  ghc-options: -Wall
+  ghc-options: -Wall -Wredundant-constraints
   build-depends:
       QuickCheck
     , aeson
