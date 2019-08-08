@@ -71,6 +71,49 @@ instance  GPermFieldsParser fq => GPermFieldsParser (M1 D b fq) where
 instance  GPermFieldsParser fq => GPermFieldsParser (M1 C b fq) where
   gPermFieldsParser = fmap M1 <$> gPermFieldsParser
 
+
+
+class GPermTermParser (t :: *) where
+  gPermTermParser :: String -> [ReaderT Vars Parser t]
+
+instance (KnownSymbol name, GPermTermParser t)
+      => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
+                                 (K1 _4 t)) where
+  gPermFieldsParser = fmap (M1 . K1) <$> gPermTermParser (symbolVal $ Proxy @name)
+
+instance (ParseArgs args, IsAllMaybe args)
+      => GPermTermParser (M.Map Text (Args args, ())) where
+  gPermTermParser name = pure $ do
+    alias <- lift $ try $ parseIdentOrAlias name
+    lift skipCrap
+    args <- parseOptionalArgs @args
+    pure $ M.singleton alias (args, ())
+
+instance ( HasQueryParser t
+         , ParseArgs args
+         , IsAllMaybe args
+         ) => GPermTermParser (M.Map Text (Args args, t 'Query)) where
+  gPermTermParser name = pure $ do
+    alias <- lift $ try $ parseIdentOrAlias name
+    lift skipCrap
+    args <- parseOptionalArgs @args
+    z <- parens '{' '}' $ queryParser @t
+    pure $ M.singleton alias (args, z)
+
+instance ( KnownSymbol name
+         , ParseArgs args
+         , IsAllMaybe args
+         , GQueryParser (M1 _5 _6 _7)
+         ) => GPermTermParser (M.Map Text (Args args, (M1 _5 _6 _7) Void)) where
+  gPermTermParser name = pure $ do
+    alias <- lift $ try $ parseIdentOrAlias name
+    lift skipCrap
+    args <- parseOptionalArgs @args
+    z <- parens '{' '}' $ lift skipCrap *> gQueryParser <* lift skipCrap
+    pure $ M.singleton alias (args, z)
+
+
+
 instance ( GPermFieldsParser fq
          , GPermFieldsParser gq
          , forall x. (Monoid (fq x), Monoid (gq x))
@@ -84,48 +127,6 @@ instance ( GPermFieldsParser fq
 instance GPermFieldsParser INST(Magic)
       => GPermFieldsParser INST(ToMagic) where
   gPermFieldsParser = fmap (M1 . K1 . ToMagic . unK1 . unM1) <$> gPermFieldsParser @INST(Magic)
-
-instance  (KnownSymbol name, ParseArgs args, IsAllMaybe args)
-      => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                                 (K1 _4 (M.Map Text (Args args, ())))) where
-  gPermFieldsParser = pure . fmap (M1 . K1) $ do
-    let name = symbolVal $ Proxy @name
-    alias <- lift $ try $ parseIdentOrAlias name
-    lift skipCrap
-    args <- parseOptionalArgs @args
-    pure $ M.singleton alias (args, ())
-
-instance ( KnownSymbol name
-         , HasQueryParser t
-         , ParseArgs args
-         , IsAllMaybe args
-         ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                                    (K1 _4 (M.Map Text (Args args, t 'Query)))) where
-  gPermFieldsParser = pure
-                    . fmap (M1 . K1)
-                    $ do
-    let name = symbolVal $ Proxy @name
-    alias <- lift $ try $ parseIdentOrAlias name
-    lift skipCrap
-    args <- parseOptionalArgs @args
-    z <- parens '{' '}' $ queryParser @t
-    pure $ M.singleton alias (args, z)
-
-instance ( KnownSymbol name
-         , ParseArgs args
-         , IsAllMaybe args
-         , GQueryParser (M1 _5 _6 _7)
-         ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                                    (K1 _4 (M.Map Text (Args args, (M1 _5 _6 _7) Void)))) where
-  gPermFieldsParser = pure
-                    . fmap (M1 . K1)
-                    $ do
-    let name = symbolVal $ Proxy @name
-    alias <- lift $ try $ parseIdentOrAlias name
-    lift skipCrap
-    args <- parseOptionalArgs @args
-    z <- parens '{' '}' $ lift skipCrap *> gQueryParser <* lift skipCrap
-    pure $ M.singleton alias (args, z)
 
 
 parseIdentOrAlias :: String -> Parser Text

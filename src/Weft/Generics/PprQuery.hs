@@ -101,7 +101,7 @@ pprAliasIfDifferent name (T.unpack -> alias) doc
       ]
 
 
-class PprEachArg (ts) where
+class PprEachArg ts where
   pprEachArg :: Args ts -> [Doc]
 
 instance PprEachArg '[] where

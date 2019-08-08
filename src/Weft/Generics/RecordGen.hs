@@ -42,9 +42,6 @@ instance (GRecordGen r1, GRecordGen r2) => GRecordGen (r1 :*: r2) where
   gRecordGen = (:*:) <$> gRecordGen
                      <*> gRecordGen
 
-instance {-# OVERLAPPING #-} GRecordGen (K1 _1 (Magic t ts)) => GRecordGen (K1 _1 (ToMagic t ts)) where
-  gRecordGen = fmap (K1 . ToMagic . unK1) $ gRecordGen @(K1 _1 (Magic t ts))
-
 instance (GRecordGen (M1 _2 _3 _4)) => GRecordGen (K1 _1 (M1 _2 _3 _4 Void)) where
   gRecordGen = K1 <$> gRecordGen
 
