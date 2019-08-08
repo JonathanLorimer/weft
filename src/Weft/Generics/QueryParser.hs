@@ -162,7 +162,7 @@ instance ParseArgs '[] where
   parseArgs = pure ANil
 
 instance {-# OVERLAPPING #-}
-         ( ParseArgValue t
+         ( IsArgType t
          , Typeable t
          , ParseArgs args
          , KnownSymbol n
@@ -177,7 +177,7 @@ instance {-# OVERLAPPING #-}
                        )
           <*> parseArgs
 
-instance ( ParseArgValue t
+instance ( IsArgType t
          , Typeable t
          , ParseArgs args
          , KnownSymbol n

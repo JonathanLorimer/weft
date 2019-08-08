@@ -65,7 +65,7 @@ instance (GPprInput f, GPprInput g) => GPprInput (f :*: g) where
     ]
 
 instance ( KnownSymbol name
-         , PprArg t
+         , IsArgType t
          ) => GPprInput (M1 S ('MetaSel ('Just name) b c d)
                               (K1 x t)) where
   gPprInput (M1 (K1 t)) = pprArg $ Arg @name t
@@ -78,43 +78,65 @@ pprArgWithName val =
         ]
 
 
-class PprArg t where
-  pprArg :: Arg n t -> Doc
+class IsArgType a where
+  pprArg :: Arg n a -> Doc
+  parseArgValue :: ReaderT Vars Parser a
 
-instance PprArg Integer where
+instance IsArgType Integer where
   pprArg (Arg v :: Arg n Integer) =
     pprArgWithName @n $ show v
+  parseArgValue = lift $ do
+    neg <- optional $ MP.char '-'
+    num <- some digitChar
+    pure $ read $ maybe "" pure neg ++ num
 
-instance PprArg Int where
+instance IsArgType Int where
   pprArg (Arg v :: Arg n Int) =
     pprArgWithName @n $ show v
+  parseArgValue = fromInteger <$> parseArgValue
 
-instance PprArg Double where
+instance IsArgType Double where
   pprArg (Arg v :: Arg n Double) =
     pprArgWithName @n $ show v
+  parseArgValue = lift $ do
+    neg <- optional $ MP.char '-'
+    num <- some digitChar
+    dec <- optional $ do
+      _ <- MP.char '.'
+      ('.' :) <$> some digitChar
+    pure $ read $ maybe "" pure neg ++ num ++ fromMaybe "" dec
 
-instance PprArg Bool where
+instance IsArgType Bool where
   pprArg (Arg v :: Arg n Bool) =
     pprArgWithName @n $ fmap toLower $ show v
+  parseArgValue = lift $ asum
+    [ False <$ string "false"
+    , True  <$ string "true"
+    ]
 
-instance PprArg String where
+instance IsArgType String where
   pprArg (Arg v :: Arg n String) =
     pprArgWithName @n $ show v
+  parseArgValue = lift $ MP.char '"' >> manyTill charLiteral (MP.char '"')
 
-instance PprArg ID where
+instance IsArgType ID where
   pprArg (Arg (ID v) :: Arg n ID) =
     pprArgWithName @n $ show v
+  parseArgValue = asum
+    [ ID . show <$> parseArgValue @Integer
+    , ID <$> parseArgValue @String
+    ]
 
-instance {-# OVERLAPPABLE #-} (Generic t, GPprThing (Rep t)) => PprArg t where
-  pprArg (Arg v :: Arg n t) =
+instance {-# OVERLAPPABLE #-} (Generic a, GPprThing (Rep a), GParseThing (Rep a)) => IsArgType a where
+  pprArg (Arg v :: Arg n a) =
     sep [ text (symbolVal $ Proxy @n) <> PPR.char ':'
         , gPprThing $ from v
         ]
+  parseArgValue = fmap to gParseThing
 
-instance {-# OVERLAPPING #-} PprArg t => PprArg (Maybe t) where
+instance {-# OVERLAPPING #-} IsArgType t => IsArgType (Maybe t) where
   pprArg (Arg Nothing) = PPR.empty
   pprArg (Arg (Just v) :: Arg n (Maybe t)) = pprArg (Arg @n v)
-
 
 
 class GParseThing (g :: * -> *) where
@@ -152,58 +174,18 @@ instance (TypeError (TL.Text "shit is FUCKED yo"))
       => GPermInputFields (M1 S ('MetaSel 'Nothing _1 _2 _3) (K1 _4 a)) where
   gPermInputFields = undefined
 
-instance (KnownSymbol name, ParseArgValue a, Typeable a)
+instance (KnownSymbol name, IsArgType a, Typeable a)
       => GPermInputFields (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                 (K1 _4 a)) where
   gPermInputFields = fmap (M1 . K1) $ toPermutation $ parseAnArg $ symbolVal $ Proxy @name
 
-instance {-# OVERLAPPING #-} (KnownSymbol name, ParseArgValue a, Typeable a)
+instance {-# OVERLAPPING #-} (KnownSymbol name, IsArgType a, Typeable a)
       => GPermInputFields (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                 (K1 _4 (Maybe a))) where
   gPermInputFields = fmap (M1 . K1) $ toPermutationWithDefault Nothing $ fmap Just $ parseAnArg $ symbolVal $ Proxy @name
 
 
-class ParseArgValue a where
-  parseArgValue :: ReaderT Vars Parser a
-
-instance ParseArgValue String where
-  parseArgValue = lift $ MP.char '"' >> manyTill charLiteral (MP.char '"')
-
-instance ParseArgValue Bool where
-  parseArgValue = lift $ asum
-    [ False <$ string "false"
-    , True  <$ string "true"
-    ]
-
-instance ParseArgValue Integer where
-  parseArgValue = lift $ do
-    neg <- optional $ MP.char '-'
-    num <- some digitChar
-    pure $ read $ maybe "" pure neg ++ num
-
-instance ParseArgValue Int where
-  parseArgValue = fromInteger <$> parseArgValue
-
-instance ParseArgValue Double where
-  parseArgValue = lift $ do
-    neg <- optional $ MP.char '-'
-    num <- some digitChar
-    dec <- optional $ do
-      _ <- MP.char '.'
-      ('.' :) <$> some digitChar
-    pure $ read $ maybe "" pure neg ++ num ++ fromMaybe "" dec
-
-instance ParseArgValue ID where
-  parseArgValue = asum
-    [ ID . show <$> parseArgValue @Integer
-    , ID <$> parseArgValue @String
-    ]
-
-instance {-# OVERLAPPABLE #-} (Generic a, GParseThing (Rep a)) => ParseArgValue a where
-  parseArgValue = fmap to gParseThing
-
-
-parseAnArg :: (Typeable a, ParseArgValue a) => String -> ReaderT Vars Parser a
+parseAnArg :: (Typeable a, IsArgType a) => String -> ReaderT Vars Parser a
 parseAnArg arg_name = do
   lift skipCrap
   _ <- lift $ string $ T.pack arg_name
@@ -215,7 +197,7 @@ parseAnArg arg_name = do
   pure result
 
 
-parseRawArgValue :: forall a . (Typeable a, ParseArgValue a) => ReaderT Vars Parser a
+parseRawArgValue :: forall a . (Typeable a, IsArgType a) => ReaderT Vars Parser a
 parseRawArgValue = choice
   [do
       ident <- lift $ MP.char '$' *> parseAnIdentifier
