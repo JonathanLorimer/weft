@@ -9,11 +9,17 @@ import           Data.Kind
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Text (Text)
+import           Data.Void
 import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Lens.Micro ((^?))
 import           Lens.Micro.Aeson
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
+import           Text.Megaparsec
+
+
+type Vars = M.Map String String
+type Parser = Parsec Void Text
 
 
 ------------------------------------------------------------------------------
