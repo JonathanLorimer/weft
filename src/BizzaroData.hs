@@ -17,32 +17,29 @@ import Weft.Generics.Schema
 
 
 data User' = User'
-  { user'Id         :: Arg "arg" (Maybe Int)
-                    -> ID
+  { user'Id         :: Arg "id" (Maybe Int) -> ID
   , user'Name       :: String
-  , user'BestFriend :: Arg "arg" (Maybe Int)
-                    -> User'
+  , user'BestFriend :: Arg "arg" (Maybe Int) -> User'
   , user'Friends    :: [User']
   , user'Fingers    :: [Finger']
   } deriving (Generic)
 
 data Account' = Account'
-  { account'Title :: Arg "title" (Maybe String)
-                  -> Int
+  { account'Title :: Arg "title" (Maybe String) -> Int
   } deriving (Generic)
 
 data Finger' = Finger'
-  { fingers :: Arg "input" (Maybe MyInputType')
+  { finger's :: Arg "input" (Maybe MyInputType')
             -> Arg "enum" (Maybe MyEnum')
             -> Account'
   } deriving (Generic)
 
 data MyInputType' = MyInputType'
-  { boots  :: Int
-  , hearts :: Bool
+  { boot's  :: Int
+  , heart's :: Bool
   } deriving stock (Generic, Eq, Ord, Show)
 
-data MyEnum' = One | Two deriving (Generic, Eq, Ord, Show)
+data MyEnum' = One' | Two' deriving (Generic, Eq, Ord, Show)
 
 foo :: Doc
 foo = gPprSchema $ magicSchema @MyInputType'

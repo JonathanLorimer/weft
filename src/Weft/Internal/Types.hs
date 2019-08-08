@@ -1,6 +1,6 @@
-{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase                 #-}
 
 module Weft.Internal.Types
   ( module Weft.Internal.Types
@@ -55,7 +55,12 @@ newtype ToMagic (ts :: TypeState) a = ToMagic
   { unMagic :: Magic ts a
   }
 
-type AsMagic (ts :: TypeState) (rec :: *) = HKD_ (ToMagic ts) rec
+deriving instance Eq (Magic ts a) => Eq (ToMagic ts a)
+deriving instance Semigroup (Magic ts a) => Semigroup (ToMagic ts a)
+deriving instance Monoid (Magic ts a) => Monoid (ToMagic ts a)
+deriving instance Arbitrary (Magic ts a) => Arbitrary (ToMagic ts a)
+
+type J (rec :: *) (ts :: TypeState) = HKD_ (ToMagic ts) rec
 
 
 ------------------------------------------------------------------------------

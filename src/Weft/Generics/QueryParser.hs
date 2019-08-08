@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DeriveFoldable        #-}
 {-# LANGUAGE DeriveFunctor         #-}
 {-# LANGUAGE DeriveTraversable     #-}
@@ -5,9 +6,11 @@
 
 module Weft.Generics.QueryParser
   ( HasQueryParser
+  , HasMagicQueryParser
   , Vars
   , Parser
   , queryParser
+  , magicQueryParser
   , anonymousQueryParser
   ) where
 
@@ -21,14 +24,14 @@ import           Data.Proxy
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Typeable
+import           Data.Void
 import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
-import           Weft.Generics.EmptyQuery
-import           Weft.Internal.Types
 import           Weft.Internal.ArgTypes
 import           Weft.Internal.ParserUtils
+import           Weft.Internal.Types
 
 
 
@@ -37,8 +40,16 @@ type HasQueryParser record =
      , GQueryParser (Rep (record 'Query))
      )
 
+type HasMagicQueryParser record =
+     ( Generic record
+     , GQueryParser (J record 'Query)
+     )
+
 queryParser :: HasQueryParser record => ReaderT Vars Parser (record 'Query)
 queryParser = lift skipCrap *> fmap to gQueryParser <* lift skipCrap
+
+magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (J record 'Query Void)
+magicQueryParser = lift skipCrap *> gQueryParser <* lift skipCrap
 
 
 anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)
@@ -66,9 +77,16 @@ instance ( GPermFieldsParser fq
       (fmap (:*: mempty) <$> gPermFieldsParser @fq)
       ++ (fmap (mempty :*:) <$> gPermFieldsParser @gq)
 
+#define INST(magic) (M1 S ('MetaSel ('Just name) _1 _2 _3) (K1 _4 (magic 'Query t)))
+
+instance GPermFieldsParser INST(Magic)
+      => GPermFieldsParser INST(ToMagic) where
+  gPermFieldsParser = fmap (M1 . K1 . ToMagic . unK1 . unM1) <$> gPermFieldsParser @INST(Magic)
+
+
 instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
       => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                               (K1 _4 (M.Map Text (Args args, ())))) where
+                                 (K1 _4 (M.Map Text (Args args, ())))) where
   gPermFieldsParser = pure . fmap (M1 . K1) $ do
     let name = symbolVal $ Proxy @name
     alias <- lift $ try $ parseIdentOrAlias name
@@ -76,6 +94,21 @@ instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
     args <- parseOptionalArgs @args
     pure $ M.singleton alias (args, ())
 
+instance ( KnownSymbol name
+         , HasQueryParser t
+         , ParseArgs args
+         , IsAllMaybe args
+         ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
+                                    (K1 _4 (M.Map Text (Args args, t 'Query)))) where
+  gPermFieldsParser = pure
+                    . fmap (M1 . K1)
+                    $ do
+    let name = symbolVal $ Proxy @name
+    alias <- lift $ try $ parseIdentOrAlias name
+    lift skipCrap
+    args <- parseOptionalArgs @args
+    z <- parens '{' '}' $ queryParser @t
+    pure $ M.singleton alias (args, z)
 
 
 parseIdentOrAlias :: String -> Parser Text
@@ -96,23 +129,6 @@ parseIdentOrAlias def = do
         skipCrap
         pure $ T.pack a
     ]
-
-instance ( KnownSymbol name
-         , HasQueryParser t
-         , HasEmptyQuery t
-         , ParseArgs args
-         , IsAllMaybe args
-         ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                                    (K1 _4 (M.Map Text (Args args, t 'Query)))) where
-  gPermFieldsParser = pure
-                    . fmap (M1 . K1)
-                    $ do
-    let name = symbolVal $ Proxy @name
-    alias <- lift $ try $ parseIdentOrAlias name
-    lift skipCrap
-    args <- parseOptionalArgs @args
-    z <- parens '{' '}' $ queryParser @t
-    pure $ M.singleton alias (args, z)
 
 
 ------------------------------------------------------------------------------
@@ -195,7 +211,7 @@ instance ( IsArgType t
 ------------------------------------------------------------------------------
 -- |
 foldManyOf
-    :: (Functor t, Foldable t, MonadPlus f, MonadParsec e s f, Monoid m)
+    :: (Foldable t, MonadPlus f, MonadParsec e s f, Monoid m)
     => t (f m)
     -> f m
 foldManyOf = fmap fold . many . asum

@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Weft.Generics.Schema
   ( HasSchema
   , schema
@@ -23,8 +25,8 @@ type HasSchema record =
   )
 
 type HasMagicSchema record =
-  ( GHasSchema (HKD_ (ToMagic 'Data) record)
-               (HKD_ (ToMagic 'Schema) record)
+  ( GHasSchema (J record 'Data)
+               (J record 'Schema)
   , Generic (record)
   )
 
@@ -42,8 +44,8 @@ schema = to $ gSchema @(Rep (record 'Data))
 magicSchema
     :: forall record
      . HasMagicSchema record
-    => AsMagic 'Schema record Void
-magicSchema = gSchema @(AsMagic 'Data record)
+    => J record 'Schema Void
+magicSchema = gSchema @(J record 'Data)
 
 ------------------------------------------------------------------------------
 -- |
@@ -58,11 +60,20 @@ instance {-# OVERLAPPING #-} (KnownSymbol a, HasGqlType t, ReifyArgs args)
                     (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Field args))) where
     gSchema = M1 $ K1 $ Field (reifyNameType @a @t) (reifyArgs @args)
 
+
+#define INST(magic, ts) (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (magic 'ts t)))
 instance {-# OVERLAPPING #-}
-         GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Data t))) (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Schema t)))
-      => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (ToMagic 'Data t)))
-                    (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (ToMagic 'Schema t))) where
-    gSchema = M1 $ K1 $ ToMagic $ unK1 $ unM1 $ gSchema @(M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Data t))) @(M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Schema t)))
+         GHasSchema INST(Magic, Data)
+                    INST(Magic, Schema)
+      => GHasSchema INST(ToMagic, Data)
+                    INST(ToMagic, Schema) where
+    gSchema = M1
+            . K1
+            . ToMagic
+            . unK1
+            . unM1
+            $ gSchema @INST(Magic, Data)
+                      @INST(Magic, Schema)
 
 instance (GHasSchema fi fo)
       => GHasSchema (M1 x y fi)

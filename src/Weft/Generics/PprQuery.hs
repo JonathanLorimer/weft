@@ -1,13 +1,15 @@
-{-# LANGUAGE PartialTypeSignatures #-}
-{-# LANGUAGE ViewPatterns          #-}
+{-# LANGUAGE CPP          #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Weft.Generics.PprQuery
   ( HasPprQuery
+  , HasMagicPprQuery
   , pprQuery
+  , magicPprQuery
   , pprArg
-  , gPprQuery
   ) where
 
+import Data.Void
 import           Data.Functor ((<&>))
 import qualified Data.Map as M
 import           Data.Proxy
@@ -28,11 +30,21 @@ type HasPprQuery record =
   , GPprQuery (Rep (record 'Query))
   )
 
+type HasMagicPprQuery record =
+  ( Generic record
+  , GPprQuery (J record 'Query)
+  )
+
 
 ------------------------------------------------------------------------------
 -- |
 pprQuery :: HasPprQuery record => record 'Query -> Doc
 pprQuery q = gPprQuery $ from q
+
+------------------------------------------------------------------------------
+-- |
+magicPprQuery :: HasMagicPprQuery record => J record 'Query Void -> Doc
+magicPprQuery = gPprQuery
 
 
 ------------------------------------------------------------------------------
@@ -48,9 +60,10 @@ instance (GPprQuery f, GPprQuery g) => GPprQuery (f :*: g) where
 instance {-# OVERLAPPABLE #-} GPprQuery f => GPprQuery (M1 _1 _2 f) where
   gPprQuery (M1 f) = gPprQuery f
 
-instance ( GPprQuery (M1 S ('MetaSel ('Just name) b c d) (K1 _2 (Magic 'Query t)))
-         ) => GPprQuery (M1 S ('MetaSel ('Just name) b c d) (K1 _2 (ToMagic 'Query t))) where
-    gPprQuery (M1 (K1 (ToMagic t))) = gPprQuery @(M1 S ('MetaSel ('Just name) b c d) (K1 _2 (Magic 'Query t))) $ M1 $ K1 t
+#define INST(magic) (M1 S ('MetaSel ('Just name) b c d) (K1 _2 (magic 'Query t)))
+instance GPprQuery INST(Magic)
+         => GPprQuery INST(ToMagic) where
+    gPprQuery (M1 (K1 (ToMagic t))) = gPprQuery @INST(Magic) $ M1 $ K1 t
 
 instance ( KnownSymbol name
          , PprEachArg args
