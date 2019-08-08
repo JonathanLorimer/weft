@@ -38,12 +38,12 @@ type family Magic (ts :: TypeState) a where
   Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)     -- RV3
   Magic 'Resolver a                  = IO a                                       -- RV4
 
-  Magic 'Data     (Arg n t -> a)     = Magic 'Data a                              -- D1
+  Magic 'Data     (Method args a)    = Magic 'Data a                              -- D1
   Magic 'Data     a                  = a                                          -- D2
 
   Magic 'Query    t                  = M.Map Text (MagicQueryResult t (UnravelArgs t))
 
-  Magic 'Response (Arg n t -> a)     = Magic 'Response a
+  Magic 'Response (Method args a)    = Magic 'Response a
   Magic 'Response [record 'Response] = M.Map Text [record 'Response]                   -- RP1
   Magic 'Response (record 'Response) = M.Map Text (record 'Response)                   -- RP2
   Magic 'Response scalar             = M.Map Text scalar                               -- RP3
@@ -55,13 +55,15 @@ newtype ToMagic (ts :: TypeState) (a :: *) = ToMagic
   { unMagic :: Magic ts a
   }
 
-deriving instance Eq (Magic ts a) => Eq (ToMagic ts a)
+deriving instance Eq (Magic ts a)        => Eq (ToMagic ts a)
 deriving instance Semigroup (Magic ts a) => Semigroup (ToMagic ts a)
-deriving instance Monoid (Magic ts a) => Monoid (ToMagic ts a)
+deriving instance Monoid (Magic ts a)    => Monoid (ToMagic ts a)
 deriving instance Arbitrary (Magic ts a) => Arbitrary (ToMagic ts a)
 
-type J (rec :: *) (ts :: TypeState) = HKD_ (ToMagic ts) rec
+type J  (rec :: *) (ts :: TypeState) = HKD_ (ToMagic ts) rec
 type J' (rec :: *) (ts :: TypeState) = J rec ts Void
+
+data Method (args :: [(Symbol, *)]) (res :: *) = Method res
 
 
 ------------------------------------------------------------------------------
@@ -70,8 +72,8 @@ type family ConsFirst (a :: k1) (b :: ([k1], k2)) :: ([k1], k2) where
   ConsFirst a '(b, c) = '(a ': b, c)
 
 type family UnravelArgs (t :: *) :: ([(Symbol, *)], *) where
-  UnravelArgs (Arg t n -> a) = ConsFirst '(t, n) (UnravelArgs a)
-  UnravelArgs a        = '( '[], a)
+  UnravelArgs (Method args a) = '(args, a)
+  UnravelArgs a               = '( '[], a)
 
 type family MagicQueryResult (use :: *) (u :: ([(Symbol, *)], *)) :: * where
   MagicQueryResult _ '(ts, NonEmpty (record 'Query)) = (Args ts, record 'Query)

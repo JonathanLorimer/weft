@@ -10,21 +10,21 @@ import Weft.Types
 
 
 data User = User
-  { userId         :: Arg "arg" (Maybe Int) -> ID
+  { userId         :: Method '[ '("arg", Maybe Int) ] ID
   , userName       :: String
-  , userBestFriend :: Arg "arg" (Maybe Int) -> User
+  , userBestFriend :: Method '[ '("arg", Maybe Int) ] User
   , userFriends    :: [User]
   , userFingers    :: [Finger]
   } deriving (Generic)
 
 data Account = Account
-  { accountTitle :: Arg "title" (Maybe String) -> Int
+  { accountTitle :: Method '[ '("title", Maybe String) ] Int
   } deriving (Generic)
 
 data Finger = Finger
-  { fingers :: Arg "input" (Maybe MyInputType)
-            -> Arg "enum" (Maybe MyEnum)
-            -> Account
+  { fingers :: Method '[ '("input", Maybe MyInputType)
+                       , '("enum", Maybe MyEnum)
+                       ] Account
   } deriving (Generic)
 
 data MyInputType = MyInputType
@@ -43,18 +43,18 @@ instance Arbitrary MyEnum where
 
 jonathan :: User
 jonathan = User
-  { userId = const $ ID "1"
+  { userId = Method $ ID "1"
   , userName =  "Jonathan"
-  , userBestFriend = const sandy
+  , userBestFriend = Method sandy
   , userFriends = []
   , userFingers = []
   }
 
 sandy :: User
 sandy = User
-  { userId = const $ ID "2"
+  { userId = Method $ ID "2"
   , userName = "Sandy"
-  , userBestFriend = const jonathan
+  , userBestFriend = Method jonathan
   , userFriends = []
   , userFingers = []
   }
