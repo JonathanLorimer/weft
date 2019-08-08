@@ -33,15 +33,15 @@ combine :: Value -> Value -> Value
 combine (Object a) (Object b) = Object $ a <> b
 combine _ _                   = error "combine failed in JSONResponse, this should not have happened"
 
-instance {-# OVERLAPPING #-} (HasJSONResponse record, Typeable record) 
+instance {-# OVERLAPPING #-} (HasJSONResponse record, Typeable record)
       => GJsonResponse (K1 x (M.Map T.Text [record 'Response])) where
     gJsonResponse (K1 r) = toJSON $ fmap jsonResponse <$> r
 
-instance {-# OVERLAPPING #-} (HasJSONResponse record, Typeable record) 
+instance {-# OVERLAPPING #-} (HasJSONResponse record, Typeable record)
       => GJsonResponse (K1 x (M.Map T.Text (record 'Response))) where
     gJsonResponse (K1 r) = toJSON $ jsonResponse <$> r
 
-instance {-# OVERLAPPING #-} (Typeable record, ToJSON record) 
+instance {-# OVERLAPPING #-} (Typeable record, ToJSON record)
       => GJsonResponse (K1 x (M.Map T.Text record)) where
     gJsonResponse (K1 r) = toJSON r
 
