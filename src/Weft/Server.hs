@@ -29,14 +29,14 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.Map as M
 
 
-parseReqBody :: (Wefty query)
+parseReqBody :: (Wefty q, Wefty m)
              => ClientRequest
-             -> Either String ((Gql query m s) 'Query)
+             -> Either String ((Gql q m s) 'Query)
 parseReqBody (ClientRequest q v _)
   = first errorBundlePretty
   . parse (runReaderT queryParser v) "<server>" $ q
 
-data ClientRequest = 
+data ClientRequest =
   ClientRequest { queryContent  :: Text
                 , variables     :: Vars
                 , operationName :: Maybe Text
@@ -64,7 +64,9 @@ note :: String -> Maybe a -> Either String a
 note s Nothing = Left s
 note _ (Just x) = Right x
 
-app :: (ToJSON (q 'Response), Wefty q) => Gql q m s 'Resolver -> Application
+app :: (Wefty q, Wefty m)
+    => Gql q m s 'Resolver
+    -> Application
 app resolver req f = do
 #if MIN_VERSION_wai(3,2,2)
   rb <- getRequestBodyChunk req
@@ -80,18 +82,27 @@ app resolver req f = do
             f $ successResponse res
           Left e  -> f $ errorResponse $ BL.fromStrict $ C8.pack e
 
-successResponse :: HasJSONResponse record
-                => record 'Response
+successResponse :: (HasJSONResponse q, HasJSONResponse m)
+                => Gql m q s 'Response
                 -> Response
 successResponse =
   responseLBS status200 [(hContentType, "application/json")]
   . encode
-  . jsonResponse
+  . jsonify
+
+jsonify :: (HasJSONResponse q, HasJSONResponse m)
+        => Gql q m s 'Response
+        -> Value
+jsonify (Gql q m) = object $ f $ qj <> mj
+  where
+    f = fmap (first $ const "data") . M.toList
+    qj = jsonResponse <$> q
+    mj = jsonResponse <$> m
 
 errorResponse :: BL.ByteString -> Response
 errorResponse = responseLBS status500 [(hContentType, "application/json")]
 
-server :: (Wefty q)
+server :: (Wefty q, Wefty m)
        => [Settings -> Settings]
        -> Gql q m s 'Resolver
        -> IO ()

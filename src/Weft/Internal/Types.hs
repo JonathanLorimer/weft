@@ -9,12 +9,10 @@ import           Data.Kind
 import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Text (Text)
 import           Data.Void
+import           Data.Text (Text)
 import           GHC.Generics
 import           GHC.TypeLits
-import           Lens.Micro ((^?))
-import           Lens.Micro.Aeson
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
 import           Text.Megaparsec
 
@@ -71,6 +69,7 @@ type family MagicQueryInputOutput (t :: *) (use :: *) :: * where
   MagicQueryInputOutput Bool    _ = ()
   MagicQueryInputOutput String  _ = ()
   MagicQueryInputOutput ID      _ = ()
+  MagicQueryInputOutput ()      _ = ()
   MagicQueryInputOutput a     use = MagicQueryFromRep a use (Rep a)
 
 type family MagicQueryFromRep (t :: *) (use :: *) (rep :: * -> *) :: * where
@@ -152,13 +151,19 @@ instance {-# OVERLAPPING #-}
            , fmap Just $ (,) <$> arbitrary <*> arbitrary
            ] `suchThat` maybe (isJust $ isAllMaybe @args) (const True)
 
+data None (ts :: TypeState) =
+  None { dontTouch :: Magic ts () }
+    deriving (Generic)
+
+deriving instance AllHave Eq (None ts) => Eq (None ts)
+deriving instance AllHave Show (None ts) => Show (None ts)
 
 data Gql (q :: TypeState -> *)
          (m :: TypeState -> *)
          (s :: TypeState -> *)
          (ts :: TypeState) = Gql
   { query        :: Magic ts (q ts)
-  -- , mutation     :: m ts
+  , mutation     :: Magic ts (m ts)
   -- , subscription :: s ts
   }
   deriving Generic
@@ -174,17 +179,6 @@ type instance GFields c (K1 i a)   = c a
 
 deriving instance AllHave Show (Gql q m s ts) => Show (Gql q m s ts)
 deriving instance AllHave Eq (Gql q m s ts) => Eq (Gql q m s ts)
-instance ToJSON (q 'Response) => ToJSON (Gql q m s 'Response) where
-  toJSON (Gql q) = object ["data" .= (toJSON q ^? key "query") ]
-
-
-newtype NoNothingJSON a = NoNothingJSON a deriving Generic
-
-instance (Generic a, ToJSON a, GToJSON Zero (Rep a)) => ToJSON (NoNothingJSON a) where
-  toJSON (NoNothingJSON a)  = genericToJSON (defaultOptions { omitNothingFields = True }) a
-
-
-
 
 ------------------------------------------------------------------------------
 -- |

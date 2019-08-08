@@ -1,12 +1,12 @@
-module Weft.Generics.JSONResponse (
-  HasJSONResponse,
-  jsonResponse
-) where
+module Weft.Generics.JSONResponse
+  ( HasJSONResponse
+  , jsonResponse
+  , combine
+  ) where
 
-import Weft.Internal.Types
+import           Weft.Internal.Types
 import           GHC.Generics
 import           Data.Aeson
-import Data.Typeable
 import qualified Data.Text as T
 import qualified Data.Map as M
 
@@ -33,15 +33,15 @@ combine :: Value -> Value -> Value
 combine (Object a) (Object b) = Object $ a <> b
 combine _ _                   = error "combine failed in JSONResponse, this should not have happened"
 
-instance {-# OVERLAPPING #-} (HasJSONResponse record, Typeable record)
+instance {-# OVERLAPPING #-} (HasJSONResponse record)
       => GJsonResponse (K1 x (M.Map T.Text [record 'Response])) where
     gJsonResponse (K1 r) = toJSON $ fmap jsonResponse <$> r
 
-instance {-# OVERLAPPING #-} (HasJSONResponse record, Typeable record)
+instance {-# OVERLAPPING #-} (HasJSONResponse record)
       => GJsonResponse (K1 x (M.Map T.Text (record 'Response))) where
     gJsonResponse (K1 r) = toJSON $ jsonResponse <$> r
 
-instance {-# OVERLAPPING #-} (Typeable record, ToJSON record)
+instance {-# OVERLAPPING #-} (ToJSON record)
       => GJsonResponse (K1 x (M.Map T.Text record)) where
     gJsonResponse (K1 r) = toJSON r
 

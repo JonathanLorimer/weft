@@ -8,9 +8,9 @@ module Weft.Types
   , module Weft.Generics.RecordGen
   , Generic
   , Gql (..)
-  , NoNothingJSON (..)
   , AllHave
   , ID (..)
+  , None (..)
   ) where
 
 import GHC.Generics
@@ -25,7 +25,6 @@ import Weft.Generics.Resolve
 import Weft.Generics.Schema
 import Weft.Generics.JSONResponse
 import Weft.Internal.Types hiding (query)
-import Data.Aeson
 
 type Wefty record =
   ( HasAllTypes record
@@ -37,6 +36,5 @@ type Wefty record =
   , HasResolve record
   , HasSchema record
   , HasJSONResponse record
-  , ToJSON (record 'Response)
   )
 

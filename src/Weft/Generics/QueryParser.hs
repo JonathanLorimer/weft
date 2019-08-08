@@ -44,7 +44,9 @@ queryParser = lift skipCrap *> fmap to gQueryParser <* lift skipCrap
 anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)
 anonymousQueryParser = do
   r <- parens '{' '}' queryParser
-  pure $ Gql $ M.singleton "query" (ANil, r)
+  pure $ Gql { query    = M.singleton "query" (ANil, r)
+             , mutation = M.empty
+             }
 
 
 ------------------------------------------------------------------------------

@@ -68,7 +68,9 @@ executables:
   example:
     main: Main.hs
     source-dirs: example
-    ghc-options: -Wall
+    ghc-options:
+      - -Wall
+      - -Wredundant-constraints
     dependencies:
       - weft
 
