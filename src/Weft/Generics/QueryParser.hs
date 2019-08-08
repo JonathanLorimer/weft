@@ -74,9 +74,20 @@ instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
     alias <- lift $ try $ parseIdentOrAlias name
     lift skipCrap
     args <- parseOptionalArgs @args
-    pure $ M.singleton alias (args, ())
+    include <- optional parseSkipInclude
+    case include of
+      Just False -> pure $ M.empty
+      _          -> pure $ M.singleton alias (args, ())
 
+parseSkipInclude :: ReaderT Vars Parser Bool
+parseSkipInclude = parseDirective "include" id <|> parseDirective "skip" not
 
+parseDirective :: String -> (Bool -> Bool) -> ReaderT Vars Parser Bool
+parseDirective s f = try $ do
+  _     <- char '@'
+  _     <- string $ T.pack s
+  bool  <- parens '(' ')' $ parseAnArg "if"
+  pure $ f bool
 
 parseIdentOrAlias :: String -> Parser Text
 parseIdentOrAlias def = do
@@ -111,8 +122,12 @@ instance ( KnownSymbol name
     alias <- lift $ try $ parseIdentOrAlias name
     lift skipCrap
     args <- parseOptionalArgs @args
+    include <- optional parseSkipInclude
     z <- parens '{' '}' $ queryParser @t
-    pure $ M.singleton alias (args, z)
+    case include of
+      Just False -> do pure $ M.empty
+      _          -> pure $ M.singleton alias (args, z)
+
 
 
 ------------------------------------------------------------------------------

@@ -159,3 +159,23 @@ spec = do
         `shouldBe` Right (Account (M.singleton "accountTitle" (Arg (Just "# no problem") :@@ ANil, ()))
                          )
 
+  describe "directives" $ do
+    it "should allow user to ignore fields using directives" $ do
+      let userQ = User M.empty
+                       (M.singleton "userName" (ANil, ()))
+                       M.empty
+                       M.empty
+                       M.empty
+      parseAllOnly (flip runReaderT mempty $ queryParser @User) (T.pack $ unlines
+        [ "userId @include(if: false)"
+        , "userName @include(if: true)"
+        , "userBestFriend @skip(if: true) { userName }"
+        , "userFriends @skip(if: false) { userName }"
+        ])
+        `shouldBe` Right (User M.empty -- userId
+                               (M.singleton "userName" (ANil, ()))
+                               M.empty -- bestFriend
+                               (M.singleton "userFriends" (ANil, userQ))
+                               M.empty
+                         )
+
