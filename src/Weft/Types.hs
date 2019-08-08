@@ -8,7 +8,6 @@ module Weft.Types
   , module Weft.Generics.RecordGen
   , Generic
   , Gql (..)
-  , NoNothingJSON (..)
   , AllHave
   , ID (..)
   , None (..)

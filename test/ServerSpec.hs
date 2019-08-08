@@ -5,7 +5,9 @@
 {-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE DerivingStrategies         #-}
 
-module ServerSpec where
+module ServerSpec (
+  spec
+) where
 
 import           Data.Aeson
 import           Data.ByteString.Lazy as BL
@@ -16,7 +18,6 @@ import           Weft.Generics.Hydrate
 import           Weft.Generics.JSONResponse
 import           Weft.Generics.Resolve
 import           Weft.Internal.Types
-import           Weft.Server
 
 ------------------------------------------------------------------------------------------
 -- | Mock Resolvers
@@ -53,54 +54,16 @@ gqlQueryResolver =
 
 gqlMutationResolver :: Gql None GqlMutation s 'Resolver
 gqlMutationResolver =
-  Gql (resolve noneResolver) (resolve mutationResolver) 
+  Gql (resolve noneResolver) (resolve mutationResolver)
 
 ------------------------------------------------------------------------------------------
 -- | Mock Queries
 
 
 -- | getAllUsers Mocks
-getAllUsersTestRequest :: ClientRequest
-getAllUsersTestRequest = ClientRequest
-  "  query {             \
-  \    getAllUsers {     \
-  \      userId          \
-  \      userName        \
-  \      userBestFriend {\
-  \        userId        \
-  \        userName      \
-  \      }               \
-  \    }                 \
-  \  }                   \
-  \"
-  mempty
-  Nothing
-
-mutateAllUsersTestRequest :: ClientRequest
-mutateAllUsersTestRequest = ClientRequest
-  "  mutation {          \
-  \    mutateAllUsers {  \
-  \      userId          \
-  \      userName        \
-  \      userBestFriend {\
-  \        userId        \
-  \        userName      \
-  \      }               \
-  \    }                 \
-  \  }                   \
-  \"
-  mempty
-  Nothing
-
-getAllUsersTestQuery :: Either String (Gql GqlQuery None s 'Query)
-getAllUsersTestQuery = Right (Gql (M.singleton "query" (ANil, gqlGetAllUsersQ)) M.empty )
-
 getAllUsersTestJsonQuery :: Gql GqlQuery None s 'Query
 getAllUsersTestJsonQuery =
   Gql (M.singleton "query" (ANil, gqlGetAllUsersQ)) M.empty
-
-getAllUsersTestMutation :: Either String (Gql None GqlMutation s 'Query)
-getAllUsersTestMutation = Right (Gql M.empty (M.singleton "mutation" (ANil, gqlGetAllUsersM)) )
 
 getAllUsersTestJsonMutation :: Gql None GqlMutation s 'Query
 getAllUsersTestJsonMutation =
@@ -151,45 +114,10 @@ mutateAllUsersTestJson = "{\"mutation\":{\"mutateAllUsers\":[{\"userName\":\"San
 
 
 -- | getUser Mocks
-getUserTestRequest :: ClientRequest
-getUserTestRequest = ClientRequest
-  "  query {              \
-  \    getUser(id: 1) {   \
-  \      userId           \
-  \      userName         \
-  \      userBestFriend { \
-  \        userName       \
-  \      }                \
-  \    }                  \
-  \ }                     \
-  \"
-  mempty
-  Nothing
-
-mutateUserTestRequest :: ClientRequest
-mutateUserTestRequest = ClientRequest
-  "  mutation {              \
-  \    mutateUser(id: 1) {   \
-  \      userId              \
-  \      userName            \
-  \      userBestFriend {    \
-  \        userName          \
-  \      }                   \
-  \    }                     \
-  \ }                        \
-  \"
-  mempty
-  Nothing
-
-getUserTestQuery :: Either String (Gql GqlQuery None s 'Query)
-getUserTestQuery = Right (Gql (M.singleton "query" (ANil, gqlGetUserQ)) M.empty)
 
 getUserTestJsonQuery :: Gql GqlQuery None s 'Query
 getUserTestJsonQuery =
   Gql (M.singleton "query" (ANil, gqlGetUserQ)) M.empty
-
-getUserTestMutation :: Either String (Gql None GqlMutation s 'Query)
-getUserTestMutation = Right (Gql M.empty (M.singleton "mutation" (ANil, gqlGetUserM)))
 
 getUserTestJsonMutation :: Gql None GqlMutation s 'Query
 getUserTestJsonMutation =
@@ -243,12 +171,6 @@ mutateUserTestJson =
 spec :: Spec
 spec = describe "server" $ do
   describe "Query" $ do
-    describe "parseReqBody" $ do
-      it "should parse query with no args (getUser)" $
-        parseReqBody getAllUsersTestRequest `shouldBe` getAllUsersTestQuery
-      it "should parse query with args (getAllUsers)" $
-        parseReqBody getUserTestRequest `shouldBe` getUserTestQuery
-
     describe "JSON encoding responses" $ do
       it "should encode a response for getUser as JSON" $ do
         response <- resolve gqlQueryResolver $ getUserTestJsonQuery
@@ -256,14 +178,8 @@ spec = describe "server" $ do
       it "should encode a response for getAllUsers as JSON" $ do
         response <- resolve gqlQueryResolver $ getAllUsersTestJsonQuery
         (encode $ jsonResponse response) `shouldBe` getAllUsersTestJson
-  
-  describe "Mutation" $ do
-    describe "parseReqBody" $ do
-      it "should parse mutation with no args (getUser)" $
-        parseReqBody mutateAllUsersTestRequest `shouldBe` getAllUsersTestMutation
-      it "should parse mutation with args (getAllUsers)" $
-        parseReqBody mutateUserTestRequest `shouldBe` getUserTestMutation
 
+  describe "Mutation" $ do
     describe "JSON encoding responses" $ do
       it "should encode a response for mutateUser as JSON" $ do
         response <- resolve gqlMutationResolver $ getUserTestJsonMutation

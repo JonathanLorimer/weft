@@ -36,7 +36,7 @@ parseReqBody (ClientRequest q v _)
   = first errorBundlePretty
   . parse (runReaderT queryParser v) "<server>" $ q
 
-data ClientRequest = 
+data ClientRequest =
   ClientRequest { queryContent  :: Text
                 , variables     :: Vars
                 , operationName :: Maybe Text
@@ -64,8 +64,8 @@ note :: String -> Maybe a -> Either String a
 note s Nothing = Left s
 note _ (Just x) = Right x
 
-app :: (Wefty q, Wefty m) 
-    => Gql q m s 'Resolver 
+app :: (Wefty q, Wefty m)
+    => Gql q m s 'Resolver
     -> Application
 app resolver req f = do
 #if MIN_VERSION_wai(3,2,2)
@@ -91,7 +91,7 @@ successResponse =
   . jsonify
 
 jsonify :: (HasJSONResponse q, HasJSONResponse m)
-        => Gql q m s 'Response 
+        => Gql q m s 'Response
         -> Value
 jsonify (Gql q m) = object $ f $ qj <> mj
   where
