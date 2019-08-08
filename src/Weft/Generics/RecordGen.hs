@@ -45,22 +45,25 @@ instance (GRecordGen r1, GRecordGen r2) => GRecordGen (r1 :*: r2) where
 instance {-# OVERLAPPING #-} GRecordGen (K1 _1 (Magic t ts)) => GRecordGen (K1 _1 (ToMagic t ts)) where
   gRecordGen = fmap (K1 . ToMagic . unK1) $ gRecordGen @(K1 _1 (Magic t ts))
 
-instance Arbitrary a => GRecordGen (K1 _1 a) where
+instance (GRecordGen (M1 _2 _3 _4)) => GRecordGen (K1 _1 (M1 _2 _3 _4 Void)) where
+  gRecordGen = K1 <$> gRecordGen
+
+instance {-# OVERLAPPABLE #-} Arbitrary a => GRecordGen (K1 _1 a) where
   gRecordGen = K1 <$> scale (`div` 5) arbitrary
 
-instance {-# OVERLAPPING #-} GRecordGen (K1 _1 Text) where
+instance GRecordGen (K1 _1 Text) where
   gRecordGen = K1 <$> arbitrary @Text
 
-instance {-# OVERLAPPING #-} HasRecordGen r ts => GRecordGen (K1 _1 (r ts)) where
+instance HasRecordGen r ts => GRecordGen (K1 _1 (r ts)) where
   gRecordGen = K1 <$> scale (subtract 1) recordGen
 
-instance {-# OVERLAPPING #-} HasRecordGen r ts => GRecordGen (K1 _1 (Maybe (r ts))) where
+instance HasRecordGen r ts => GRecordGen (K1 _1 (Maybe (r ts))) where
   gRecordGen = fmap K1 . sized $ \n ->
     case n <= 0 of
       True  -> pure Nothing
       False -> Just <$> resize (n - 1) recordGen
 
-instance {-# OVERLAPPING #-} HasRecordGen r ts => GRecordGen (K1 _1 (M.Map Text (r ts))) where
+instance HasRecordGen r ts => GRecordGen (K1 _1 (M.Map Text (r ts))) where
   gRecordGen = fmap K1 . sized $ \n ->
     case n <= 0 of
       True  -> pure M.empty

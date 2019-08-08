@@ -60,39 +60,36 @@ instance (GPprQuery f, GPprQuery g) => GPprQuery (f :*: g) where
 instance {-# OVERLAPPABLE #-} GPprQuery f => GPprQuery (M1 _1 _2 f) where
   gPprQuery (M1 f) = gPprQuery f
 
-#define INST(magic) (M1 S ('MetaSel ('Just name) b c d) (K1 _2 (magic 'Query t)))
-instance GPprQuery INST(Magic)
-         => GPprQuery INST(ToMagic) where
-    gPprQuery (M1 (K1 (ToMagic t))) = gPprQuery @INST(Magic) $ M1 $ K1 t
+class GPprTerm (t :: *) where
+  gPprTerm :: String -> t -> Doc
 
-instance ( KnownSymbol name
-         , PprEachArg args
+instance ( PprEachArg args
          , HasPprQuery record
-         ) => GPprQuery (M1 S ('MetaSel ('Just name) b c d)
-                              (K1 x (M.Map Text (Args args, record 'Query)))) where
-  gPprQuery (M1 (K1 m)) = vcat $ M.toList m <&> \(alias, (args, rec)) ->
-    pprAliasIfDifferent name alias $
-      sep
-        [ text name <> pprArgs args
-        , char '{'
-        , nest 4 $ pprQuery rec
-        , char '}'
-        ]
-    where
-      name = symbolVal $ Proxy @name
+         ) => GPprTerm (M.Map Text (Args args, record 'Query)) where
+  gPprTerm name m =
+    vcat $ M.toList m <&> \(alias, (args, rec)) ->
+      pprAliasIfDifferent name alias $
+        sep
+          [ text name <> pprArgs args
+          , char '{'
+          , nest 4 $ pprQuery rec
+          , char '}'
+          ]
+
+instance PprEachArg args => GPprTerm (M.Map Text (Args args, ())) where
+  gPprTerm name m =
+    vcat $ M.toList m <&> \(alias, (args, ())) ->
+      pprAliasIfDifferent name alias $
+        mconcat
+          [ text name
+          , pprArgs args
+          ]
 
 instance ( KnownSymbol name
-         , PprEachArg args
+         , GPprTerm t
          ) => GPprQuery (M1 S ('MetaSel ('Just name) b c d)
-                              (K1 x (M.Map Text (Args args, ())))) where
-  gPprQuery (M1 (K1 m)) = vcat $ M.toList m <&> \(alias, (args, ())) ->
-    pprAliasIfDifferent name alias $
-      mconcat
-        [ text name
-        , pprArgs args
-        ]
-    where
-      name = symbolVal $ Proxy @name
+                              (K1 x t)) where
+  gPprQuery (M1 (K1 m)) = gPprTerm (symbolVal $ Proxy @name) m
 
 
 pprAliasIfDifferent :: String -> Text -> Doc -> Doc

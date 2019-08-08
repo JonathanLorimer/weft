@@ -39,7 +39,13 @@ data MyInputType' = MyInputType'
   , heart's :: Bool
   } deriving stock (Generic, Eq, Ord, Show)
 
+instance Arbitrary MyInputType' where
+  arbitrary = MyInputType' <$> arbitrary <*> arbitrary
+
 data MyEnum' = One' | Two' deriving (Generic, Eq, Ord, Show)
+
+instance Arbitrary MyEnum' where
+  arbitrary = oneof [pure One', pure Two']
 
 foo :: Doc
 foo = gPprSchema $ magicSchema @MyInputType'
