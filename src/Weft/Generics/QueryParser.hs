@@ -74,10 +74,20 @@ instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
     alias <- lift $ try $ parseIdentOrAlias name
     lift skipCrap
     args <- parseOptionalArgs @args
+    directiveCombinator alias args $ pure ()
+
+-- TODO(jonathan): can probably abstract logic between GPermFieldsParser instances
+
+directiveCombinator :: k
+                    -> a
+                    -> ReaderT Vars Parser b
+                    -> ReaderT Vars Parser (M.Map k (a, b))
+directiveCombinator alias args p = do
     include <- optional parseSkipInclude
+    z <- p
     case include of
       Just False -> pure $ M.empty
-      _          -> pure $ M.singleton alias (args, ())
+      _          -> pure $ M.singleton alias (args, z)
 
 parseSkipInclude :: ReaderT Vars Parser Bool
 parseSkipInclude = parseDirective "include" id <|> parseDirective "skip" not
@@ -122,11 +132,7 @@ instance ( KnownSymbol name
     alias <- lift $ try $ parseIdentOrAlias name
     lift skipCrap
     args <- parseOptionalArgs @args
-    include <- optional parseSkipInclude
-    z <- parens '{' '}' $ queryParser @t
-    case include of
-      Just False -> do pure $ M.empty
-      _          -> pure $ M.singleton alias (args, z)
+    directiveCombinator alias args $ parens '{' '}' $ queryParser @t
 
 
 
