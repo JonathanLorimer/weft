@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a500e570579567fec239f0494030759ea493e2dd5283be4c931a6dea0543f3a0
+-- hash: f3d62b3f2774ccff192d38a046bd9a499780543e0db67d84be050983a10ad87c
 
 name:           weft
 version:        0.1.0.0
@@ -64,6 +64,7 @@ library
     , mtl
     , parser-combinators
     , pretty
+    , superrecord
     , text
     , unordered-containers
     , wai
@@ -93,6 +94,7 @@ executable example
     , mtl
     , parser-combinators
     , pretty
+    , superrecord
     , text
     , unordered-containers
     , wai
@@ -132,6 +134,7 @@ test-suite test
     , mtl
     , parser-combinators
     , pretty
+    , superrecord
     , text
     , unordered-containers
     , wai

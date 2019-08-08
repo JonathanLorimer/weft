@@ -14,6 +14,7 @@ import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Lens.Micro ((^?))
 import           Lens.Micro.Aeson
+import           SuperRecord.Variant
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
 import           Text.Megaparsec
 
@@ -60,6 +61,7 @@ type family UnravelArgs (t :: *) :: ([(Symbol, *)], *) where
 type family MagicQueryResult (u :: ([(Symbol, *)], *)) :: * where
   MagicQueryResult '(ts, [record 'Query]) = (Args ts, record 'Query)
   MagicQueryResult '(ts, record 'Query)   = (Args ts, record 'Query)
+  MagicQueryResult '(ts, Variant ts)      = (Args ts, VariantMatch  ts)
   MagicQueryResult '(ts, a)               = (Args ts, ())
 
 type family Fst (u :: (k1, k2)) :: k1 where
