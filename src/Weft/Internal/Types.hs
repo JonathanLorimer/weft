@@ -4,7 +4,7 @@
 
 module Weft.Internal.Types
   ( module Weft.Internal.Types
-  , HKD_
+  , HKD (..)
   ) where
 
 import           Data.Aeson
