@@ -1,9 +1,10 @@
 module Weft.Generics.Schema
   ( HasSchema
   , schema
-  , gSchema
+  , magicSchema
   ) where
 
+import Data.Void
 import Data.List.NonEmpty
 import Data.Proxy
 import Data.Typeable
@@ -21,6 +22,12 @@ type HasSchema record =
   , Generic (record 'Schema)
   )
 
+type HasMagicSchema record =
+  ( GHasSchema (HKD_ (ToMagic 'Data) record)
+               (HKD_ (ToMagic 'Schema) record)
+  , Generic (record)
+  )
+
 
 --------------------------------------------------------------------------------
 -- |
@@ -30,6 +37,13 @@ schema
     => record 'Schema
 schema = to $ gSchema @(Rep (record 'Data))
 
+--------------------------------------------------------------------------------
+-- |
+magicSchema
+    :: forall record
+     . HasMagicSchema record
+    => AsMagic 'Schema record Void
+magicSchema = gSchema @(AsMagic 'Data record)
 
 ------------------------------------------------------------------------------
 -- |

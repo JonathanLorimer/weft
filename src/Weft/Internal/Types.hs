@@ -2,7 +2,10 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Weft.Internal.Types where
+module Weft.Internal.Types
+  ( module Weft.Internal.Types
+  , HKD_
+  ) where
 
 import           Data.Aeson
 import           Data.Kind
@@ -15,6 +18,7 @@ import           GHC.Generics
 import           GHC.TypeLits
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
 import           Text.Megaparsec
+import Data.Generic.HKD
 
 
 type Vars = M.Map String String
@@ -50,6 +54,8 @@ type family Magic (ts :: TypeState) a where
 newtype ToMagic (ts :: TypeState) a = ToMagic
   { unMagic :: Magic ts a
   }
+
+type AsMagic (ts :: TypeState) (rec :: *) = HKD_ (ToMagic ts) rec
 
 
 ------------------------------------------------------------------------------

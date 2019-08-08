@@ -45,5 +45,5 @@ data MyInputType' = MyInputType'
 data MyEnum' = One | Two deriving (Generic, Eq, Ord, Show)
 
 foo :: Doc
-foo = gPprSchema $ gSchema @(HKD_ (ToMagic 'Data) MyInputType') @(HKD_ (ToMagic 'Schema) MyInputType')
+foo = gPprSchema $ magicSchema @MyInputType'
 
