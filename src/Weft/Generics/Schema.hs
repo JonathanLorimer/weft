@@ -60,20 +60,18 @@ instance {-# OVERLAPPING #-} (KnownSymbol a, HasGqlType t, ReifyArgs args)
                     (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Field args))) where
     gSchema = M1 $ K1 $ Field (reifyNameType @a @t) (reifyArgs @args)
 
-
-#define INST(magic, ts) (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (magic 'ts t)))
 instance {-# OVERLAPPING #-}
-         GHasSchema INST(Magic, Data)
-                    INST(Magic, Schema)
-      => GHasSchema INST(ToMagic, Data)
-                    INST(ToMagic, Schema) where
+         GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Data t)))
+                    (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Schema t)))
+      => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (ToMagic 'Data t)))
+                    (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (ToMagic 'Schema t))) where
     gSchema = M1
             . K1
             . ToMagic
             . unK1
             . unM1
-            $ gSchema @INST(Magic, Data)
-                      @INST(Magic, Schema)
+            $ gSchema @(M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Data t)))
+                      @(M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Schema t)))
 
 instance (GHasSchema fi fo)
       => GHasSchema (M1 x y fi)

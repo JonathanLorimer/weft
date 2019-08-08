@@ -1,86 +1,87 @@
 module Weft.Introspection where
 
-data __Schema =
-  __Schema { types            :: [__Type]
-           , queryType        :: __Type
-           , mutationType     :: Maybe __Type
-           , subscriptionType :: Maybe __Type
-           , directives       :: [__Directive]
-           }
+import Weft.Types
 
-data __Type =
-  __Type { kind          :: __TypeKind
-         , name          :: Maybe String
-         , description   :: Maybe String
-         -- OBJECT and INTERFACE only
-         , fields        :: Maybe (Arg "includeDeprecated" (Maybe Bool) -> [__Field])
-         -- OBJECT only
-         , interfaces    :: Maybe [__Field]
-         -- INTERFACE and UNION only
-         , possibleTypes :: Maybe [__Field]
-         --  ENUM only
-         , enumValues    :: Maybe (Arg "includeDeprecated" (Maybe Bool) -> [__EnumValue])
-         -- INPUT_OBJECT only
-         , inputFields   :: Maybe [__InputValue]
-         -- NON_NULL and LIST only
-         , ofType        :: Maybe __Type
+data Schema =
+  Schema { schemaTypes            :: [Type]
+         , schemaQueryType        :: Type
+         , schemaMutationType     :: Maybe Type
+         , schemaSubscriptionType :: Maybe Type
+         , schemaDirectives       :: [Directive]
          }
 
-data __Field =
-  __Field { name              :: String
-          , description       :: Maybe String
-          , args              :: [__InputValue]
-          , _type             :: __Type
-          , isDeprecated      :: Boolean
-          , deprecationReason :: String
-          }
+data Type =
+  Type { typeKind          :: TypeKind
+       , typeName          :: Maybe String
+       , typeDescription   :: Maybe String
+       -- OBJECT and INTERFACE only
+       , typeFields        :: Maybe (Arg "includeDeprecated" (Maybe Bool) -> [Field])
+       -- OBJECT only
+       , typeInterfaces    :: Maybe [Field]
+       -- INTERFACE and UNION only
+       , typePossibleTypes :: Maybe [Field]
+       --  ENUM only
+       , typeEnumValues    :: Maybe (Arg "includeDeprecated" (Maybe Bool) -> [EnumValue])
+       -- INPUT_OBJECT only
+       , typeInputFields   :: Maybe [InputValue]
+       -- NON_NULL and LIST only
+       , typeOfType        :: Maybe Type
+       }
 
-data __InputValue =
-  __InputValue { name         :: String
-               , description  :: Maybe String
-               , _type        :: __Type
-               , defaultValue :: Maybe String
-               }
+data Field =
+  Field { fieldName              :: String
+        , fieldDescription       :: Maybe String
+        , fieldArgs              :: [InputValue]
+        , fieldType              :: Type
+        , fieldIsDeprecated      :: Bool
+        , fieldDeprecationReason :: String
+        }
 
-data __EnumValue =
-  __EnumValue { name              :: String
-              , description       :: Maybe String
-              , isDeprecated      :: Boolean
-              , deprecationReason :: Maybe String
-              }
+data InputValue =
+  InputValue { inputvalueName           :: String
+             , inputvalueDescription  :: Maybe String
+             , inputvalueType        :: Type
+             , inputvalueDefaultValue :: Maybe String
+             }
 
-data __TypeKind = TKSCALAR
-                | TKOBJECT
-                | TKINTERFACE
-                | TKUNION
-                | TKENUM
-                | TKINPUT_OBJECT
-                | TKLIST
-                | TKNON_NULL
+data EnumValue =
+  EnumValue { enumvalueName              :: String
+            , enumvalueDescription       :: Maybe String
+            , enumvalueIsDeprecated      :: Bool
+            , enumvalueDeprecationReason :: Maybe String
+            }
 
-data __Directive =
-  __Directive { name        :: String
-              , description :: Maybe String
-              , locations   :: [__DirectiveLocation]
-              , args        :: [__InputValue]
-              }
+data TypeKind = TypekindSCALAR
+              | TypekindOBJECT
+              | TypekindINTERFACE
+              | TypekindUNION
+              | TypekindENUM
+              | TypekindINPUT_OBJECT
+              | TypekindLIST
+              | TypekindNON_NULL
 
-data __DirectiveLocation =
-                         | DLQUERY
-                         | DLMUTATION
-                         | DLSUBSCRIPTION
-                         | DLFIELD
-                         | DLFRAGMENT_DEFINITION
-                         | DLFRAGMENT_SPREAD
-                         | DLINLINE_FRAGMENT
-                         | DLSCHEMA
-                         | DLSCALAR
-                         | DLOBJECT
-                         | DLFIELD_DEFINITION
-                         | DLARGUMENT_DEFINITION
-                         | DLINTERFACE
-                         | DLUNION
-                         | DLENUM
-                         | DLENUM_VALUE
-                         | DLINPUT_OBJECT
-                         | DLINPUT_FIELD_DEFINITION
+data Directive =
+  Directive { directiveName        :: String
+            , directiveDescription :: Maybe String
+            , directiveLocations   :: [DirectiveLocation]
+            , directiveArgs        :: [InputValue]
+            }
+
+data DirectiveLocation = DirectivelocationQUERY
+                       | DirectivelocationMUTATION
+                       | DirectivelocationSUBSCRIPTION
+                       | DirectivelocationFIELD
+                       | DirectivelocationFRAGMENT_DEFINITION
+                       | DirectivelocationFRAGMENT_SPREAD
+                       | DirectivelocationINLINE_FRAGMENT
+                       | DirectivelocationSCHEMA
+                       | DirectivelocationSCALAR
+                       | DirectivelocationOBJECT
+                       | DirectivelocationFIELD_DEFINITION
+                       | DirectivelocationARGUMENT_DEFINITION
+                       | DirectivelocationINTERFACE
+                       | DirectivelocationUNION
+                       | DirectivelocationENUM
+                       | DirectivelocationENUM_VALUE
+                       | DirectivelocationINPUT_OBJECT
+                       | DirectivelocationINPUT_FIELD_DEFINITION
