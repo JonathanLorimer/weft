@@ -106,8 +106,8 @@ class GPprInput rq where
   gPprInput :: rq x -> Doc
 
 instance (GPprInput f, GPprInput g) => GPprInput (f :*: g) where
-  gPprInput (f :*: g) = vcat
-    [ gPprInput f <> char ','
+  gPprInput (f :*: g) = vcat $ punctuate (char ',') $ filter (not . isEmpty) $
+    [ gPprInput f
     , gPprInput g
     ]
 
@@ -187,5 +187,5 @@ pprArgs args =
   let args_docs = pprEachArg args
    in case all isEmpty args_docs of
         True -> empty
-        False -> parens $ sep $ punctuate (char ',') args_docs
+        False -> parens $ sep $ punctuate (char ',') $ filter (not . isEmpty) args_docs
 
