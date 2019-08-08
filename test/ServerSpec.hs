@@ -5,9 +5,7 @@
 {-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE DerivingStrategies         #-}
 
-module ServerSpec (
-  spec
-) where
+module ServerSpec where
 
 import           Data.Aeson
 import           Data.ByteString.Lazy as BL
