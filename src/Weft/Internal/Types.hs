@@ -8,17 +8,17 @@ module Weft.Internal.Types
   ) where
 
 import           Data.Aeson
+import           Data.Generic.HKD
 import           Data.Kind
 import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Void
 import           Data.Text (Text)
+import           Data.Void
 import           GHC.Generics
 import           GHC.TypeLits
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
 import           Text.Megaparsec
-import Data.Generic.HKD
 
 
 type Vars = M.Map String String
@@ -61,6 +61,7 @@ deriving instance Monoid (Magic ts a) => Monoid (ToMagic ts a)
 deriving instance Arbitrary (Magic ts a) => Arbitrary (ToMagic ts a)
 
 type J (rec :: *) (ts :: TypeState) = HKD_ (ToMagic ts) rec
+type J' (rec :: *) (ts :: TypeState) = J rec ts Void
 
 
 ------------------------------------------------------------------------------

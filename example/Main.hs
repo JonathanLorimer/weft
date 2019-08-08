@@ -12,8 +12,6 @@ import Weft.Server
 import Weft.Types
 import Weft.Generics.Resolve
 import Weft.Generics.Hydrate
-import Data.Aeson
-import Test.QuickCheck
 
 data GqlQuery ts = GqlQuery
     { getUser :: Magic ts (Arg "id" ID -> User ts)

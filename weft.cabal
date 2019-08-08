@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 86acb065279f324bcd31bd5d6e7d27103fee6e64963f62b5040c7dd6e7615797
+-- hash: a47da0bb14e5562009e845d56600547354cd03ff4cd0ec9a74c572af766e163a
 
 name:           weft
 version:        0.1.0.0
@@ -30,7 +30,6 @@ library
       BizzaroData
       TestData
       Weft.Generics.AllTypes
-      Weft.Generics.EmptyQuery
       Weft.Generics.Hydrate
       Weft.Generics.JSONResponse
       Weft.Generics.PprQuery

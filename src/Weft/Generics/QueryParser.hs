@@ -48,7 +48,7 @@ type HasMagicQueryParser record =
 queryParser :: HasQueryParser record => ReaderT Vars Parser (record 'Query)
 queryParser = lift skipCrap *> fmap to gQueryParser <* lift skipCrap
 
-magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (J record 'Query Void)
+magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (J' record 'Query)
 magicQueryParser = lift skipCrap *> gQueryParser <* lift skipCrap
 
 
@@ -65,10 +65,7 @@ anonymousQueryParser = do
 class GPermFieldsParser (rq :: * -> *) where
   gPermFieldsParser :: [ReaderT Vars Parser (rq x)]
 
-instance  GPermFieldsParser fq => GPermFieldsParser (M1 D b fq) where
-  gPermFieldsParser = fmap M1 <$> gPermFieldsParser
-
-instance  GPermFieldsParser fq => GPermFieldsParser (M1 C b fq) where
+instance {-# OVERLAPPABLE #-} GPermFieldsParser fq => GPermFieldsParser (M1 a b fq) where
   gPermFieldsParser = fmap M1 <$> gPermFieldsParser
 
 

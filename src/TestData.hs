@@ -4,7 +4,6 @@
 
 module TestData where
 
-import Data.Aeson
 import Test.QuickCheck hiding (Args)
 import Weft.Internal.Types
 import Weft.Types

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP          #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Weft.Generics.PprQuery
@@ -9,7 +8,6 @@ module Weft.Generics.PprQuery
   , pprArg
   ) where
 
-import Data.Void
 import           Data.Functor ((<&>))
 import qualified Data.Map as M
 import           Data.Proxy
@@ -43,7 +41,7 @@ pprQuery q = gPprQuery $ from q
 
 ------------------------------------------------------------------------------
 -- |
-magicPprQuery :: HasMagicPprQuery record => J record 'Query Void -> Doc
+magicPprQuery :: HasMagicPprQuery record => J' record 'Query -> Doc
 magicPprQuery = gPprQuery
 
 
@@ -90,7 +88,7 @@ instance GPprTerm (Magic 'Query rec) => GPprTerm (ToMagic 'Query rec) where
 
 instance ( GPprQuery (M1 _1 _2 _3)
          , PprEachArg args
-         ) => GPprTerm (M.Map Text (Args args, M1 _1 _2 _3 Void)) where
+         ) => GPprTerm (M.Map Text (Args args, M1 _1 _2 _3 _4)) where
   gPprTerm name m =
     vcat $ M.toList m <&> \(alias, (args, rec)) ->
       pprAliasIfDifferent name alias $

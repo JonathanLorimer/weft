@@ -9,7 +9,6 @@ import           Data.Char
 import qualified Data.Map as M
 import           Data.Text (Text)
 import qualified Data.Text as T
-import           Data.Void
 import           GHC.Generics
 import           Test.QuickCheck hiding (Args)
 import           Weft.Internal.Types
@@ -28,7 +27,7 @@ type HasMagicRecordGen (record :: *) (ts :: TypeState) =
 recordGen :: (HasRecordGen record ts) => Gen (record ts)
 recordGen = to <$> gRecordGen
 
-magicRecordGen :: HasMagicRecordGen record ts => Gen (J record ts Void)
+magicRecordGen :: HasMagicRecordGen record ts => Gen (J' record ts)
 magicRecordGen = gRecordGen
 
 
@@ -75,14 +74,14 @@ instance TermGen () where
 instance TermGen (Magic ts t) => TermGen (ToMagic ts t) where
   termGen = ToMagic <$> termGen
 
-instance GRecordGen (M1 _1 _2 _3) => TermGen (M1 _1 _2 _3 Void) where
+instance GRecordGen (M1 _1 _2 _3) => TermGen (M1 _1 _2 _3 _4) where
   termGen = gRecordGen
 
 instance TermGen a => TermGen [a] where
   termGen = sized $ \n ->
     case n <= 0 of
       True  -> pure []
-      False -> resize (max 0 $ n - 1) $ listOf termGen
+      False -> resize (n - 1) $ listOf termGen
 
 instance HasRecordGen r ts => TermGen (r ts) where
   termGen = scale (max 0 . subtract 1) recordGen
@@ -91,7 +90,7 @@ instance TermGen a => TermGen (Maybe a) where
   termGen = sized $ \n ->
     case n <= 0 of
       True  -> pure Nothing
-      False -> Just <$> resize (max 0 $ n - 1) termGen
+      False -> Just <$> resize (n - 1) termGen
 
 instance TermGen t => TermGen (M.Map Text t) where
   termGen = sized $ \n ->

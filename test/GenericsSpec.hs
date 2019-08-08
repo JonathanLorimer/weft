@@ -5,7 +5,6 @@ import Test.Hspec hiding (Arg)
 import TestData
 import Text.PrettyPrint.HughesPJ (Doc)
 import Weft.Generics.AllTypes
-import Weft.Generics.EmptyQuery
 import Weft.Generics.Hydrate
 import Weft.Generics.PprQuery
 import Weft.Generics.PprSchema
@@ -32,12 +31,6 @@ allTypesUser = allTypes @User
 
 allTypesAccount :: [Doc]
 allTypesAccount = allTypes @Account
-
-emptyQueryUser :: User 'Query
-emptyQueryUser = emptyQuery
-
-emptyQueryAccount :: Account 'Query
-emptyQueryAccount = emptyQuery
 
 hydrateUser :: User 'Data -> User 'Query -> User 'Response
 hydrateUser = hydrate

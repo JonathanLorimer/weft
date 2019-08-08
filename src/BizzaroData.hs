@@ -4,16 +4,9 @@
 
 module BizzaroData where
 
-import Text.PrettyPrint.HughesPJ
-import Data.Generic.HKD.Types
-import Data.Aeson
 import Test.QuickCheck hiding (Args)
 import Weft.Internal.Types
 import Weft.Types
-import Weft.Generics.EmptyQuery
-import Weft.Generics.PprQuery
-import Weft.Generics.PprSchema
-import Weft.Generics.Schema
 
 
 data User' = User'
@@ -39,6 +32,7 @@ data MyInputType' = MyInputType'
   , heart's :: Bool
   } deriving stock (Generic, Eq, Ord, Show)
 
+-- TODO(sandy): make args use recordgen arbitrary
 instance Arbitrary MyInputType' where
   arbitrary = MyInputType' <$> arbitrary <*> arbitrary
 
@@ -46,7 +40,4 @@ data MyEnum' = One' | Two' deriving (Generic, Eq, Ord, Show)
 
 instance Arbitrary MyEnum' where
   arbitrary = oneof [pure One', pure Two']
-
-foo :: Doc
-foo = gPprSchema $ magicSchema @MyInputType'
 
