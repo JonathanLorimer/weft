@@ -62,7 +62,7 @@ type family MagicQueryResult (use :: *) (u :: ([(Symbol, *)], *)) :: * where
   MagicQueryResult _ '(ts, NonEmpty (record 'Query)) = (Args ts, record 'Query)
   MagicQueryResult _ '(ts, [record 'Query])          = (Args ts, record 'Query)
   MagicQueryResult _ '(ts, record 'Query)            = (Args ts, record 'Query)
-  MagicQueryResult use '(ts, a)                        = (Args ts, MagicQueryInputOutput a use)
+  MagicQueryResult use '(ts, a)                      = (Args ts, MagicQueryInputOutput a use)
 
 type family MagicQueryInputOutput (t :: *) (use :: *) :: * where
   MagicQueryInputOutput Int     _ = ()
