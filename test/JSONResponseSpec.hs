@@ -43,7 +43,24 @@ spec :: Spec
 spec = do
   describe "parses json from response" $ do
     it "should parse JSON from Sandy" $
-      encode (jsonResponse $ hydrate sandy userQuery) `shouldBe` mockSandyJSON
-    it "should parse JSON from Jonathan" $ do
-      encode (jsonResponse $ hydrate jonathan userQuery) `shouldBe` mockJonathanJSON
+      encode (
+        magicJsonResponse $
+          buildResponse @User
+            (ToMagic $ M.singleton "userId" $ ID "2")
+            (ToMagic $ M.singleton "userName" "Sandy")
+            (ToMagic $ M.singleton "userBestFriend"
+                     $ runHKD
+                     $ buildResponse @User
+                         (ToMagic M.empty)
+                         (ToMagic $ M.singleton "userName" "Jonathan")
+                         (ToMagic M.empty)
+                         (ToMagic M.empty)
+                         (ToMagic M.empty)
+            ) -- runHKD $ buildResponse @User (ToMagic M.empty) ())
+            (ToMagic M.empty)
+            (ToMagic M.empty)
+
+             ) `shouldBe` mockSandyJSON
+    -- it "should parse JSON from Jonathan" $ do
+    --   encode (jsonResponse $ hydrate jonathan userQuery) `shouldBe` mockJonathanJSON
 

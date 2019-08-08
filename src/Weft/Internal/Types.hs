@@ -44,11 +44,21 @@ type family Magic (ts :: TypeState) a where
   Magic 'Query    t                  = M.Map Text (MagicQueryResult t (UnravelArgs t))
 
   Magic 'Response (Method args a)    = Magic 'Response a
-  Magic 'Response [record 'Response] = M.Map Text [record 'Response]                   -- RP1
-  Magic 'Response (record 'Response) = M.Map Text (record 'Response)                   -- RP2
-  Magic 'Response scalar             = M.Map Text scalar                               -- RP3
+  Magic 'Response a                  = M.Map Text (MagicResponse a)
 
   Magic 'Schema   ts                 = Field (Fst (UnravelArgs ts))
+
+
+type family MagicResponse (a :: *) :: * where
+  MagicResponse Int     = Int
+  MagicResponse Integer = Integer
+  MagicResponse Double  = Double
+  MagicResponse Bool    = Bool
+  MagicResponse String  = String
+  MagicResponse ID      = ID
+  MagicResponse ()      = ()
+  MagicResponse [a]     = [MagicResponse a]
+  MagicResponse a       = J a 'Response Void
 
 
 newtype ToMagic (ts :: TypeState) (a :: *) = ToMagic
