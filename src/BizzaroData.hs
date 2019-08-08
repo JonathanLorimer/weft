@@ -10,7 +10,7 @@ import Weft.Types
 
 
 data User = User
-  { userId         :: Arg "id" (Maybe Int) -> ID
+  { userId         :: Arg "arg" (Maybe Int) -> ID
   , userName       :: String
   , userBestFriend :: Arg "arg" (Maybe Int) -> User
   , userFriends    :: [User]
