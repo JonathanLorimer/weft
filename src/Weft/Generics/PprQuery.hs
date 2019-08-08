@@ -6,7 +6,6 @@ module Weft.Generics.PprQuery
   , pprArg
   ) where
 
-import           Data.Char
 import           Data.Functor ((<&>))
 import qualified Data.Map as M
 import           Data.Proxy
@@ -16,6 +15,7 @@ import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Prelude hiding ((<>))
 import           Text.PrettyPrint.HughesPJ
+import           Weft.Internal.ArgTypes
 import           Weft.Internal.Types
 
 
@@ -75,23 +75,6 @@ instance ( KnownSymbol name
     where
       name = symbolVal $ Proxy @name
 
-class GPprInput rq where
-  gPprInput :: rq x -> Doc
-
-instance (GPprInput f, GPprInput g) => GPprInput (f :*: g) where
-  gPprInput (f :*: g) = vcat
-    [ gPprInput f <> char ','
-    , gPprInput g
-    ]
-instance {-# OVERLAPPABLE #-} GPprInput f => GPprInput (M1 _1 _2 f) where
-  gPprInput (M1 f) = gPprInput f
-
-instance ( KnownSymbol name
-         , PprArg t
-         ) => GPprInput (M1 S ('MetaSel ('Just name) b c d)
-                              (K1 x t)) where
-  gPprInput (M1 (K1 t)) = pprArg $ Arg @name t
-
 
 pprAliasIfDifferent :: String -> Text -> Doc -> Doc
 pprAliasIfDifferent name (T.unpack -> alias) doc
@@ -102,60 +85,13 @@ pprAliasIfDifferent name (T.unpack -> alias) doc
       ]
 
 
-class PprArg t where
-  pprArg :: Arg n t -> Doc
-
-
-pprArgWithName :: forall n. KnownSymbol n => String -> Doc
-pprArgWithName val =
-    sep [ text (symbolVal $ Proxy @n) <> char ':'
-        , text val
-        ]
-
-instance PprArg Integer where
-  pprArg (Arg v :: Arg n Integer) =
-    pprArgWithName @n $ show v
-
-instance PprArg Int where
-  pprArg (Arg v :: Arg n Int) =
-    pprArgWithName @n $ show v
-
-instance PprArg Double where
-  pprArg (Arg v :: Arg n Double) =
-    pprArgWithName @n $ show v
-
-instance PprArg Bool where
-  pprArg (Arg v :: Arg n Bool) =
-    pprArgWithName @n $ fmap toLower $ show v
-
-instance PprArg String where
-  pprArg (Arg v :: Arg n String) =
-    pprArgWithName @n $ show v
-
-instance PprArg ID where
-  pprArg (Arg (ID v) :: Arg n ID) =
-    pprArgWithName @n $ show v
-
-instance {-# OVERLAPPABLE #-} (Generic t, GPprInput (Rep t)) => PprArg t where
-  pprArg (Arg v :: Arg n t) =
-    sep [ text (symbolVal $ Proxy @n) <> char ':'
-        , char '{'
-        , nest 4 $ gPprInput $ from v
-        , char '}'
-        ]
-
-instance {-# OVERLAPPING #-} PprArg t => PprArg (Maybe t) where
-  pprArg (Arg Nothing) = empty
-  pprArg (Arg (Just v) :: Arg n (Maybe t)) = pprArg (Arg @n v)
-
-
 class PprEachArg (ts) where
   pprEachArg :: Args ts -> [Doc]
 
 instance PprEachArg '[] where
   pprEachArg ANil = []
 
-instance (PprArg t, PprEachArg args) => PprEachArg ('(n, t) ': args) where
+instance (IsArgType t, PprEachArg args) => PprEachArg ('(n, t) ': args) where
   pprEachArg (arg :@@ args) = pprArg arg : pprEachArg args
 
 
@@ -164,5 +100,5 @@ pprArgs args =
   let args_docs = pprEachArg args
    in case all isEmpty args_docs of
         True -> empty
-        False -> parens $ sep $ punctuate (char ',') args_docs
+        False -> parens $ sep $ punctuate (char ',') $ filter (not . isEmpty) args_docs
 

@@ -49,7 +49,7 @@ deriving via (NoNothingJSON (Account 'Response))
   instance AllHave ToJSON (Account 'Response) => ToJSON (Account 'Response)
 
 data Finger ts = Finger
-  { fingers :: Magic ts (Arg "input" (Maybe MyInputType) -> Account ts)
+  { fingers :: Magic ts (Arg "input" (Maybe MyInputType) -> Arg "enum" (Maybe MyEnum) -> Account ts)
   } deriving (Generic)
 
 data MyInputType = MyInputType
@@ -59,6 +59,12 @@ data MyInputType = MyInputType
 
 instance Arbitrary MyInputType where
   arbitrary = MyInputType <$> arbitrary <*> arbitrary
+
+data MyEnum = One | Two deriving (Generic, Eq, Ord, Show)
+
+instance Arbitrary MyEnum where
+  arbitrary = oneof [ pure One, pure Two ]
+
 
 deriving instance AllHave Show (Finger ts) => Show (Finger ts)
 deriving instance AllHave Eq (Finger ts)   => Eq (Finger ts)
