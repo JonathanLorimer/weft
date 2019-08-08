@@ -27,7 +27,8 @@ import           Weft.Internal.Types
 
 
 ------------------------------------------------------------------------------
--- |
+-- | Make sure to add a case for 'Weft.Internal.Types.MagicQueryInputOutput'
+-- when adding cases here
 class IsArgType a where
   pprArg :: Arg n a -> Doc
   parseArgValue :: ReaderT Vars Parser a

@@ -6,12 +6,13 @@ module Weft.Internal.Types where
 
 import           Data.Aeson
 import           Data.Kind
+import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Text (Text)
 import           Data.Void
 import           GHC.Generics
-import           GHC.TypeLits hiding (ErrorMessage (..))
+import           GHC.TypeLits
 import           Lens.Micro ((^?))
 import           Lens.Micro.Aeson
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
@@ -38,7 +39,7 @@ type family Magic (ts :: TypeState) a where
   Magic 'Data     (Arg n t -> a)     = Magic 'Data a                              -- D1
   Magic 'Data     a                  = a                                          -- D2
 
-  Magic 'Query    ts                 = M.Map Text (MagicQueryResult (UnravelArgs ts))
+  Magic 'Query    t                  = M.Map Text (MagicQueryResult t (UnravelArgs t))
 
   Magic 'Response (Arg n t -> a)     = Magic 'Response a
   Magic 'Response [record 'Response] = M.Map Text [record 'Response]                   -- RP1
@@ -57,10 +58,36 @@ type family UnravelArgs (t :: *) :: ([(Symbol, *)], *) where
   UnravelArgs (Arg t n -> a) = ConsFirst '(t, n) (UnravelArgs a)
   UnravelArgs a        = '( '[], a)
 
-type family MagicQueryResult (u :: ([(Symbol, *)], *)) :: * where
-  MagicQueryResult '(ts, [record 'Query]) = (Args ts, record 'Query)
-  MagicQueryResult '(ts, record 'Query)   = (Args ts, record 'Query)
-  MagicQueryResult '(ts, a)               = (Args ts, ())
+type family MagicQueryResult (use :: *) (u :: ([(Symbol, *)], *)) :: * where
+  MagicQueryResult _ '(ts, NonEmpty (record 'Query)) = (Args ts, record 'Query)
+  MagicQueryResult _ '(ts, [record 'Query])          = (Args ts, record 'Query)
+  MagicQueryResult _ '(ts, record 'Query)            = (Args ts, record 'Query)
+  MagicQueryResult use '(ts, a)                      = (Args ts, MagicQueryInputOutput a use)
+
+type family MagicQueryInputOutput (t :: *) (use :: *) :: * where
+  MagicQueryInputOutput Int     _ = ()
+  MagicQueryInputOutput Integer _ = ()
+  MagicQueryInputOutput Double  _ = ()
+  MagicQueryInputOutput Bool    _ = ()
+  MagicQueryInputOutput String  _ = ()
+  MagicQueryInputOutput ID      _ = ()
+  MagicQueryInputOutput a     use = MagicQueryFromRep a use (Rep a)
+
+type family MagicQueryFromRep (t :: *) (use :: *) (rep :: * -> *) :: * where
+  -- | It's a newtype
+  MagicQueryFromRep t use (M1 D ('MetaData _1 _2 _3 'True) (M1 C _ (M1 _4 _5 (K1 _6 a))))
+    = MagicQueryInputOutput use a
+  -- | It's an enum
+  MagicQueryFromRep t _ (M1 D _1 (_2 :+: _3)) = ()
+  -- | It's an input type
+  MagicQueryFromRep t use (M1 D _1 (M1 C _2 (a :*: b))) =
+    TypeError ( 'Text "[WEFT] Returning input types is not currently supported"
+          ':$$: 'Text "  Fix: stop trying to return "
+          ':<>: 'ShowType t
+          ':<>: 'Text " from "
+          ':$$: 'Text "    "
+          ':<>: 'ShowType use
+              )
 
 type family Fst (u :: (k1, k2)) :: k1 where
   Fst '(ts, a) = ts
