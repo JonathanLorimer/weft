@@ -9,6 +9,7 @@ import           Data.Kind
 import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Maybe
+import           Data.Void
 import           Data.Text (Text)
 import           GHC.Generics
 import           GHC.TypeLits
@@ -68,6 +69,7 @@ type family MagicQueryInputOutput (t :: *) (use :: *) :: * where
   MagicQueryInputOutput Bool    _ = ()
   MagicQueryInputOutput String  _ = ()
   MagicQueryInputOutput ID      _ = ()
+  MagicQueryInputOutput ()      _ = ()
   MagicQueryInputOutput a     use = MagicQueryFromRep a use (Rep a)
 
 type family MagicQueryFromRep (t :: *) (use :: *) (rep :: * -> *) :: * where
