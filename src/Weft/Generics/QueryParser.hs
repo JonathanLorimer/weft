@@ -14,6 +14,7 @@ module Weft.Generics.QueryParser
 import           Control.Applicative hiding (many, some)
 import           Control.Applicative.Permutations
 import           Control.Monad.Reader
+import           Data.Char
 import           Data.Foldable
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as M
@@ -22,11 +23,11 @@ import           Data.Proxy
 import qualified Data.Set as S
 import           Data.Text (Text)
 import qualified Data.Text as T
-import           Data.Void
 import           Data.Typeable
+import           Data.Void
 import           GHC.Generics
-import           GHC.TypeLits hiding (ErrorMessage (..))
 import qualified GHC.TypeLits as TL
+import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
 import           Text.Megaparsec.Char.Lexer (charLiteral, skipLineComment)
@@ -314,8 +315,8 @@ instance ParseArgValue ID where
     , ID <$> parseArgValue @String
     ]
 
-instance {-# OVERLAPPABLE #-} (Generic a, GParseInputType (Rep a)) => ParseArgValue a where
-  parseArgValue = parens '{' '}' $ fmap to gParseInputType
+instance {-# OVERLAPPABLE #-} (Generic a, GParseThing (Rep a)) => ParseArgValue a where
+  parseArgValue = fmap to gParseThing
 
 ------------------------------------------------------------------------------
 -- |
@@ -325,23 +326,30 @@ foldManyOf
     -> f m
 foldManyOf = fmap fold . many . asum
 
-class GParseInputType (g :: * -> *) where
-  gParseInputType :: ReaderT Vars Parser (g x)
+class GParseThing (g :: * -> *) where
+  gParseThing :: ReaderT Vars Parser (g x)
 
-instance  GParseInputType f => GParseInputType (M1 _1 _2 f) where
-  gParseInputType = M1 <$> gParseInputType
+instance  GParseThing f => GParseThing (M1 _1 _2 f) where
+  gParseThing = M1 <$> gParseThing
 
-instance GPermInputFields (f :*: g) => GParseInputType (f :*: g) where
-  gParseInputType = runPermutations gPermInputFields
+instance GPermInputFields (f :*: g) => GParseThing (f :*: g) where
+  gParseThing = do
+    parens '{' '}' $ runPermutations gPermInputFields
+
+instance GParseEnum (f :+: g) => GParseThing (f :+: g) where
+  gParseThing = lift gParseEnum
+
+class GParseEnum (g :: * -> *) where
+  gParseEnum :: Parser (g x)
+
+instance (GParseEnum f, GParseEnum g) => GParseEnum (f :+: g) where
+  gParseEnum = L1 <$> gParseEnum <|> R1 <$> gParseEnum
+
+instance (KnownSymbol name) => GParseEnum (M1 C ('MetaCons name _1 _2) U1) where
+  gParseEnum  = M1 U1 <$ (string $ T.pack $ fmap toUpper $ symbolVal $ Proxy @name)
 
 class GPermInputFields (g :: * -> *) where
   gPermInputFields :: Permutation (ReaderT Vars Parser) (g x)
-
-instance GPermInputFields fq => GPermInputFields (M1 D b fq) where
-  gPermInputFields = M1 <$> gPermInputFields
-
-instance GPermInputFields fq => GPermInputFields (M1 C b fq) where
-  gPermInputFields = M1 <$> gPermInputFields
 
 instance ( GPermInputFields fq
          , GPermInputFields gq

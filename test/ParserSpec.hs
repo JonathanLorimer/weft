@@ -75,7 +75,31 @@ spec = do
         `shouldBe`
           Right ( Finger $
                     M.singleton "fingers"
-                      ( (Arg $ Just $ MyInputType 5 True) :@@ ANil
+                      ( (Arg $ Just $ MyInputType 5 True) :@@ Arg Nothing :@@ ANil
+                      , Account M.empty
+                      )
+                )
+
+  describe "enums types" $ do
+    it "should parse an enum literal" $ do
+      parseAllOnly (flip runReaderT mempty $ queryParser @Finger)
+                "fingers(enum: ONE) { }"
+        `shouldBe`
+          Right ( Finger $
+                    M.singleton "fingers"
+                      ( Arg Nothing :@@ (Arg $ Just One) :@@ ANil
+                      , Account M.empty
+                      )
+                )
+
+  describe "input types" $ do
+    it "should parse an input type literal" $ do
+      parseAllOnly (flip runReaderT mempty $ queryParser @Finger)
+                "fingers(input: {hearts: true, boots: 5}) { }"
+        `shouldBe`
+          Right ( Finger $
+                    M.singleton "fingers"
+                      ( (Arg $ Just $ MyInputType 5 True) :@@ Arg Nothing :@@ ANil
                       , Account M.empty
                       )
                 )
@@ -103,7 +127,7 @@ spec = do
         `shouldBe`
           Right ( Finger $
                     M.singleton "fingers"
-                      ( (Arg $ Just $ MyInputType 1337 True) :@@ ANil
+                      ( (Arg $ Just $ MyInputType 1337 True) :@@ Arg Nothing :@@ ANil
                       , Account M.empty
                       )
                 )
