@@ -12,12 +12,6 @@ import Weft.Server
 import Weft.Types
 import Weft.Generics.Resolve
 import Weft.Generics.Hydrate
-import Data.Aeson
-import Test.QuickCheck
-
-newtype Name = Name String
-  deriving stock (Generic, Show, Eq, Ord)
-  deriving newtype (Arbitrary, ToJSON)
 
 data GqlQuery ts = GqlQuery
     { getUser :: Magic ts (Arg "id" ID -> User ts)
@@ -26,7 +20,7 @@ data GqlQuery ts = GqlQuery
 
 data User ts = User
   { userId         :: Magic ts (Arg "arg" (Maybe Int) -> ID)
-  , userName       :: Magic ts Name
+  , userName       :: Magic ts String
   , userBestFriend :: Magic ts (Arg "arg" (Maybe Int) -> User ts)
   , userFriends    :: Magic ts [User ts]
   } deriving (Generic)
@@ -42,10 +36,10 @@ deriving instance AllHave Show (Account ts) => Show (Account ts)
 deriving instance AllHave Eq (Account ts)   => Eq (Account ts)
 
 jonathan :: User 'Data
-jonathan = User { userId = (ID "1"), userName = ( Name "Jonathan"), userBestFriend = sandy, userFriends = [] }
+jonathan = User { userId = (ID "1"), userName = ( "Jonathan"), userBestFriend = sandy, userFriends = [] }
 
 sandy :: User 'Data
-sandy = User { userId = (ID "2"), userName = ( Name "Sandy"), userBestFriend = jonathan, userFriends = []}
+sandy = User { userId = (ID "2"), userName = ( "Sandy"), userBestFriend = jonathan, userFriends = []}
 
 getUserResolver :: (Arg "id" ID) -> User 'Query -> IO (User 'Response)
 getUserResolver a q

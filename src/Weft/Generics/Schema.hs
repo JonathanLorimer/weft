@@ -1,8 +1,12 @@
+{-# LANGUAGE CPP #-}
+
 module Weft.Generics.Schema
   ( HasSchema
   , schema
+  , magicSchema
   ) where
 
+import Data.Void
 import Data.List.NonEmpty
 import Data.Proxy
 import Data.Typeable
@@ -20,6 +24,12 @@ type HasSchema record =
   , Generic (record 'Schema)
   )
 
+type HasMagicSchema record =
+  ( GHasSchema (J record 'Data)
+               (J record 'Schema)
+  , Generic (record)
+  )
+
 
 --------------------------------------------------------------------------------
 -- |
@@ -29,19 +39,41 @@ schema
     => record 'Schema
 schema = to $ gSchema @(Rep (record 'Data))
 
+--------------------------------------------------------------------------------
+-- |
+magicSchema
+    :: forall record
+     . HasMagicSchema record
+    => J record 'Schema Void
+magicSchema = gSchema @(J record 'Data)
 
 ------------------------------------------------------------------------------
 -- |
-class GHasSchema i o where
+class GHasSchema (i :: * -> *) (o :: * -> *) where
     gSchema :: o x
 
 instance (GHasSchema fi fo, GHasSchema gi go) => GHasSchema (fi :*: gi) (fo :*: go) where
     gSchema = gSchema @fi :*: gSchema @gi
 
 instance {-# OVERLAPPING #-} (KnownSymbol a, HasGqlType t, ReifyArgs args)
-      => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (Rec0 t))
-                    (M1 S ('MetaSel ('Just a) b c d) (Rec0 (Field args))) where
+      => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 t))
+                    (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Field args))) where
     gSchema = M1 $ K1 $ Field (reifyNameType @a @t) (reifyArgs @args)
+
+
+#define INST(magic, ts) (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (magic 'ts t)))
+instance {-# OVERLAPPING #-}
+         GHasSchema INST(Magic, Data)
+                    INST(Magic, Schema)
+      => GHasSchema INST(ToMagic, Data)
+                    INST(ToMagic, Schema) where
+    gSchema = M1
+            . K1
+            . ToMagic
+            . unK1
+            . unM1
+            $ gSchema @INST(Magic, Data)
+                      @INST(Magic, Schema)
 
 instance (GHasSchema fi fo)
       => GHasSchema (M1 x y fi)

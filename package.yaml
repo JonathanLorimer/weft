@@ -38,6 +38,7 @@ dependencies:
   - unordered-containers
   - parser-combinators
   - mtl
+  - higgledy
 
 default-extensions:
   - DeriveGeneric

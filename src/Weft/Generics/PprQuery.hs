@@ -2,7 +2,9 @@
 
 module Weft.Generics.PprQuery
   ( HasPprQuery
+  , HasMagicPprQuery
   , pprQuery
+  , magicPprQuery
   , pprArg
   ) where
 
@@ -26,16 +28,26 @@ type HasPprQuery record =
   , GPprQuery (Rep (record 'Query))
   )
 
+type HasMagicPprQuery record =
+  ( Generic record
+  , GPprQuery (J record 'Query)
+  )
+
 
 ------------------------------------------------------------------------------
 -- |
 pprQuery :: HasPprQuery record => record 'Query -> Doc
 pprQuery q = gPprQuery $ from q
 
+------------------------------------------------------------------------------
+-- |
+magicPprQuery :: HasMagicPprQuery record => J' record 'Query -> Doc
+magicPprQuery = gPprQuery
+
 
 ------------------------------------------------------------------------------
 -- |
-class GPprQuery rq where
+class GPprQuery (rq :: * -> *) where
   gPprQuery :: rq x -> Doc
 
 instance (GPprQuery f, GPprQuery g) => GPprQuery (f :*: g) where
@@ -46,34 +58,52 @@ instance (GPprQuery f, GPprQuery g) => GPprQuery (f :*: g) where
 instance {-# OVERLAPPABLE #-} GPprQuery f => GPprQuery (M1 _1 _2 f) where
   gPprQuery (M1 f) = gPprQuery f
 
-instance ( KnownSymbol name
-         , PprEachArg args
+class GPprTerm (t :: *) where
+  gPprTerm :: String -> t -> Doc
+
+instance ( PprEachArg args
          , HasPprQuery record
-         ) => GPprQuery (M1 S ('MetaSel ('Just name) b c d)
-                              (K1 x (M.Map Text (Args args, record 'Query)))) where
-  gPprQuery (M1 (K1 m)) = vcat $ M.toList m <&> \(alias, (args, rec)) ->
-    pprAliasIfDifferent name alias $
-      sep
-        [ text name <> pprArgs args
-        , char '{'
-        , nest 4 $ pprQuery rec
-        , char '}'
-        ]
-    where
-      name = symbolVal $ Proxy @name
+         ) => GPprTerm (M.Map Text (Args args, record 'Query)) where
+  gPprTerm name m =
+    vcat $ M.toList m <&> \(alias, (args, rec)) ->
+      pprAliasIfDifferent name alias $
+        sep
+          [ text name <> pprArgs args
+          , char '{'
+          , nest 4 $ pprQuery rec
+          , char '}'
+          ]
+
+instance PprEachArg args => GPprTerm (M.Map Text (Args args, ())) where
+  gPprTerm name m =
+    vcat $ M.toList m <&> \(alias, (args, ())) ->
+      pprAliasIfDifferent name alias $
+        mconcat
+          [ text name
+          , pprArgs args
+          ]
+
+instance GPprTerm (Magic 'Query rec) => GPprTerm (ToMagic 'Query rec) where
+  gPprTerm name = gPprTerm @(Magic 'Query rec) name . unMagic
+
+instance ( GPprQuery (M1 _1 _2 _3)
+         , PprEachArg args
+         ) => GPprTerm (M.Map Text (Args args, M1 _1 _2 _3 _4)) where
+  gPprTerm name m =
+    vcat $ M.toList m <&> \(alias, (args, rec)) ->
+      pprAliasIfDifferent name alias $
+        sep
+          [ text name <> pprArgs args
+          , char '{'
+          , nest 4 $ gPprQuery rec
+          , char '}'
+          ]
 
 instance ( KnownSymbol name
-         , PprEachArg args
+         , GPprTerm t
          ) => GPprQuery (M1 S ('MetaSel ('Just name) b c d)
-                              (K1 x (M.Map Text (Args args, ())))) where
-  gPprQuery (M1 (K1 m)) = vcat $ M.toList m <&> \(alias, (args, ())) ->
-    pprAliasIfDifferent name alias $
-      mconcat
-        [ text name
-        , pprArgs args
-        ]
-    where
-      name = symbolVal $ Proxy @name
+                              (K1 x t)) where
+  gPprQuery (M1 (K1 m)) = gPprTerm (symbolVal $ Proxy @name) m
 
 
 pprAliasIfDifferent :: String -> Text -> Doc -> Doc
@@ -85,7 +115,7 @@ pprAliasIfDifferent name (T.unpack -> alias) doc
       ]
 
 
-class PprEachArg (ts) where
+class PprEachArg ts where
   pprEachArg :: Args ts -> [Doc]
 
 instance PprEachArg '[] where

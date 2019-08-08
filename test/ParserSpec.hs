@@ -5,13 +5,15 @@ module ParserSpec where
 import           Control.Monad.Reader
 import           Data.Bifunctor
 import           Data.Either
+import qualified Data.List as L
 import qualified Data.Map as M
 import           Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.List as L
+import           Data.Void
 import           Test.Hspec hiding (Arg)
 import           Test.QuickCheck
 import           TestData
+import BizzaroData
 import           Text.Megaparsec
 import           Text.PrettyPrint.HughesPJ hiding (first)
 import           Weft.Generics.PprQuery
@@ -39,7 +41,6 @@ Right x ==== y =
 testQuery
     :: ( Eq (record 'Query)
        , Wefty record
-       , Show (record 'Query)
        )
     => record 'Query -> Property
 testQuery q
@@ -48,6 +49,20 @@ testQuery q
   . T.pack
   . render
   $ pprQuery q
+
+testMagicQuery
+    :: forall record
+     . ( Eq (J record 'Query Void)
+       , HasMagicQueryParser record
+       , HasMagicPprQuery record
+       )
+    => J record 'Query Void -> Bool
+testMagicQuery q
+  = (== Right q)
+  . parseAllOnly (flip runReaderT mempty $ magicQueryParser @record)
+  . T.pack
+  . render
+  $ magicPprQuery @record q
 
 
 parseAllOnly :: Parser a -> Text -> Either String a
@@ -61,6 +76,11 @@ spec = do
       property $ testQuery @User
     it "should roundtrip for Account" $
       property $ testQuery @Account
+
+    it "should roundtrip for User'" $
+      property $ do
+        t <- magicRecordGen @User' @'Query
+        pure $ testMagicQuery @User' t
 
   describe "invalid arguments" $ do
     it "should fail if passed a fake argument" $ do

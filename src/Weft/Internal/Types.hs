@@ -1,16 +1,20 @@
-{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase                 #-}
 
-module Weft.Internal.Types where
+module Weft.Internal.Types
+  ( module Weft.Internal.Types
+  , HKD_
+  ) where
 
 import           Data.Aeson
+import           Data.Generic.HKD
 import           Data.Kind
 import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Void
 import           Data.Text (Text)
+import           Data.Void
 import           GHC.Generics
 import           GHC.TypeLits
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)
@@ -47,6 +51,19 @@ type family Magic (ts :: TypeState) a where
   Magic 'Schema   ts                 = Field (Fst (UnravelArgs ts))
 
 
+newtype ToMagic (ts :: TypeState) (a :: *) = ToMagic
+  { unMagic :: Magic ts a
+  }
+
+deriving instance Eq (Magic ts a) => Eq (ToMagic ts a)
+deriving instance Semigroup (Magic ts a) => Semigroup (ToMagic ts a)
+deriving instance Monoid (Magic ts a) => Monoid (ToMagic ts a)
+deriving instance Arbitrary (Magic ts a) => Arbitrary (ToMagic ts a)
+
+type J (rec :: *) (ts :: TypeState) = HKD_ (ToMagic ts) rec
+type J' (rec :: *) (ts :: TypeState) = J rec ts Void
+
+
 ------------------------------------------------------------------------------
 -- |
 type family ConsFirst (a :: k1) (b :: ([k1], k2)) :: ([k1], k2) where
@@ -70,7 +87,8 @@ type family MagicQueryInputOutput (t :: *) (use :: *) :: * where
   MagicQueryInputOutput String  _ = ()
   MagicQueryInputOutput ID      _ = ()
   MagicQueryInputOutput ()      _ = ()
-  MagicQueryInputOutput a     use = MagicQueryFromRep a use (Rep a)
+  MagicQueryInputOutput [a]   use = MagicQueryInputOutput a use
+  MagicQueryInputOutput a     use = J a 'Query Void
 
 type family MagicQueryFromRep (t :: *) (use :: *) (rep :: * -> *) :: * where
   -- | It's a newtype

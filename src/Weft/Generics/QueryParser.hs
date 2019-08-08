@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DeriveFoldable        #-}
 {-# LANGUAGE DeriveFunctor         #-}
 {-# LANGUAGE DeriveTraversable     #-}
@@ -5,9 +6,11 @@
 
 module Weft.Generics.QueryParser
   ( HasQueryParser
+  , HasMagicQueryParser
   , Vars
   , Parser
   , queryParser
+  , magicQueryParser
   , anonymousQueryParser
   ) where
 
@@ -21,14 +24,14 @@ import           Data.Proxy
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Typeable
+import           Data.Void
 import           GHC.Generics
 import           GHC.TypeLits hiding (ErrorMessage (..))
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
-import           Weft.Generics.EmptyQuery
-import           Weft.Internal.Types
 import           Weft.Internal.ArgTypes
 import           Weft.Internal.ParserUtils
+import           Weft.Internal.Types
 
 
 
@@ -37,8 +40,16 @@ type HasQueryParser record =
      , GQueryParser (Rep (record 'Query))
      )
 
+type HasMagicQueryParser record =
+     ( Generic record
+     , GQueryParser (J record 'Query)
+     )
+
 queryParser :: HasQueryParser record => ReaderT Vars Parser (record 'Query)
 queryParser = lift skipCrap *> fmap to gQueryParser <* lift skipCrap
+
+magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (J' record 'Query)
+magicQueryParser = lift skipCrap *> gQueryParser <* lift skipCrap
 
 
 anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)
@@ -57,6 +68,49 @@ class GPermFieldsParser (rq :: * -> *) where
 instance {-# OVERLAPPABLE #-} GPermFieldsParser fq => GPermFieldsParser (M1 a b fq) where
   gPermFieldsParser = fmap M1 <$> gPermFieldsParser
 
+
+
+class GPermTermParser (t :: *) where
+  gPermTermParser :: String -> [ReaderT Vars Parser t]
+
+instance (KnownSymbol name, GPermTermParser t)
+      => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
+                                 (K1 _4 t)) where
+  gPermFieldsParser = fmap (M1 . K1) <$> gPermTermParser (symbolVal $ Proxy @name)
+
+instance (ParseArgs args, IsAllMaybe args)
+      => GPermTermParser (M.Map Text (Args args, ())) where
+  gPermTermParser name = pure $ do
+    alias <- lift $ try $ parseIdentOrAlias name
+    lift skipCrap
+    args <- parseOptionalArgs @args
+    directiveCombinator alias args $ pure ()
+
+instance  GPermTermParser (Magic 'Query t) => GPermTermParser (ToMagic 'Query t) where
+  gPermTermParser name = fmap ToMagic <$> gPermTermParser @(Magic 'Query t) name
+
+instance ( HasQueryParser t
+         , ParseArgs args
+         , IsAllMaybe args
+         ) => GPermTermParser (M.Map Text (Args args, t 'Query)) where
+  gPermTermParser name = pure $ do
+    alias <- lift $ try $ parseIdentOrAlias name
+    lift skipCrap
+    args <- parseOptionalArgs @args
+    directiveCombinator alias args $ parens '{' '}' $ queryParser @t
+
+instance ( ParseArgs args
+         , IsAllMaybe args
+         , GQueryParser (M1 _5 _6 _7)
+         ) => GPermTermParser (M.Map Text (Args args, (M1 _5 _6 _7) Void)) where
+  gPermTermParser name = pure $ do
+    alias <- lift $ try $ parseIdentOrAlias name
+    lift skipCrap
+    args <- parseOptionalArgs @args
+    directiveCombinator alias args $ parens '{' '}' $ gQueryParser
+
+
+
 instance ( GPermFieldsParser fq
          , GPermFieldsParser gq
          , forall x. (Monoid (fq x), Monoid (gq x))
@@ -65,18 +119,6 @@ instance ( GPermFieldsParser fq
   gPermFieldsParser =
       (fmap (:*: mempty) <$> gPermFieldsParser @fq)
       ++ (fmap (mempty :*:) <$> gPermFieldsParser @gq)
-
-instance (KnownSymbol name, ParseArgs args, IsAllMaybe args)
-      => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                               (K1 _4 (M.Map Text (Args args, ())))) where
-  gPermFieldsParser = pure . fmap (M1 . K1) $ do
-    let name = symbolVal $ Proxy @name
-    alias <- lift $ try $ parseIdentOrAlias name
-    lift skipCrap
-    args <- parseOptionalArgs @args
-    directiveCombinator alias args $ pure ()
-
--- TODO(jonathan): can probably abstract logic between GPermFieldsParser instances
 
 directiveCombinator :: k
                     -> a
@@ -117,24 +159,6 @@ parseIdentOrAlias def = do
         skipCrap
         pure $ T.pack a
     ]
-
-instance ( KnownSymbol name
-         , HasQueryParser t
-         , HasEmptyQuery t
-         , ParseArgs args
-         , IsAllMaybe args
-         ) => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
-                                    (K1 _4 (M.Map Text (Args args, t 'Query)))) where
-  gPermFieldsParser = pure
-                    . fmap (M1 . K1)
-                    $ do
-    let name = symbolVal $ Proxy @name
-    alias <- lift $ try $ parseIdentOrAlias name
-    lift skipCrap
-    args <- parseOptionalArgs @args
-    directiveCombinator alias args $ parens '{' '}' $ queryParser @t
-
-
 
 ------------------------------------------------------------------------------
 -- |
@@ -216,7 +240,7 @@ instance ( IsArgType t
 ------------------------------------------------------------------------------
 -- |
 foldManyOf
-    :: (Functor t, Foldable t, MonadPlus f, MonadParsec e s f, Monoid m)
+    :: (Foldable t, MonadPlus f, MonadParsec e s f, Monoid m)
     => t (f m)
     -> f m
 foldManyOf = fmap fold . many . asum
