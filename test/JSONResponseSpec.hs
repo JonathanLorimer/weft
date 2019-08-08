@@ -8,31 +8,30 @@ import           Data.Aeson
 import           Data.ByteString.Lazy
 import qualified Data.Map as M
 import           Test.Hspec hiding (Arg)
-import           TestData
+import           BizzaroData
 import           Weft.Generics.Hydrate
 import           Weft.Generics.JSONResponse
 import           Weft.Internal.Types
+import           Weft.Internal.Utils
 
 
-userQuery :: User 'Query
-userQuery = User
-  { userId         = M.singleton "userId" (Arg Nothing :@@ ANil, ())
-  , userName       = M.singleton "userName" (ANil, ())
-  , userBestFriend = M.singleton "userBestFriend" ( Arg Nothing :@@ ANil
-                                                  , userBestFriendQ
-                                                  )
-  , userFriends    = M.empty
-  , userFingers    = M.empty
-  }
+userQuery :: HKD User (ToMagic 'Query)
+userQuery =
+  buildQuery @User
+    (ToMagic $ M.singleton "userId" (Arg Nothing :@@ ANil, ()))
+    (ToMagic $ M.singleton "userName" (ANil, ()))
+    (ToMagic $ M.singleton "userBestFriend" (Arg Nothing :@@ ANil, runHKD userBestFriendQ))
+    (ToMagic M.empty)
+    (ToMagic M.empty)
 
-userBestFriendQ :: User 'Query
-userBestFriendQ = User
-  { userId         = M.empty
-  , userName       = M.singleton "userName" (ANil, ())
-  , userBestFriend = M.empty
-  , userFriends    = M.empty
-  , userFingers    = M.empty
-  }
+userBestFriendQ :: HKD User (ToMagic 'Query)
+userBestFriendQ =
+  buildQuery @User
+    (ToMagic M.empty)
+    (ToMagic $ M.singleton "userName" (ANil, ()))
+    (ToMagic M.empty)
+    (ToMagic M.empty)
+    (ToMagic M.empty)
 
 mockJonathanJSON :: ByteString
 mockJonathanJSON = "{\"userName\":\"Jonathan\",\"userId\":\"1\",\"userBestFriend\":{\"userName\":\"Sandy\"}}"

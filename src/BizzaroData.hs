@@ -41,3 +41,21 @@ data MyEnum = One | Two deriving (Generic, Eq, Ord, Show)
 instance Arbitrary MyEnum where
   arbitrary = oneof [pure One, pure Two]
 
+jonathan :: User
+jonathan = User
+  { userId = const $ ID "1"
+  , userName =  "Jonathan"
+  , userBestFriend = const sandy
+  , userFriends = []
+  , userFingers = []
+  }
+
+sandy :: User
+sandy = User
+  { userId = const $ ID "2"
+  , userName = "Sandy"
+  , userBestFriend = const jonathan
+  , userFriends = []
+  , userFingers = []
+  }
+

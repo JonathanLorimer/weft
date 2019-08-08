@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ff117b10620c83ea9d185b3eaeba596fc790875016f2c160acb18ae533714a29
+-- hash: b38a1aa9c19ff9999307a3ae7764b707ad97d8e2503596271d82783e923c83e2
 
 name:           weft
 version:        0.1.0.0
@@ -40,6 +40,7 @@ library
       Weft.Internal.ArgTypes
       Weft.Internal.ParserUtils
       Weft.Internal.Types
+      Weft.Internal.Utils
       Weft.PprUtils
       Weft.Server
       Weft.Types
