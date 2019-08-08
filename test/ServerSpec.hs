@@ -37,12 +37,12 @@ queryResolver =
     , getAllUsers = getAllUsersResolver
     }
 
-emptyResolver :: Empty 'Resolver
-emptyResolver = Empty undefined
+noneResolver :: None 'Resolver
+noneResolver = None (pure ())
 
-gqlResolver :: Gql GqlQuery Empty s 'Resolver
+gqlResolver :: Gql GqlQuery None s 'Resolver
 gqlResolver =
-  Gql (resolve queryResolver) (resolve emptyResolver)
+  Gql (resolve queryResolver) (resolve noneResolver)
 
 ------------------------------------------------------------------------------------------
 -- | Mock Queries
@@ -66,7 +66,7 @@ getAllUsersTestString = ClientRequest
 getAllUsersTestJson :: BL.ByteString
 getAllUsersTestJson = "{\"query\":{\"getAllUsers\":[{\"userName\":\"Sandy\",\"userId\":\"2\",\"userBestFriend\":{\"userName\":\"Jonathan\",\"userId\":\"1\"}},{\"userName\":\"Jonathan\",\"userId\":\"1\",\"userBestFriend\":{\"userName\":\"Sandy\",\"userId\":\"2\"}}]}}"
 
-getAllUsersTestJsonQuery :: Gql GqlQuery Empty s 'Query
+getAllUsersTestJsonQuery :: Gql GqlQuery None s 'Query
 getAllUsersTestJsonQuery =
   Gql (M.singleton "query" (ANil, gqlQ)) M.empty
   where
@@ -97,7 +97,7 @@ getAllUsersTestJsonQuery =
         }
 
 
-getAllUsersTestQuery :: Either String (Gql GqlQuery Empty s 'Query)
+getAllUsersTestQuery :: Either String (Gql GqlQuery None s 'Query)
 getAllUsersTestQuery = Right (Gql (M.singleton "query" (ANil, gqlQ)) M.empty )
   where
     gqlQ = GqlQuery
@@ -136,7 +136,7 @@ getUserTestString = ClientRequest
   mempty
   Nothing
 
-getUserTestQuery :: Either String (Gql GqlQuery Empty s 'Query)
+getUserTestQuery :: Either String (Gql GqlQuery None s 'Query)
 getUserTestQuery = Right (Gql (M.singleton "query" (ANil, gqlQ)) M.empty)
   where
     gqlQ = GqlQuery

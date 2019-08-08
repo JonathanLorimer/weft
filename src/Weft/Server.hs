@@ -95,7 +95,7 @@ jsonify :: (HasJSONResponse q, HasJSONResponse m)
         -> Value
 jsonify (Gql q m) = object $ f $ qj <> mj
   where
-    f j = (\(_,v) -> ("data", v)) <$> (M.toList j)
+    f = fmap (first $ const "data") . M.toList
     qj = jsonResponse <$> q
     mj = jsonResponse <$> m
 

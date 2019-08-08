@@ -11,7 +11,7 @@ module Weft.Types
   , NoNothingJSON (..)
   , AllHave
   , ID (..)
-  , Empty (..)
+  , None (..)
   ) where
 
 import GHC.Generics

@@ -9,7 +9,6 @@ import           Data.Kind
 import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Void
 import           Data.Text (Text)
 import           GHC.Generics
 import           GHC.TypeLits
@@ -150,16 +149,12 @@ instance {-# OVERLAPPING #-}
            , fmap Just $ (,) <$> arbitrary <*> arbitrary
            ] `suchThat` maybe (isJust $ isAllMaybe @args) (const True)
 
-data Empty (ts :: TypeState) =
-  Empty { dontTouch :: Magic ts Void }
+data None (ts :: TypeState) =
+  None { dontTouch :: Magic ts () }
     deriving (Generic)
 
-instance Show (Empty ts) where
-  show _ = ""
-
-instance Eq (Empty ts) where
-  (==) (Empty _) (Empty _) = True
-
+deriving instance AllHave Eq (None ts) => Eq (None ts)
+deriving instance AllHave Show (None ts) => Show (None ts)
 
 data Gql (q :: TypeState -> *)
          (m :: TypeState -> *)
