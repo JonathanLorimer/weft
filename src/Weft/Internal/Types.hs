@@ -27,7 +27,7 @@ type Parser = Parsec Void Text
 
 ------------------------------------------------------------------------------
 -- |
-data TypeState = Query | Data | Schema | Response | Resolver
+data TypeState = Query | Schema | Response | Resolver
 
 
 ------------------------------------------------------------------------------
@@ -37,9 +37,6 @@ type family Magic (ts :: TypeState) a where
   Magic 'Resolver [record 'Resolver] = record 'Query -> IO [record 'Response]     -- RV2
   Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)     -- RV3
   Magic 'Resolver a                  = IO a                                       -- RV4
-
-  Magic 'Data     (Method args a)    = Magic 'Data a                              -- D1
-  Magic 'Data     a                  = a                                          -- D2
 
   Magic 'Query    t                  = M.Map Text (MagicQueryResult t (UnravelArgs t))
 

@@ -13,6 +13,7 @@ module Weft.Types
   , None (..)
   ) where
 
+import Data.Kind
 import GHC.Generics
 import Weft.Generics.AllTypes
 import Weft.Generics.Hydrate
@@ -22,11 +23,5 @@ import Weft.Generics.Resolve
 import Weft.Generics.Schema
 import Weft.Internal.Types hiding (query)
 
-type Wefty record =
-  ( HasAllTypes record
-  , HasHydrate record
-  , HasPprSchema record
-  , HasResolve record
-  , HasSchema record
-  )
+type Wefty record = (() :: Constraint)
 

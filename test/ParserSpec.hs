@@ -16,7 +16,9 @@ import           Test.QuickCheck
 import           Text.Megaparsec
 import           Text.PrettyPrint.HughesPJ hiding (first)
 import           Weft.Generics.PprQuery
+import           Weft.Generics.PprSchema
 import           Weft.Generics.QueryParser
+import           Weft.Generics.Schema
 import           Weft.Internal.Types
 import           Weft.Internal.Utils
 import           Weft.Types
@@ -162,7 +164,7 @@ testMagicQuery = property $ do
        . parseNoVars @record
        . T.pack
        . render
-       $ magicPprQuery @record q
+       $ magicPprQuery q
 
 
 parseAllOnly :: Parser a -> Text -> Either String a
@@ -182,8 +184,7 @@ v `shouldSatisfy2` p = expectTrue "predicate failed" $ p v
 
 
 shouldBe2
-    :: forall record
-     . ( HasCallStack
+    :: ( HasCallStack
        , Eq (J record 'Query Void)
        , HasMagicPprQuery record
        )
@@ -192,13 +193,12 @@ shouldBe2
     -> Expectation
 actual `shouldBe2` expected =
   case actual of
-    Right e -> expectTrue (render $ magicPprQuery @record e) $ runHKD e == runHKD expected
+    Right e -> expectTrue (render $ magicPprQuery e) $ runHKD e == runHKD expected
     Left err -> expectTrue err False
 
 
 parseShouldBe
-    :: forall record
-     . ( HasCallStack
+    :: ( HasCallStack
        , Eq (J record 'Query Void)
        , HasMagicPprQuery record
        , HasMagicQueryParser record
@@ -206,7 +206,7 @@ parseShouldBe
     => Text
     -> HKD record (ToMagic 'Query)
     -> Expectation
-parseShouldBe str expected = shouldBe2 (parseNoVars @record str) expected
+parseShouldBe str expected = shouldBe2 (parseNoVars str) expected
 
 
 expectTrue :: HasCallStack => String -> Bool -> Expectation
