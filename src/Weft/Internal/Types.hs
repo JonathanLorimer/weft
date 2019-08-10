@@ -70,6 +70,7 @@ deriving instance Semigroup (Magic ts a) => Semigroup (ToMagic ts a)
 deriving instance Monoid (Magic ts a)    => Monoid (ToMagic ts a)
 deriving instance Arbitrary (Magic ts a) => Arbitrary (ToMagic ts a)
 
+type JHKD (rec :: *) (ts :: TypeState) = HKD rec (ToMagic ts)
 type J  (rec :: *) (ts :: TypeState) = HKD_ (ToMagic ts) rec
 type J' (rec :: *) (ts :: TypeState) = J rec ts Void
 

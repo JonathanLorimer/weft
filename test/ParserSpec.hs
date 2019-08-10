@@ -157,7 +157,7 @@ testMagicQuery
     => Property
 testMagicQuery = property $ do
   q <- magicRecordGen @record @'Query
-  pure . (== Right q)
+  pure . (== Right (runHKD q))
        . fmap runHKD
        . parseNoVars @record
        . T.pack
@@ -191,8 +191,8 @@ shouldBe2
     -> HKD record (ToMagic 'Query)
     -> Expectation
 actual `shouldBe2` expected =
-  case fmap runHKD actual of
-    Right e -> expectTrue (render $ magicPprQuery @record e) $ e == runHKD expected
+  case actual of
+    Right e -> expectTrue (render $ magicPprQuery @record e) $ runHKD e == runHKD expected
     Left err -> expectTrue err False
 
 

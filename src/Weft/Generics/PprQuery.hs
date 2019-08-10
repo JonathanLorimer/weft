@@ -25,8 +25,8 @@ type HasMagicPprQuery record =
 
 ------------------------------------------------------------------------------
 -- |
-magicPprQuery :: HasMagicPprQuery record => J' record 'Query -> Doc
-magicPprQuery = gPprQuery
+magicPprQuery :: HasMagicPprQuery record => JHKD record 'Query -> Doc
+magicPprQuery = gPprQuery . runHKD
 
 
 gPprQuery :: FoldP1 GPprTerm rep => rep x -> Doc

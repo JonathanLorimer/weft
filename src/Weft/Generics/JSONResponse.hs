@@ -20,7 +20,7 @@ type HasMagicJSONResponse record =
   )
 
 
-magicJsonResponse :: (HasMagicJSONResponse record) => (HKD record (ToMagic 'Response)) -> Value
+magicJsonResponse :: HasMagicJSONResponse record => JHKD record 'Response -> Value
 magicJsonResponse = gJsonResponse . runHKD
 
 

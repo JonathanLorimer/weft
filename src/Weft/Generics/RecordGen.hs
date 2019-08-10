@@ -16,8 +16,9 @@ type HasMagicRecordGen (record :: *) (ts :: TypeState) =
   , GRecordGen (J record ts)
   )
 
-magicRecordGen :: HasMagicRecordGen record ts => Gen (J' record ts)
-magicRecordGen = gRecordGen
+
+magicRecordGen :: HasMagicRecordGen record ts => Gen (JHKD record ts)
+magicRecordGen = fmap HKD gRecordGen
 
 
 class GRecordGen (r :: * -> *) where

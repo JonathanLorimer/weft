@@ -37,7 +37,7 @@ type HasMagicQueryParser record =
      , GQueryParser (J record 'Query)
      )
 
-magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (HKD record (ToMagic 'Query))
+magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (JHKD record 'Query)
 magicQueryParser = fmap HKD $ lift skipCrap *> gQueryParser <* lift skipCrap
 
 
