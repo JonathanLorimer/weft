@@ -7,6 +7,7 @@ module Weft.Generics.JSONResponse
   ) where
 
 import           Weft.Internal.Types
+import           Weft.Internal.GenericUtils
 import           GHC.Generics
 import           Data.Aeson
 import qualified Data.Text as T
@@ -17,12 +18,12 @@ import qualified Data.Map as M
 -- |
 type HasJSONResponse record =
   ( Generic (record 'Response)
-  , GJsonResponse (Rep (record 'Response))
+  , FoldP1 GJsonTerm (Rep (record 'Response))
   )
 
 type HasMagicJSONResponse record =
   ( Generic record
-  , GJsonResponse (J record 'Response)
+  , FoldP1 GJsonTerm (J record 'Response)
   )
 
 
@@ -32,16 +33,9 @@ jsonResponse = gJsonResponse . from
 magicJsonResponse :: (HasMagicJSONResponse record) => (HKD record (ToMagic 'Response)) -> Value
 magicJsonResponse = gJsonResponse . runHKD
 
-class GJsonResponse (ri :: * -> *) where
-    gJsonResponse :: ri x -> Value
 
-instance GJsonResponse ri
-      => GJsonResponse (M1 a b ri) where
-  gJsonResponse (M1 r) = gJsonResponse r
-
-instance (GJsonResponse ri, GJsonResponse rj)
-      => GJsonResponse (ri :*: rj) where
-  gJsonResponse (ri :*: rj) = (gJsonResponse ri) `combine` (gJsonResponse rj)
+gJsonResponse :: FoldP1 GJsonTerm rep => rep x -> Value
+gJsonResponse = foldr combine (object []) . foldP1 @GJsonTerm (const $ pure @[] . gJsonTerm)
 
 combine :: Value -> Value -> Value
 combine (Object a) (Object b) = Object $ a <> b
@@ -50,13 +44,10 @@ combine _ _                   = error "combine failed in JSONResponse, this shou
 class GJsonTerm (t :: *) where
   gJsonTerm :: t -> Value
 
-instance GJsonTerm t => GJsonResponse (K1 x t) where
-  gJsonResponse (K1 t) = gJsonTerm t
-
 instance GJsonTerm (Magic ts t) => GJsonTerm (ToMagic ts t) where
   gJsonTerm = gJsonTerm . unMagic
 
-instance GJsonResponse (M1 _1 _2 _3) => GJsonTerm (M1 _1 _2 _3 _4) where
+instance FoldP1 GJsonTerm (M1 _1 _2 _3) => GJsonTerm (M1 _1 _2 _3 _4) where
   gJsonTerm = gJsonResponse
 
 instance GJsonTerm t => GJsonTerm (M.Map T.Text t) where
