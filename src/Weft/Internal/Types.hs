@@ -1,6 +1,7 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE PatternSynonyms            #-}
 
 module Weft.Internal.Types
   ( module Weft.Internal.Types
@@ -61,6 +62,9 @@ type family MagicResponse (a :: *) :: * where
 newtype ToMagic (ts :: TypeState) (a :: *) = ToMagic
   { unMagic :: Magic ts a
   }
+
+pattern ToQuery :: Magic ts a -> ToMagic ts a
+pattern ToQuery a = ToMagic a
 
 deriving instance Eq (Magic ts a)        => Eq (ToMagic ts a)
 deriving instance Semigroup (Magic ts a) => Semigroup (ToMagic ts a)

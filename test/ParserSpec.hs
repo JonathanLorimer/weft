@@ -41,28 +41,28 @@ spec = do
   describe "input types" $ do
     it "should parse an input type literal" $ do
       parseShouldBe @Finger "fingers(input: {hearts: true, boots: 5}) { }" $
-        buildQuery @Finger $ ToMagic $
+        buildQuery @Finger $ ToQuery $
           M.singleton "fingers"
             ( (Arg $ Just $ MyInputType 5 True) :@@ Arg Nothing :@@ ANil
-            , runHKD $ buildQuery @Account $ ToMagic M.empty
+            , runHKD $ buildQuery @Account $ ToQuery M.empty
             )
 
   describe "enums types" $ do
     it "should parse an enum literal" $ do
       parseShouldBe @Finger "fingers(enum: ONE) { }" $
-        buildQuery @Finger $ ToMagic $
+        buildQuery @Finger $ ToQuery $
           M.singleton "fingers"
             ( Arg Nothing :@@ (Arg $ Just One) :@@ ANil
-            , runHKD $ buildQuery @Account $ ToMagic M.empty
+            , runHKD $ buildQuery @Account $ ToQuery M.empty
             )
 
   describe "input types" $ do
     it "should parse an input type literal" $ do
       parseShouldBe @Finger "fingers(input: {hearts: true, boots: 5}) { }" $
-        buildQuery @Finger $ ToMagic $
+        buildQuery @Finger $ ToQuery $
           M.singleton "fingers"
             ( (Arg $ Just $ MyInputType 5 True) :@@ Arg Nothing :@@ ANil
-            , runHKD $ buildQuery @Account $ ToMagic M.empty
+            , runHKD $ buildQuery @Account $ ToQuery M.empty
             )
 
   describe "variables" $ do
@@ -75,23 +75,23 @@ spec = do
             "userId(arg: $known)"
         `shouldBe2` (
           buildQuery @User
-            (ToMagic $  M.singleton "userId" ( (Arg $ Just 1337) :@@ ANil
+            (ToQuery $  M.singleton "userId" ( (Arg $ Just 1337) :@@ ANil
                                              , ()
                                              ))
-            (ToMagic M.empty)
-            (ToMagic M.empty)
-            (ToMagic M.empty)
-            (ToMagic M.empty)
+            (ToQuery M.empty)
+            (ToQuery M.empty)
+            (ToQuery M.empty)
+            (ToQuery M.empty)
                     )
 
     it "should inline a known variable in an input type" $ do
       parseAllOnly (flip runReaderT (M.singleton "known" "1337") $ magicQueryParser @Finger)
             "fingers(input: {hearts: true, boots: $known}) { }"
         `shouldBe2` (
-          buildQuery @Finger $ ToMagic $
+          buildQuery @Finger $ ToQuery $
             M.singleton "fingers"
               ( (Arg $ Just $ MyInputType 1337 True) :@@ Arg Nothing :@@ ANil
-              , runHKD $ buildQuery @Account $ ToMagic M.empty
+              , runHKD $ buildQuery @Account $ ToQuery M.empty
               ))
 
     it "should fail when var type is Int but receives String" $ do
@@ -111,15 +111,15 @@ spec = do
             , ") # finished"
             ]
         ) $ buildQuery @User
-              (ToMagic $ M.singleton "userId" (Arg (Just 6) :@@ ANil, ()))
-              (ToMagic M.empty)
-              (ToMagic M.empty)
-              (ToMagic M.empty)
-              (ToMagic M.empty)
+              (ToQuery $ M.singleton "userId" (Arg (Just 6) :@@ ANil, ()))
+              (ToQuery M.empty)
+              (ToQuery M.empty)
+              (ToQuery M.empty)
+              (ToQuery M.empty)
 
     it "should not parse #s in strings" $ do
       parseShouldBe @Account "accountTitle(title: \"# no problem\")" $
-        buildQuery @Account $ ToMagic $
+        buildQuery @Account $ ToQuery $
           M.singleton "accountTitle"
             ( Arg (Just "# no problem") :@@ ANil
             , ()
@@ -129,11 +129,11 @@ spec = do
     it "should allow user to ignore fields using directives" $ do
       let userQ =
             buildQuery @User
-              (ToMagic M.empty)
-              (ToMagic $ M.singleton "userName" (ANil, ()))
-              (ToMagic M.empty)
-              (ToMagic M.empty)
-              (ToMagic M.empty)
+              (ToQuery M.empty)
+              (ToQuery $ M.singleton "userName" (ANil, ()))
+              (ToQuery M.empty)
+              (ToQuery M.empty)
+              (ToQuery M.empty)
       parseShouldBe @User
         ( T.unlines
             [ "userId @include(if: false)"
@@ -142,11 +142,11 @@ spec = do
             , "userFriends @skip(if: false) { userName }"
             ]
         ) $ buildQuery @User
-              (ToMagic M.empty) -- userId
-              (ToMagic $ M.singleton "userName" (ANil, ()))
-              (ToMagic M.empty) -- bestFriend
-              (ToMagic $ M.singleton "userFriends" (ANil, runHKD userQ))
-              (ToMagic M.empty)
+              (ToQuery M.empty) -- userId
+              (ToQuery $ M.singleton "userName" (ANil, ()))
+              (ToQuery M.empty) -- bestFriend
+              (ToQuery $ M.singleton "userFriends" (ANil, runHKD userQ))
+              (ToQuery M.empty)
 
 
 testMagicQuery

@@ -18,20 +18,20 @@ import           Weft.Internal.Utils
 userQuery :: HKD User (ToMagic 'Query)
 userQuery =
   buildQuery @User
-    (ToMagic $ M.singleton "userId" (Arg Nothing :@@ ANil, ()))
-    (ToMagic $ M.singleton "userName" (ANil, ()))
-    (ToMagic $ M.singleton "userBestFriend" (Arg Nothing :@@ ANil, runHKD userBestFriendQ))
-    (ToMagic M.empty)
-    (ToMagic M.empty)
+    (ToQuery $ M.singleton "userId" (Arg Nothing :@@ ANil, ()))
+    (ToQuery $ M.singleton "userName" (ANil, ()))
+    (ToQuery $ M.singleton "userBestFriend" (Arg Nothing :@@ ANil, runHKD userBestFriendQ))
+    (ToQuery M.empty)
+    (ToQuery M.empty)
 
 userBestFriendQ :: HKD User (ToMagic 'Query)
 userBestFriendQ =
   buildQuery @User
-    (ToMagic M.empty)
-    (ToMagic $ M.singleton "userName" (ANil, ()))
-    (ToMagic M.empty)
-    (ToMagic M.empty)
-    (ToMagic M.empty)
+    (ToQuery M.empty)
+    (ToQuery $ M.singleton "userName" (ANil, ()))
+    (ToQuery M.empty)
+    (ToQuery M.empty)
+    (ToQuery M.empty)
 
 mockJonathanJSON :: ByteString
 mockJonathanJSON = "{\"userName\":\"Jonathan\",\"userId\":\"1\",\"userBestFriend\":{\"userName\":\"Sandy\"}}"
@@ -46,19 +46,19 @@ spec = do
       encode (
         magicJsonResponse $
           buildResponse @User
-            (ToMagic $ M.singleton "userId" $ ID "2")
-            (ToMagic $ M.singleton "userName" "Sandy")
-            (ToMagic $ M.singleton "userBestFriend"
+            (ToQuery $ M.singleton "userId" $ ID "2")
+            (ToQuery $ M.singleton "userName" "Sandy")
+            (ToQuery $ M.singleton "userBestFriend"
                      $ runHKD
                      $ buildResponse @User
-                         (ToMagic M.empty)
-                         (ToMagic $ M.singleton "userName" "Jonathan")
-                         (ToMagic M.empty)
-                         (ToMagic M.empty)
-                         (ToMagic M.empty)
-            ) -- runHKD $ buildResponse @User (ToMagic M.empty) ())
-            (ToMagic M.empty)
-            (ToMagic M.empty)
+                         (ToQuery M.empty)
+                         (ToQuery $ M.singleton "userName" "Jonathan")
+                         (ToQuery M.empty)
+                         (ToQuery M.empty)
+                         (ToQuery M.empty)
+            )
+            (ToQuery M.empty)
+            (ToQuery M.empty)
 
              ) `shouldBe` mockSandyJSON
     -- it "should parse JSON from Jonathan" $ do
