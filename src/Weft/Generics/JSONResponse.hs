@@ -1,7 +1,5 @@
 module Weft.Generics.JSONResponse
-  ( HasJSONResponse
-  , HasMagicJSONResponse
-  , jsonResponse
+  ( HasMagicJSONResponse
   , magicJsonResponse
   , combine
   ) where
@@ -16,19 +14,11 @@ import qualified Data.Map as M
 
 ------------------------------------------------------------------------------
 -- |
-type HasJSONResponse record =
-  ( Generic (record 'Response)
-  , FoldP1 GJsonTerm (Rep (record 'Response))
-  )
-
 type HasMagicJSONResponse record =
   ( Generic record
   , FoldP1 GJsonTerm (J record 'Response)
   )
 
-
-jsonResponse :: (HasJSONResponse record) => (record 'Response) -> Value
-jsonResponse = gJsonResponse . from
 
 magicJsonResponse :: (HasMagicJSONResponse record) => (HKD record (ToMagic 'Response)) -> Value
 magicJsonResponse = gJsonResponse . runHKD
@@ -55,9 +45,6 @@ instance GJsonTerm t => GJsonTerm (M.Map T.Text t) where
 
 instance GJsonTerm t => GJsonTerm [t] where
   gJsonTerm = toJSON . fmap gJsonTerm
-
-instance HasJSONResponse record => GJsonTerm (record 'Response) where
-  gJsonTerm = jsonResponse
 
 instance GJsonTerm Int where
   gJsonTerm = toJSON

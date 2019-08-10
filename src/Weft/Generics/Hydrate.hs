@@ -21,11 +21,27 @@ type HasHydrate record =
              (Rep (record 'Response))
   )
 
+type HasMagicHydrate record =
+  ( Generic record
+  , Generic record
+  , Generic record
+  , GHydrate (J record 'Data)
+             (J record 'Query)
+             (J record 'Response)
+  )
+
 
 ------------------------------------------------------------------------------
 -- |
 hydrate :: HasHydrate record => record 'Data -> record 'Query -> record 'Response
 hydrate d query = to $ gHydrate (from d) (from query)
+
+magicHydrate
+    :: HasMagicHydrate record
+    => J' record 'Data
+    -> J' record 'Query
+    -> J' record 'Response
+magicHydrate = gHydrate
 
 hydrateF :: (HasHydrate record, Functor f )
          => f (record 'Data)
@@ -36,7 +52,7 @@ hydrateF fd q = (flip hydrate q) <$> fd
 
 ------------------------------------------------------------------------------
 -- |
-class GHydrate fd fq fr where
+class GHydrate (fd :: * -> *) (fq :: * -> *) (fr :: * -> *) where
     gHydrate :: fd x -> fq x -> fr x
 
 instance (GHydrate fd fq fr) =>
@@ -51,20 +67,47 @@ instance (GHydrate fd fq fr, GHydrate gd gq gr) =>
              (fr :*: gr) where
     gHydrate (fd :*: gd) (fq :*: gq) = (gHydrate fd fq) :*: (gHydrate gd gq)
 
-instance GHydrate (K1 x a)
-                  (K1 x (M.Map Text (Args args, ())))
-                  (K1 x (M.Map Text a)) where
-    gHydrate (K1 d) (K1 q) = K1 $ fmap (const d) q
+instance GHydrateTerm f q r
+      => GHydrate (K1 _1 f)
+                  (K1 _1 (M.Map Text q))
+                  (K1 _1 (M.Map Text r)) where
+  gHydrate (K1 f) (K1 q) = K1 $ gHydrateTerm f q
 
-instance HasHydrate record =>
-         GHydrate (K1 x (record 'Data))
-                  (K1 x (M.Map Text (Args args, record 'Query)))
-                  (K1 x (M.Map Text (record 'Response))) where
-    gHydrate (K1 d) (K1 q) = K1 $ fmap (hydrate d . snd) q
+class GHydrateTerm (d :: *) (q :: *) (r :: *) where
+  gHydrateTerm :: d -> M.Map Text q -> M.Map Text r
 
-instance HasHydrate record =>
-         GHydrate (K1 x [record 'Data])
-                  (K1 x (M.Map Text (Args args, record 'Query)))
-                  (K1 x (M.Map Text [record 'Response])) where
-    gHydrate (K1 d) (K1 q) = K1 $ fmap ((<$> d) . flip hydrate . snd) q
+instance GHydrateTerm (Magic tsd d)
+                      (Magic tsq q)
+                      (Magic tsr r)
+      => GHydrateTerm (ToMagic tsd d)
+                      (ToMagic tsq q)
+                      (ToMagic tsr r) where
+  gHydrateTerm (ToMagic d) =
+    fmap ToMagic . gHydrateTerm d . fmap unMagic
 
+-- instance GHydrate (M1 _1 _2 fd)
+--                   (M1 _1 _2 fq)
+--                   (M1 _1 _2 fr)
+--       => GHydrateTerm (M1 _1 _2 fd _3)
+--                       (M1 _1 _2 fq _3)
+--                       (M1 _1 _2 fr _3) where
+--   gHydrateTerm = _ gHydrate
+
+instance GHydrateTerm a (Args args, ()) a where
+  gHydrateTerm d q = fmap (const d) q
+
+instance HasHydrate record
+      => GHydrateTerm (record 'Data)
+                      ((Args args, record 'Query))
+                      (record 'Response) where
+  gHydrateTerm d q = fmap (hydrate d . snd) q
+
+-- instance HasHydrate d (Args args, q) r => GHydrateTerm [d] (Args args, q) [r] where
+--   gHydrateTerm d q = fmap ((r$> d) . _ . snd) q
+
+
+-- instance GHydrateTerm r q r =>
+--          GHydrateTerm ([record 'Data])
+--                       ((M.Map Text (Args args, record 'Query)))
+--                       ((M.Map Text [record 'Response])) where
+--     gHydrate (K1 d) (K1 q) = K1 $ fmap ((<$> d) . flip hydrate . snd) q

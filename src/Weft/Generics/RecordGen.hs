@@ -1,7 +1,5 @@
 module Weft.Generics.RecordGen
-  ( HasRecordGen
-  , HasMagicRecordGen
-  , recordGen
+  ( HasMagicRecordGen
   , magicRecordGen
   ) where
 
@@ -13,19 +11,10 @@ import           GHC.Generics
 import           Test.QuickCheck hiding (Args)
 import           Weft.Internal.Types
 
-
-type HasRecordGen record (ts :: TypeState) =
-  ( Generic (record ts)
-  , GRecordGen (Rep (record ts))
-  )
-
 type HasMagicRecordGen (record :: *) (ts :: TypeState) =
   ( Generic record
   , GRecordGen (J record ts)
   )
-
-recordGen :: (HasRecordGen record ts) => Gen (record ts)
-recordGen = to <$> gRecordGen
 
 magicRecordGen :: HasMagicRecordGen record ts => Gen (J' record ts)
 magicRecordGen = gRecordGen
@@ -82,9 +71,6 @@ instance TermGen a => TermGen [a] where
     case n <= 0 of
       True  -> pure []
       False -> resize (n - 1) $ listOf termGen
-
-instance HasRecordGen r ts => TermGen (r ts) where
-  termGen = scale (max 0 . subtract 1) recordGen
 
 instance TermGen a => TermGen (Maybe a) where
   termGen = sized $ \n ->

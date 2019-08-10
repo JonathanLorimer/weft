@@ -1,9 +1,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 module Weft.Generics.PprQuery
-  ( HasPprQuery
-  , HasMagicPprQuery
-  , pprQuery
+  ( HasMagicPprQuery
   , magicPprQuery
   , pprArg
   ) where
@@ -20,23 +18,10 @@ import           Weft.Internal.Types
 import Weft.Internal.GenericUtils
 
 
-------------------------------------------------------------------------------
--- |
-type HasPprQuery record =
-  ( Generic (record 'Query)
-  , FoldP1 GPprTerm (Rep (record 'Query))
-  )
-
 type HasMagicPprQuery record =
   ( Generic record
   , FoldP1 GPprTerm (J record 'Query)
   )
-
-
-------------------------------------------------------------------------------
--- |
-pprQuery :: HasPprQuery record => record 'Query -> Doc
-pprQuery q = gPprQuery $ from q
 
 ------------------------------------------------------------------------------
 -- |
@@ -49,19 +34,6 @@ gPprQuery = vcat . foldP1 @GPprTerm ((pure .) . gPprTerm)
 
 class GPprTerm (t :: *) where
   gPprTerm :: String -> t -> Doc
-
-instance ( PprEachArg args
-         , HasPprQuery record
-         ) => GPprTerm (M.Map Text (Args args, record 'Query)) where
-  gPprTerm name m =
-    vcat $ M.toList m <&> \(alias, (args, rec)) ->
-      pprAliasIfDifferent name alias $
-        sep
-          [ text name <> pprArgs args
-          , char '{'
-          , nest 4 $ pprQuery rec
-          , char '}'
-          ]
 
 instance PprEachArg args => GPprTerm (M.Map Text (Args args, ())) where
   gPprTerm name m =
