@@ -76,6 +76,7 @@ type J  (rec :: *) (ts :: TypeState) = HKD_ (ToMagic ts) rec
 type J' (rec :: *) (ts :: TypeState) = J rec ts Void
 
 data Method (args :: [(Symbol, *)]) (res :: *) = Method res
+  deriving Generic
 
 
 ------------------------------------------------------------------------------
