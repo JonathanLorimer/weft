@@ -1,7 +1,7 @@
 module Weft.Generics.Hydrate
   ( HasMagicHydrate
   , magicHydrate
-  -- , hydrateF
+  , hydrateF
   ) where
 
 import qualified Data.Map as M
@@ -25,11 +25,11 @@ type HasMagicHydrate record =
 magicHydrate :: HasMagicHydrate record => record -> JHKD record 'Query -> JHKD record 'Response
 magicHydrate d query = HKD $ gHydrate (from d) (runHKD query)
 
--- hydrateF :: (HasHydrate record, Functor f )
---          => f (record 'Data)
---          -> record 'Query
---          -> f (record 'Response)
--- hydrateF fd q = (flip hydrate q) <$> fd
+hydrateF :: (HasMagicHydrate record, Functor f )
+         => f record
+         -> JHKD record 'Query
+         -> f (JHKD record 'Response)
+hydrateF fd q = (flip magicHydrate q) <$> fd
 
 
 ------------------------------------------------------------------------------
@@ -86,7 +86,7 @@ instance HasMagicHydrate record =>
                    (M.Map Text [JHKD record 'Response]) where
   gHydrateTerm d q = fmap ((<$> d) . flip magicHydrate . snd) q
 
-instance {-# OVERLAPPING #-} GHydrateTerm d (Magic 'Query q) (Magic 'Response r) =>
+instance GHydrateTerm d (Magic 'Query q) (Magic 'Response r) =>
       GHydrateTerm d
                    (ToMagic 'Query q)
                    (ToMagic 'Response r) where
@@ -107,14 +107,6 @@ instance (Generic record, GHydrate (Rep record)
                    (M.Map Text [M1 _1 _2 fr _4]) where
   gHydrateTerm d q = fmap ((<$> fmap from d) . flip gHydrate . snd) q
 
-
--- instance (Generic record, GHydrate (Rep record)
---                   (M1 _1 _2 fq)
---                   (M1 _1 _2 fr)) =>
---       GHydrateTerm record
---                    (M.Map Text (Args args, M1 _1 _2 fq _4))
---                    (M.Map Text (M1 _1 _2 fr _4)) where
---   gHydrateTerm d q = fmap (gHydrate (from d) . snd) q
 
 instance (Generic record, GHydrate (Rep record)
                   (M1 _1 _2 fq)
