@@ -14,9 +14,11 @@ import Lens.Micro.Aeson
 import Network.Wai.Middleware.Cors
 import Network.Wai
 import Network.Wai.Handler.Warp
+import Network.Wai.Handler.WebSockets
 import Network.HTTP.Types (status200, status500)
 import Network.HTTP.Types.Header (hContentType)
 import Network.HTTP.Types.Method
+import qualified Network.WebSockets as WS
 import Data.Aeson hiding (json)
 import qualified Data.ByteString.Char8 as C8
 import Data.Monoid
@@ -108,7 +110,18 @@ server :: (Wefty q, Wefty m)
        -> IO ()
 server s r = runSettings
   (appEndo (foldMap Endo s) defaultSettings)
-  (cors extremelyPermissiveCorsPolicy $ app r)
+  (cors extremelyPermissiveCorsPolicy $ dualApp r)
+
+dualApp :: (Wefty q, Wefty m)
+          => Gql q m s 'Resolver
+          -> Application
+dualApp r = websocketsOr WS.defaultConnectionOptions (wsApp r) (app r)
+
+
+wsApp :: Gql q m s 'Resolver -> WS.ServerApp
+wsApp (Gql _ _ s) pending_conn = do
+      conn <- WS.acceptRequest pending_conn
+      s $ WS.sendBinaryData conn
 
 -- TODO(Jonathan): At some point you should make this less permissive
 extremelyPermissiveCorsPolicy :: Request -> Maybe CorsResourcePolicy

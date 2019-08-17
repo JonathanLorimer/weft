@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0119a5c9756da5a0993d3aa3c8f102a891245422fd6d4a8c9ac4e885b2575e14
+-- hash: 131ae4ca7d8cfd691b3baa18cb0db0400361bdbbf362e93c6b0cc00dea96af64
 
 name:           weft
 version:        0.1.0.0
@@ -70,7 +70,9 @@ library
     , unordered-containers
     , wai
     , wai-cors
+    , wai-websockets
     , warp
+    , websockets
   default-language: Haskell2010
 
 executable example
@@ -101,7 +103,9 @@ executable example
     , unordered-containers
     , wai
     , wai-cors
+    , wai-websockets
     , warp
+    , websockets
     , weft
   default-language: Haskell2010
 
@@ -141,6 +145,8 @@ test-suite test
     , unordered-containers
     , wai
     , wai-cors
+    , wai-websockets
     , warp
+    , websockets
     , weft
   default-language: Haskell2010

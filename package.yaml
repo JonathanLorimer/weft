@@ -31,6 +31,7 @@ dependencies:
   - warp
   - wai
   - wai-cors
+  - wai-websockets
   - http-types
   - pretty
   - QuickCheck
@@ -40,6 +41,7 @@ dependencies:
   - parser-combinators
   - mtl
   - higgledy
+  - websockets
 
 default-extensions:
   - DeriveGeneric
