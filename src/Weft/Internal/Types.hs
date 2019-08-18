@@ -203,15 +203,17 @@ data None (ts :: TypeState) =
 deriving instance AllHave Eq (None ts) => Eq (None ts)
 deriving instance AllHave Show (None ts) => Show (None ts)
 
-data Gql (q :: *)
-         (m :: *)
-         (s :: TypeState -> *)
-         (ts :: TypeState) = Gql
-  { query        :: Magic ts q
-  , mutation     :: Magic ts m
-  -- , subscription :: s ts
-  }
-  deriving Generic
+data Gql (q :: *) (m :: *) (s :: *) = Gql
+  { gqlQuery        :: Magic ts q
+  , gqlMutation     :: Magic ts m
+  , gqlSubscription :: Magic ts s
+  } deriving Generic
+
+data GqlResolver (q :: *) (m :: *) (s :: *) = GqlResolver
+  { gqlrQuery        :: Magic 'Resolver q
+  , gqlrMutation     :: Magic 'Resolver m
+  , gqlrSubscription :: Magic 'Subscription s
+  } deriving Generic
 
 -- TODO(sandy): delete this crap
 type AllHave c a = GFields c (Rep a)
