@@ -34,10 +34,11 @@ data TypeState = Query | Schema | Response | Resolver
 ------------------------------------------------------------------------------
 -- |
 type family Magic (ts :: TypeState) a where
-  Magic 'Resolver (Arg n t -> a)     = Arg n t -> Magic 'Resolver a               -- RV1
-  Magic 'Resolver [record 'Resolver] = record 'Query -> IO [record 'Response]     -- RV2
-  Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)     -- RV3
-  Magic 'Resolver a                  = IO a                                       -- RV4
+  Magic 'Resolver (Method ('(n, t) ': args) a) = Arg n t -> Magic 'Resolver (Method args a)  -- RV1
+  Magic 'Resolver (Method '[] a) = Magic 'Resolver a                                         -- RV1
+  Magic 'Resolver [record 'Resolver] = record 'Query -> IO [record 'Response]                -- RV2
+  Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)                -- RV3
+  Magic 'Resolver a                  = MagicResolve a
 
   Magic 'Query    t                  = M.Map Text (MagicQueryResult t (UnravelArgs t))
 
@@ -45,6 +46,18 @@ type family Magic (ts :: TypeState) a where
   Magic 'Response a                  = M.Map Text (MagicResponse a)
 
   Magic 'Schema   ts                 = Field (Fst (UnravelArgs ts))
+
+
+type family MagicResolve (a :: *) :: * where
+  MagicResolve Int     = IO Int
+  MagicResolve Integer = IO Integer
+  MagicResolve Double  = IO Double
+  MagicResolve Bool    = IO Bool
+  MagicResolve String  = IO String
+  MagicResolve ID      = IO ID
+  MagicResolve ()      = IO ()
+  MagicResolve [a]     = J a 'Query Void -> IO [J a 'Response Void]
+  MagicResolve a       = J a 'Query Void -> IO (J a 'Response Void)
 
 
 type family MagicResponse (a :: *) :: * where

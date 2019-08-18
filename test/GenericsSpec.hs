@@ -50,11 +50,11 @@ queryParserUser = magicQueryParser
 queryParserAccount :: ReaderT Vars Parser (JHKD Account 'Query)
 queryParserAccount = magicQueryParser
 
--- resolveUser :: JHKD User 'Resolver -> JHKD User 'Query -> IO (JHKD User 'Response)
--- resolveUser = resolve
+resolveUser :: JHKD User 'Resolver -> JHKD User 'Query -> IO (JHKD User 'Response)
+resolveUser = magicResolve
 
--- resolveAccount :: JHKD Account 'Resolver -> JHKD Account 'Query -> IO (JHKD Account 'Response)
--- resolveAccount = resolve
+resolveAccount :: JHKD Account 'Resolver -> JHKD Account 'Query -> IO (JHKD Account 'Response)
+resolveAccount = magicResolve
 
 schemaUser :: JHKD User 'Schema
 schemaUser = magicSchema
