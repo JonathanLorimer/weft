@@ -186,7 +186,7 @@ data Gql (q :: *)
          (m :: *)
          (s :: TypeState -> *)
          (ts :: TypeState) = Gql
-  { query        :: ToMagic ts q
+  { query        :: Magic ts q
   , mutation     :: Magic ts m
   -- , subscription :: s ts
   }

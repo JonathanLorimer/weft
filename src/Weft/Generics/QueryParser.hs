@@ -49,8 +49,8 @@ anonymousQueryParser
        ) => ReaderT Vars Parser (Gql q m s 'Query)
 anonymousQueryParser = do
   r <- parens '{' '}' $ magicQueryParser @q
-  pure $ Gql { query    = ToMagic $ M.singleton "query" (ANil, runHKD r)
-             , mutation = undefined
+  pure $ Gql { query    = M.singleton "query" (ANil, runHKD r)
+             , mutation = M.empty
              }
 
 
