@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a47da0bb14e5562009e845d56600547354cd03ff4cd0ec9a74c572af766e163a
+-- hash: d1d0fb73eb900ec0a13c0713e93efaf6d668d656a3a03b7040ce534277cbcdd8
 
 name:           weft
 version:        0.1.0.0
@@ -28,8 +28,6 @@ source-repository head
 library
   exposed-modules:
       BizzaroData
-      TestData
-      Weft.Generics.AllTypes
       Weft.Generics.Hydrate
       Weft.Generics.JSONResponse
       Weft.Generics.PprQuery
@@ -39,8 +37,10 @@ library
       Weft.Generics.Resolve
       Weft.Generics.Schema
       Weft.Internal.ArgTypes
+      Weft.Internal.GenericUtils
       Weft.Internal.ParserUtils
       Weft.Internal.Types
+      Weft.Internal.Utils
       Weft.PprUtils
       Weft.Server
       Weft.Types
@@ -58,6 +58,7 @@ library
     , containers
     , higgledy
     , hspec
+    , hspec-expectations
     , http-types
     , megaparsec
     , microlens
@@ -88,6 +89,7 @@ executable example
     , containers
     , higgledy
     , hspec
+    , hspec-expectations
     , http-types
     , megaparsec
     , microlens
@@ -107,7 +109,6 @@ test-suite test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      AllTypesSpec
       GenericsSpec
       JSONResponseSpec
       ParserSpec
@@ -128,6 +129,7 @@ test-suite test
     , containers
     , higgledy
     , hspec
+    , hspec-expectations
     , http-types
     , megaparsec
     , microlens

@@ -35,6 +35,7 @@ dependencies:
   - pretty
   - QuickCheck
   - hspec
+  - hspec-expectations
   - unordered-containers
   - parser-combinators
   - mtl

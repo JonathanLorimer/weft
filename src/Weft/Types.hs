@@ -13,26 +13,19 @@ module Weft.Types
   , None (..)
   ) where
 
+import Data.Kind
 import GHC.Generics
-import Weft.Generics.AllTypes
 import Weft.Generics.Hydrate
-import Weft.Generics.PprQuery
 import Weft.Generics.PprSchema
-import Weft.Generics.QueryParser
 import Weft.Generics.RecordGen
-import Weft.Generics.Resolve
+-- import Weft.Generics.Resolve
 import Weft.Generics.Schema
-import Weft.Generics.JSONResponse
 import Weft.Internal.Types hiding (query)
 
 type Wefty record =
-  ( HasAllTypes record
-  , HasHydrate record
-  , HasPprQuery record
-  , HasPprSchema record
-  , HasQueryParser record
-  , HasResolve record
-  , HasSchema record
-  , HasJSONResponse record
+  ( HasMagicSchema record
+  , HasMagicHydrate record
+  , HasMagicPprSchema record
+  , HasMagicPprSchema record
   )
 

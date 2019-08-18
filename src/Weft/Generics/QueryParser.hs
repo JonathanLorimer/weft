@@ -5,13 +5,11 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 
 module Weft.Generics.QueryParser
-  ( HasQueryParser
-  , HasMagicQueryParser
+  ( HasMagicQueryParser
   , Vars
   , Parser
-  , queryParser
   , magicQueryParser
-  , anonymousQueryParser
+  -- , anonymousQueryParser
   ) where
 
 import           Control.Applicative hiding (many, some)
@@ -34,30 +32,21 @@ import           Weft.Internal.ParserUtils
 import           Weft.Internal.Types
 
 
-
-type HasQueryParser record =
-     ( Generic (record 'Query)
-     , GQueryParser (Rep (record 'Query))
-     )
-
 type HasMagicQueryParser record =
      ( Generic record
      , GQueryParser (J record 'Query)
      )
 
-queryParser :: HasQueryParser record => ReaderT Vars Parser (record 'Query)
-queryParser = lift skipCrap *> fmap to gQueryParser <* lift skipCrap
-
-magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (J' record 'Query)
-magicQueryParser = lift skipCrap *> gQueryParser <* lift skipCrap
+magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (JHKD record 'Query)
+magicQueryParser = fmap HKD $ lift skipCrap *> gQueryParser <* lift skipCrap
 
 
-anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)
-anonymousQueryParser = do
-  r <- parens '{' '}' queryParser
-  pure $ Gql { query    = M.singleton "query" (ANil, r)
-             , mutation = M.empty
-             }
+-- anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)
+-- anonymousQueryParser = do
+--   r <- parens '{' '}' queryParser
+--   pure $ Gql { query    = M.singleton "query" (ANil, r)
+--              , mutation = M.empty
+--              }
 
 
 ------------------------------------------------------------------------------
@@ -88,16 +77,6 @@ instance (ParseArgs args, IsAllMaybe args)
 
 instance  GPermTermParser (Magic 'Query t) => GPermTermParser (ToMagic 'Query t) where
   gPermTermParser name = fmap ToMagic <$> gPermTermParser @(Magic 'Query t) name
-
-instance ( HasQueryParser t
-         , ParseArgs args
-         , IsAllMaybe args
-         ) => GPermTermParser (M.Map Text (Args args, t 'Query)) where
-  gPermTermParser name = pure $ do
-    alias <- lift $ try $ parseIdentOrAlias name
-    lift skipCrap
-    args <- parseOptionalArgs @args
-    directiveCombinator alias args $ parens '{' '}' $ queryParser @t
 
 instance ( ParseArgs args
          , IsAllMaybe args

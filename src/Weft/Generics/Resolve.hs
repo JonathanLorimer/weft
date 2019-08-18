@@ -1,6 +1,8 @@
 module Weft.Generics.Resolve
   ( HasResolve
   , resolve
+  , HasMagicResolve
+  , magicResolve
   ) where
 
 import qualified Data.Map as M
@@ -20,6 +22,15 @@ type HasResolve record =
   , Generic (record 'Response)
   )
 
+------------------------------------------------------------------------------
+-- |
+type HasMagicResolve record =
+  ( GResolve (J record 'Resolver)
+             (J record 'Query)
+             (J record 'Response)
+  , Generic record
+  )
+
 
 ------------------------------------------------------------------------------
 -- |
@@ -33,7 +44,17 @@ resolve rv query = to <$> gResolve (from rv) (from query)
 
 ------------------------------------------------------------------------------
 -- |
-class GResolve rv qu rp where
+magicResolve
+    :: HasMagicResolve record
+    => JHKD record 'Resolver
+    -> JHKD record 'Query
+    -> IO (JHKD record 'Response)
+magicResolve rv query = HKD <$> gResolve (runHKD rv) (runHKD query)
+
+
+------------------------------------------------------------------------------
+-- |
+class GResolve (rv :: * -> *) (qu :: * -> *) (rp :: * -> *) where
   gResolve :: rv x -> qu x -> IO (rp x)
 
 instance ( GResolve rv qu rp
@@ -66,14 +87,14 @@ class ResolveField rv qu rp where
 
 
 -- | Base Cases
-instance ResolveField (record 'Query -> IO (record 'Response))
-                      (Args '[], record 'Query)
-                      (record 'Response) where
+instance ResolveField (M1 _1 _2 q _3 -> IO (M1 _1 _2 rp _3))
+                      (Args '[], M1 _1 _2 q _3)
+                      (M1 _1 _2 rp _3) where
   resolveField f (ANil, query) = f query
 
-instance ResolveField (record 'Query -> IO [record 'Response])
-                      (Args '[], record 'Query)
-                      [record 'Response] where
+instance ResolveField (M1 _1 _2 q _3 -> IO [M1 _1 _2 rp _3])
+                      (Args '[], M1 _1 _2 q _3)
+                      [M1 _1 _2 rp _3] where
   resolveField f (ANil, query) = f query
 
 instance ResolveField (IO scalar)
@@ -88,4 +109,16 @@ instance ResolveField rv (Args args, ru) rp
                       rp where
   resolveField f (arg :@@ args, query) =
     resolveField (f arg) (args, query)
+
+
+-- | Q, RV1, RP3
+instance GResolve (K1 x (Magic 'Resolver r))
+                  (K1 x (Magic 'Query r))
+                  (K1 x (Magic 'Response r)) =>
+      GResolve (K1 x (ToMagic 'Resolver r))
+               (K1 x (ToMagic 'Query r))
+               (K1 x (ToMagic 'Response r)) where
+  gResolve (K1 (ToMagic rv)) (K1 (ToMagic qu)) =
+    K1 . ToMagic . unK1 @x <$>
+      gResolve (K1 @x rv) (K1 @x qu)
 

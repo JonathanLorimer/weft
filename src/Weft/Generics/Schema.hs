@@ -1,12 +1,10 @@
 {-# LANGUAGE CPP #-}
 
 module Weft.Generics.Schema
-  ( HasSchema
-  , schema
+  ( HasMagicSchema
   , magicSchema
   ) where
 
-import Data.Void
 import Data.List.NonEmpty
 import Data.Proxy
 import Data.Typeable
@@ -17,35 +15,20 @@ import Weft.Internal.Types
 
 ------------------------------------------------------------------------------
 -- |
-type HasSchema record =
-  ( GHasSchema (Rep (record 'Data))
-               (Rep (record 'Schema))
-  , Generic (record 'Data)
-  , Generic (record 'Schema)
-  )
-
 type HasMagicSchema record =
-  ( GHasSchema (J record 'Data)
+  ( GHasSchema (Rep record)
                (J record 'Schema)
-  , Generic (record)
+  , Generic record
   )
 
-
---------------------------------------------------------------------------------
--- |
-schema
-    :: forall record
-     . HasSchema record
-    => record 'Schema
-schema = to $ gSchema @(Rep (record 'Data))
 
 --------------------------------------------------------------------------------
 -- |
 magicSchema
     :: forall record
      . HasMagicSchema record
-    => J record 'Schema Void
-magicSchema = gSchema @(J record 'Data)
+    => JHKD record 'Schema
+magicSchema = HKD $ gSchema @(Rep record)
 
 ------------------------------------------------------------------------------
 -- |
@@ -60,20 +43,25 @@ instance {-# OVERLAPPING #-} (KnownSymbol a, HasGqlType t, ReifyArgs args)
                     (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Field args))) where
     gSchema = M1 $ K1 $ Field (reifyNameType @a @t) (reifyArgs @args)
 
+instance {-# OVERLAPPING #-} (KnownSymbol a, HasGqlType t, ReifyArgs args)
+      => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Method args t)))
+                    (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Field args))) where
+    gSchema = M1 $ K1 $ Field (reifyNameType @a @t) (reifyArgs @args)
 
-#define INST(magic, ts) (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (magic 'ts t)))
+
 instance {-# OVERLAPPING #-}
-         GHasSchema INST(Magic, Data)
-                    INST(Magic, Schema)
-      => GHasSchema INST(ToMagic, Data)
-                    INST(ToMagic, Schema) where
+         GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 t))
+                    (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Schema t)))
+
+      => GHasSchema (M1 S ('MetaSel ('Just a) b c d) (K1 _1 t))
+                    (M1 S ('MetaSel ('Just a) b c d) (K1 _1 (ToMagic 'Schema t))) where
     gSchema = M1
             . K1
             . ToMagic
             . unK1
             . unM1
-            $ gSchema @INST(Magic, Data)
-                      @INST(Magic, Schema)
+            $ gSchema @(M1 S ('MetaSel ('Just a) b c d) (K1 _1 t))
+                      @(M1 S ('MetaSel ('Just a) b c d) (K1 _1 (Magic 'Schema t)))
 
 instance (GHasSchema fi fo)
       => GHasSchema (M1 x y fi)

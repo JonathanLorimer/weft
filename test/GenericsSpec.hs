@@ -2,9 +2,8 @@ module GenericsSpec where
 
 import Control.Monad.Reader
 import Test.Hspec hiding (Arg)
-import TestData
+import BizzaroData
 import Text.PrettyPrint.HughesPJ (Doc)
-import Weft.Generics.AllTypes
 import Weft.Generics.Hydrate
 import Weft.Generics.PprQuery
 import Weft.Generics.PprSchema
@@ -12,6 +11,7 @@ import Weft.Generics.QueryParser
 import Weft.Generics.Resolve
 import Weft.Generics.Schema
 import Weft.Types
+import Weft.Internal.Types
 
 
 
@@ -26,45 +26,39 @@ spec = it "should compile when we instantiate our generics to concrete types" $
 ------------------------------------------------------------------------------
 
 
-allTypesUser :: [Doc]
-allTypesUser = allTypes @User
+hydrateUser :: User -> JHKD User 'Query -> JHKD User 'Response
+hydrateUser = magicHydrate
 
-allTypesAccount :: [Doc]
-allTypesAccount = allTypes @Account
+hydrateAccount :: Account -> JHKD Account 'Query -> JHKD Account 'Response
+hydrateAccount = magicHydrate
 
-hydrateUser :: User 'Data -> User 'Query -> User 'Response
-hydrateUser = hydrate
+pprQueryUser :: JHKD User 'Query -> Doc
+pprQueryUser = magicPprQuery
 
-hydrateAccount :: Account 'Data -> Account 'Query -> Account 'Response
-hydrateAccount = hydrate
+pprQueryAccount :: JHKD Account 'Query -> Doc
+pprQueryAccount = magicPprQuery
 
-pprQueryUser :: User 'Query -> Doc
-pprQueryUser = pprQuery
+pprSchemaUser :: JHKD User 'Schema -> Doc
+pprSchemaUser = magicPprSchema
 
-pprQueryAccount :: Account 'Query -> Doc
-pprQueryAccount = pprQuery
+pprSchemaAccount :: JHKD Account 'Schema -> Doc
+pprSchemaAccount = magicPprSchema
 
-pprSchemaUser :: User 'Schema -> Doc
-pprSchemaUser = pprSchema
+queryParserUser :: ReaderT Vars Parser (JHKD User 'Query)
+queryParserUser = magicQueryParser
 
-pprSchemaAccount :: Account 'Schema -> Doc
-pprSchemaAccount = pprSchema
+queryParserAccount :: ReaderT Vars Parser (JHKD Account 'Query)
+queryParserAccount = magicQueryParser
 
-queryParserUser :: ReaderT Vars Parser (User 'Query)
-queryParserUser = queryParser
+resolveUser :: JHKD User 'Resolver -> JHKD User 'Query -> IO (JHKD User 'Response)
+resolveUser = magicResolve
 
-queryParserAccount :: ReaderT Vars Parser (Account 'Query)
-queryParserAccount = queryParser
+resolveAccount :: JHKD Account 'Resolver -> JHKD Account 'Query -> IO (JHKD Account 'Response)
+resolveAccount = magicResolve
 
-resolveUser :: User 'Resolver -> User 'Query -> IO (User 'Response)
-resolveUser = resolve
+schemaUser :: JHKD User 'Schema
+schemaUser = magicSchema
 
-resolveAccount :: Account 'Resolver -> Account 'Query -> IO (Account 'Response)
-resolveAccount = resolve
-
-schemaUser :: User 'Schema
-schemaUser = schema
-
-schemaAccount :: Account 'Schema
-schemaAccount = schema
+schemaAccount :: JHKD Account 'Schema
+schemaAccount = magicSchema
 

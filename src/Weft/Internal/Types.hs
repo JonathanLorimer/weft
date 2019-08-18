@@ -1,10 +1,11 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE PatternSynonyms            #-}
 
 module Weft.Internal.Types
   ( module Weft.Internal.Types
-  , HKD_
+  , HKD (..)
   ) where
 
 import           Data.Aeson
@@ -27,41 +28,68 @@ type Parser = Parsec Void Text
 
 ------------------------------------------------------------------------------
 -- |
-data TypeState = Query | Data | Schema | Response | Resolver
+data TypeState = Query | Schema | Response | Resolver
 
 
 ------------------------------------------------------------------------------
 -- |
 type family Magic (ts :: TypeState) a where
-  Magic 'Resolver (Arg n t -> a)     = Arg n t -> Magic 'Resolver a               -- RV1
-  Magic 'Resolver [record 'Resolver] = record 'Query -> IO [record 'Response]     -- RV2
-  Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)     -- RV3
-  Magic 'Resolver a                  = IO a                                       -- RV4
-
-  Magic 'Data     (Arg n t -> a)     = Magic 'Data a                              -- D1
-  Magic 'Data     a                  = a                                          -- D2
+  Magic 'Resolver (Method ('(n, t) ': args) a) = Arg n t -> Magic 'Resolver (Method args a)  -- RV1
+  Magic 'Resolver (Method '[] a) = Magic 'Resolver a                                         -- RV1
+  Magic 'Resolver [record 'Resolver] = record 'Query -> IO [record 'Response]                -- RV2
+  Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)                -- RV3
+  Magic 'Resolver a                  = MagicResolve a
 
   Magic 'Query    t                  = M.Map Text (MagicQueryResult t (UnravelArgs t))
 
-  Magic 'Response (Arg n t -> a)     = Magic 'Response a
-  Magic 'Response [record 'Response] = M.Map Text [record 'Response]                   -- RP1
-  Magic 'Response (record 'Response) = M.Map Text (record 'Response)                   -- RP2
-  Magic 'Response scalar             = M.Map Text scalar                               -- RP3
+  Magic 'Response (Method args a)    = Magic 'Response a
+  Magic 'Response a                  = M.Map Text (MagicResponse a)
 
   Magic 'Schema   ts                 = Field (Fst (UnravelArgs ts))
+
+
+type family MagicResolve (a :: *) :: * where
+  MagicResolve Int     = IO Int
+  MagicResolve Integer = IO Integer
+  MagicResolve Double  = IO Double
+  MagicResolve Bool    = IO Bool
+  MagicResolve String  = IO String
+  MagicResolve ID      = IO ID
+  MagicResolve ()      = IO ()
+  MagicResolve [a]     = J a 'Query Void -> IO [J a 'Response Void]
+  MagicResolve a       = J a 'Query Void -> IO (J a 'Response Void)
+
+
+type family MagicResponse (a :: *) :: * where
+  MagicResponse Int     = Int
+  MagicResponse Integer = Integer
+  MagicResponse Double  = Double
+  MagicResponse Bool    = Bool
+  MagicResponse String  = String
+  MagicResponse ID      = ID
+  MagicResponse ()      = ()
+  MagicResponse [a]     = [MagicResponse a]
+  MagicResponse a       = J a 'Response Void
 
 
 newtype ToMagic (ts :: TypeState) (a :: *) = ToMagic
   { unMagic :: Magic ts a
   }
 
-deriving instance Eq (Magic ts a) => Eq (ToMagic ts a)
+pattern ToQuery :: Magic ts a -> ToMagic ts a
+pattern ToQuery a = ToMagic a
+
+deriving instance Eq (Magic ts a)        => Eq (ToMagic ts a)
 deriving instance Semigroup (Magic ts a) => Semigroup (ToMagic ts a)
-deriving instance Monoid (Magic ts a) => Monoid (ToMagic ts a)
+deriving instance Monoid (Magic ts a)    => Monoid (ToMagic ts a)
 deriving instance Arbitrary (Magic ts a) => Arbitrary (ToMagic ts a)
 
-type J (rec :: *) (ts :: TypeState) = HKD_ (ToMagic ts) rec
+type JHKD (rec :: *) (ts :: TypeState) = HKD rec (ToMagic ts)
+type J  (rec :: *) (ts :: TypeState) = HKD_ (ToMagic ts) rec
 type J' (rec :: *) (ts :: TypeState) = J rec ts Void
+
+data Method (args :: [(Symbol, *)]) (res :: *) = Method res
+  deriving Generic
 
 
 ------------------------------------------------------------------------------
@@ -70,8 +98,8 @@ type family ConsFirst (a :: k1) (b :: ([k1], k2)) :: ([k1], k2) where
   ConsFirst a '(b, c) = '(a ': b, c)
 
 type family UnravelArgs (t :: *) :: ([(Symbol, *)], *) where
-  UnravelArgs (Arg t n -> a) = ConsFirst '(t, n) (UnravelArgs a)
-  UnravelArgs a        = '( '[], a)
+  UnravelArgs (Method args a) = '(args, a)
+  UnravelArgs a               = '( '[], a)
 
 type family MagicQueryResult (use :: *) (u :: ([(Symbol, *)], *)) :: * where
   MagicQueryResult _ '(ts, NonEmpty (record 'Query)) = (Args ts, record 'Query)
