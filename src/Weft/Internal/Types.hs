@@ -27,7 +27,7 @@ type Parser = Parsec Void Text
 
 ------------------------------------------------------------------------------
 -- |
-data TypeState = Query | Schema | Response | Resolver | Subscription
+data TypeState = Query | Schema | Response | Resolver
 
 
 ------------------------------------------------------------------------------
@@ -37,27 +37,12 @@ type family Magic (ts :: TypeState) a where
   Magic 'Resolver (Method '[] a) = Magic 'Resolver a
   Magic 'Resolver a                  = MagicResolve a
 
-  Magic 'Subscription (Method ('(n, t) ': args) a) = Arg n t -> Magic 'Subscription (Method args a)
-  Magic 'Subscription (Method '[] a) = Magic 'Subscription a
-  Magic 'Subscription a                  = MagicSubscribe a
-
   Magic 'Query    t                  = M.Map Text (MagicQueryResult t (UnravelArgs t))
 
   Magic 'Response (Method args a)    = Magic 'Response a
   Magic 'Response a                  = M.Map Text (MagicResponse a)
 
   Magic 'Schema   ts                 = Field (Fst (UnravelArgs ts))
-
-type family MagicSubscribe (a :: *) :: * where
-  MagicSubscribe Int     = S.Stream (S.Of Int) IO ()
-  MagicSubscribe Integer = S.Stream (S.Of Integer) IO ()
-  MagicSubscribe Double  = S.Stream (S.Of Double) IO ()
-  MagicSubscribe Bool    = S.Stream (S.Of Bool) IO ()
-  MagicSubscribe String  = S.Stream (S.Of String) IO ()
-  MagicSubscribe ID      = S.Stream (S.Of ID) IO ()
-  MagicSubscribe ()      = S.Stream (S.Of ()) IO ()
-  MagicSubscribe [a]     = J a 'Query Void -> S.Stream (S.Of [J a 'Response Void]) IO ()
-  MagicSubscribe a       = J a 'Query Void -> S.Stream (S.Of (J a 'Response Void)) IO ()
 
 
 type family MagicResolve (a :: *) :: * where
