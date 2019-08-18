@@ -9,7 +9,7 @@ module Weft.Generics.QueryParser
   , Vars
   , Parser
   , magicQueryParser
-  -- , anonymousQueryParser
+  , anonymousQueryParser
   ) where
 
 import           Control.Applicative hiding (many, some)
@@ -41,12 +41,17 @@ magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (JHKD reco
 magicQueryParser = fmap HKD $ lift skipCrap *> gQueryParser <* lift skipCrap
 
 
--- anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)
--- anonymousQueryParser = do
---   r <- parens '{' '}' queryParser
---   pure $ Gql { query    = M.singleton "query" (ANil, r)
---              , mutation = M.empty
---              }
+anonymousQueryParser
+    :: forall q m s
+     . ( HasMagicQueryParser q
+       , MagicQueryResult q (UnravelArgs q) ~ (Args '[], J' q 'Query)
+         -- we need to prove that you didn't put in a `Method` for the query ^
+       ) => ReaderT Vars Parser (Gql q m s 'Query)
+anonymousQueryParser = do
+  r <- parens '{' '}' $ magicQueryParser @q
+  pure $ Gql { query    = M.singleton "query" (ANil, runHKD r)
+             , mutation = M.empty
+             }
 
 
 ------------------------------------------------------------------------------
