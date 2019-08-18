@@ -1,8 +1,8 @@
 {-# LANGUAGE CPP #-}
 
 module Weft.Generics.Schema
-  ( HasMagicSchema
-  , magicSchema
+  ( HasSchema
+  , schema
   ) where
 
 import Data.List.NonEmpty
@@ -15,7 +15,7 @@ import Weft.Internal.Types
 
 ------------------------------------------------------------------------------
 -- |
-type HasMagicSchema record =
+type HasSchema record =
   ( GHasSchema (Rep record)
                (J record 'Schema)
   , Generic record
@@ -24,11 +24,11 @@ type HasMagicSchema record =
 
 --------------------------------------------------------------------------------
 -- |
-magicSchema
+schema
     :: forall record
-     . HasMagicSchema record
+     . HasSchema record
     => JHKD record 'Schema
-magicSchema = HKD $ gSchema @(Rep record)
+schema = HKD $ gSchema @(Rep record)
 
 ------------------------------------------------------------------------------
 -- |

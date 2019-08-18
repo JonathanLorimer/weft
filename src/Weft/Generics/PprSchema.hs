@@ -1,6 +1,6 @@
 module Weft.Generics.PprSchema
-  ( HasMagicPprSchema
-  , magicPprSchema
+  ( HasPprSchema
+  , pprSchema
   ) where
 
 import Data.Proxy
@@ -14,7 +14,7 @@ import Weft.Internal.Types
 
 ------------------------------------------------------------------------------
 -- |
-type HasMagicPprSchema record =
+type HasPprSchema record =
   ( GPprSchema (J record 'Schema)
   , Generic record
   )
@@ -22,11 +22,11 @@ type HasMagicPprSchema record =
 
 ------------------------------------------------------------------------------
 -- |
-magicPprSchema
-    :: HasMagicPprSchema record
+pprSchema
+    :: HasPprSchema record
     => JHKD record 'Schema
     -> Doc
-magicPprSchema = gPprSchema . runHKD
+pprSchema = gPprSchema . runHKD
 
 
 ------------------------------------------------------------------------------

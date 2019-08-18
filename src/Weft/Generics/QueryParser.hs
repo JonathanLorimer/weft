@@ -5,10 +5,10 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 
 module Weft.Generics.QueryParser
-  ( HasMagicQueryParser
+  ( HasQueryParser
   , Vars
   , Parser
-  , magicQueryParser
+  , queryParser
   , anonymousQueryParser
   ) where
 
@@ -32,23 +32,23 @@ import           Weft.Internal.ParserUtils
 import           Weft.Internal.Types
 
 
-type HasMagicQueryParser record =
+type HasQueryParser record =
      ( Generic record
      , GQueryParser (J record 'Query)
      )
 
-magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (JHKD record 'Query)
-magicQueryParser = fmap HKD $ lift skipCrap *> gQueryParser <* lift skipCrap
+queryParser :: HasQueryParser record => ReaderT Vars Parser (JHKD record 'Query)
+queryParser = fmap HKD $ lift skipCrap *> gQueryParser <* lift skipCrap
 
 
 anonymousQueryParser
     :: forall q m s
-     . ( HasMagicQueryParser q
+     . ( HasQueryParser q
        , MagicQueryResult q (UnravelArgs q) ~ (Args '[], J' q 'Query)
          -- we need to prove that you didn't put in a `Method` for the query ^
        ) => ReaderT Vars Parser (Gql q m s 'Query)
 anonymousQueryParser = do
-  r <- parens '{' '}' $ magicQueryParser @q
+  r <- parens '{' '}' $ queryParser @q
   pure $ Gql { query    = M.singleton "query" (ANil, runHKD r)
              , mutation = M.empty
              }

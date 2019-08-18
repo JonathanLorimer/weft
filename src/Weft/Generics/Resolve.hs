@@ -1,8 +1,6 @@
 module Weft.Generics.Resolve
   ( HasResolve
   , resolve
-  , HasMagicResolve
-  , magicResolve
   ) where
 
 import qualified Data.Map as M
@@ -14,17 +12,6 @@ import           Weft.Internal.Types hiding (query)
 ------------------------------------------------------------------------------
 -- |
 type HasResolve record =
-  ( GResolve (Rep (record 'Resolver))
-             (Rep (record 'Query))
-             (Rep (record 'Response))
-  , Generic (record 'Resolver)
-  , Generic (record 'Query)
-  , Generic (record 'Response)
-  )
-
-------------------------------------------------------------------------------
--- |
-type HasMagicResolve record =
   ( GResolve (J record 'Resolver)
              (J record 'Query)
              (J record 'Response)
@@ -36,20 +23,10 @@ type HasMagicResolve record =
 -- |
 resolve
     :: HasResolve record
-    => record 'Resolver
-    -> record 'Query
-    -> IO (record 'Response)
-resolve rv query = to <$> gResolve (from rv) (from query)
-
-
-------------------------------------------------------------------------------
--- |
-magicResolve
-    :: HasMagicResolve record
     => JHKD record 'Resolver
     -> JHKD record 'Query
     -> IO (JHKD record 'Response)
-magicResolve rv query = HKD <$> gResolve (runHKD rv) (runHKD query)
+resolve rv query = HKD <$> gResolve (runHKD rv) (runHKD query)
 
 
 ------------------------------------------------------------------------------
