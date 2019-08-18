@@ -30,6 +30,7 @@ import           Text.Megaparsec.Char
 import           Weft.Internal.ArgTypes
 import           Weft.Internal.ParserUtils
 import           Weft.Internal.Types
+import           Weft.Internal.Utils
 
 
 type HasQueryParser record =
@@ -70,7 +71,7 @@ class GPermTermParser (t :: *) where
 instance (KnownSymbol name, GPermTermParser t)
       => GPermFieldsParser (M1 S ('MetaSel ('Just name) _1 _2 _3)
                                  (K1 _4 t)) where
-  gPermFieldsParser = fmap (M1 . K1) <$> gPermTermParser (symbolVal $ Proxy @name)
+  gPermFieldsParser = fmap (M1 . K1) <$> gPermTermParser (uncamelSym @name)
 
 instance (ParseArgs args, IsAllMaybe args)
       => GPermTermParser (M.Map Text (Args args, ())) where

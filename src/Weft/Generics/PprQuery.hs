@@ -14,8 +14,9 @@ import           GHC.Generics
 import           Prelude hiding ((<>))
 import           Text.PrettyPrint.HughesPJ
 import           Weft.Internal.ArgTypes
+import           Weft.Internal.GenericUtils
 import           Weft.Internal.Types
-import Weft.Internal.GenericUtils
+import           Weft.Internal.Utils
 
 
 type HasPprQuery record =
@@ -30,7 +31,7 @@ pprQuery = gPprQuery . runHKD
 
 
 gPprQuery :: FoldP1 GPprTerm rep => rep x -> Doc
-gPprQuery = vcat . foldP1 @GPprTerm ((pure .) . gPprTerm)
+gPprQuery = vcat . foldP1 @GPprTerm ((pure .) . gPprTerm . uncamel)
 
 class GPprTerm (t :: *) where
   gPprTerm :: String -> t -> Doc

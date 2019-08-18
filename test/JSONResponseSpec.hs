@@ -18,9 +18,9 @@ import           Weft.Internal.Utils
 userQuery :: HKD User (ToMagic 'Query)
 userQuery =
   buildQuery @User
-    (ToQuery $ M.singleton "userId" (Arg Nothing :@@ ANil, ()))
-    (ToQuery $ M.singleton "userName" (ANil, ()))
-    (ToQuery $ M.singleton "userBestFriend" (Arg Nothing :@@ ANil, runHKD userBestFriendQ))
+    (ToQuery $ M.singleton "id" (Arg Nothing :@@ ANil, ()))
+    (ToQuery $ M.singleton "name" (ANil, ()))
+    (ToQuery $ M.singleton "bestFriend" (Arg Nothing :@@ ANil, runHKD userBestFriendQ))
     (ToQuery M.empty)
     (ToQuery M.empty)
 
@@ -28,22 +28,24 @@ userBestFriendQ :: HKD User (ToMagic 'Query)
 userBestFriendQ =
   buildQuery @User
     (ToQuery M.empty)
-    (ToQuery $ M.singleton "userName" (ANil, ()))
+    (ToQuery $ M.singleton "name" (ANil, ()))
     (ToQuery M.empty)
     (ToQuery M.empty)
     (ToQuery M.empty)
 
 mockJonathanJSON :: ByteString
-mockJonathanJSON = "{\"userName\":\"Jonathan\",\"userId\":\"1\",\"userBestFriend\":{\"userName\":\"Sandy\"}}"
+mockJonathanJSON = "{\"name\":\"Jonathan\",\"id\":\"1\",\"bestFriend\":{\"name\":\"Sandy\"}}"
 
 mockSandyJSON :: ByteString
-mockSandyJSON = "{\"userName\":\"Sandy\",\"userId\":\"2\",\"userBestFriend\":{\"userName\":\"Jonathan\"}}"
+mockSandyJSON = "{\"name\":\"Sandy\",\"id\":\"2\",\"bestFriend\":{\"name\":\"Jonathan\"}}"
 
 spec :: Spec
 spec = do
   describe "parses json from response" $ do
     it "should parse JSON from Sandy" $
-      encode (jsonResponse $ hydrate sandy userQuery) `shouldBe` mockSandyJSON
+      decode @Value (encode (jsonResponse $ hydrate sandy userQuery))
+        `shouldBe` decode mockSandyJSON
     it "should parse JSON from Jonathan" $ do
-      encode (jsonResponse $ hydrate jonathan userQuery) `shouldBe` mockJonathanJSON
+      decode @Value (encode (jsonResponse $ hydrate jonathan userQuery))
+        `shouldBe` decode mockJonathanJSON
 

@@ -16,9 +16,7 @@ import           Test.QuickCheck
 import           Text.Megaparsec
 import           Text.PrettyPrint.HughesPJ hiding (first)
 import           Weft.Generics.PprQuery
-import           Weft.Generics.PprSchema
 import           Weft.Generics.QueryParser
-import           Weft.Generics.Schema
 import           Weft.Internal.Types
 import           Weft.Internal.Utils
 import           Weft.Types
@@ -35,7 +33,7 @@ spec = do
   describe "invalid arguments" $ do
     it "should fail if passed a fake argument" $ do
       parseNoVars @User
-            " userId(NOT_A_REAL_ARG: False) "
+            " id(NOT_A_REAL_ARG: False) "
         `shouldSatisfy2` isLeft
 
   describe "input types" $ do
@@ -67,17 +65,17 @@ spec = do
 
   describe "variables" $ do
     it "should fail if referencing an unknown var" $ do
-      parseNoVars @User "userId(arg: $missing_var)"
+      parseNoVars @User "id(arg: $missing_var)"
         `shouldSatisfy2` isLeft
 
     it "should inline a known variable" $ do
       parseAllOnly (flip runReaderT (M.singleton "known" "1337") $ queryParser @User)
-            "userId(arg: $known)"
+            "id(arg: $known)"
         `shouldBe2` (
           buildQuery @User
-            (ToQuery $  M.singleton "userId" ( (Arg $ Just 1337) :@@ ANil
-                                             , ()
-                                             ))
+            (ToQuery $  M.singleton "id" ( (Arg $ Just 1337) :@@ ANil
+                                         , ()
+                                         ))
             (ToQuery M.empty)
             (ToQuery M.empty)
             (ToQuery M.empty)
@@ -96,7 +94,7 @@ spec = do
 
     it "should fail when var type is Int but receives String" $ do
       parseAllOnly (flip runReaderT (M.singleton "known" "\"1337\"") $ queryParser @User)
-            "userId(arg: $known)"
+            "id(arg: $known)"
         `shouldSatisfy2` \(Left s) ->
             L.isInfixOf "value that should have parsed as: Int" s
 
@@ -104,23 +102,23 @@ spec = do
     it "should allow comments everywhere yall" $ do
       parseShouldBe @User
         ( T.unlines
-            [ "userId #this is a comment"
+            [ "id #this is a comment"
             , "( # more"
             , "arg: #ok 5"
             , "6 # dope"
             , ") # finished"
             ]
         ) $ buildQuery @User
-              (ToQuery $ M.singleton "userId" (Arg (Just 6) :@@ ANil, ()))
+              (ToQuery $ M.singleton "id" (Arg (Just 6) :@@ ANil, ()))
               (ToQuery M.empty)
               (ToQuery M.empty)
               (ToQuery M.empty)
               (ToQuery M.empty)
 
     it "should not parse #s in strings" $ do
-      parseShouldBe @Account "accountTitle(title: \"# no problem\")" $
+      parseShouldBe @Account "title(title: \"# no problem\")" $
         buildQuery @Account $ ToQuery $
-          M.singleton "accountTitle"
+          M.singleton "title"
             ( Arg (Just "# no problem") :@@ ANil
             , ()
             )
@@ -130,22 +128,22 @@ spec = do
       let userQ =
             buildQuery @User
               (ToQuery M.empty)
-              (ToQuery $ M.singleton "userName" (ANil, ()))
+              (ToQuery $ M.singleton "name" (ANil, ()))
               (ToQuery M.empty)
               (ToQuery M.empty)
               (ToQuery M.empty)
       parseShouldBe @User
         ( T.unlines
-            [ "userId @include(if: false)"
-            , "userName @include(if: true)"
-            , "userBestFriend @skip(if: true) { userName }"
-            , "userFriends @skip(if: false) { userName }"
+            [ "id @include(if: false)"
+            , "name @include(if: true)"
+            , "bestFriend @skip(if: true) { name }"
+            , "friends @skip(if: false) { name }"
             ]
         ) $ buildQuery @User
               (ToQuery M.empty) -- userId
-              (ToQuery $ M.singleton "userName" (ANil, ()))
+              (ToQuery $ M.singleton "name" (ANil, ()))
               (ToQuery M.empty) -- bestFriend
-              (ToQuery $ M.singleton "userFriends" (ANil, runHKD userQ))
+              (ToQuery $ M.singleton "friends" (ANil, runHKD userQ))
               (ToQuery M.empty)
 
 

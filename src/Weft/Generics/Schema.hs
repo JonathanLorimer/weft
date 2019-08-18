@@ -11,6 +11,7 @@ import Data.Typeable
 import GHC.Generics
 import GHC.TypeLits
 import Weft.Internal.Types
+import Weft.Internal.Utils
 
 
 ------------------------------------------------------------------------------
@@ -72,7 +73,7 @@ instance (GHasSchema fi fo)
 ------------------------------------------------------------------------------
 -- |
 reifyNameType :: forall n t. (HasGqlType t, KnownSymbol n) => NameType
-reifyNameType = NameType (symbolVal $ Proxy @n) $ gqlType @t
+reifyNameType = NameType (uncamelSym @n) $ gqlType @t
 
 
 ------------------------------------------------------------------------------
