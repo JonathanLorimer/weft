@@ -206,7 +206,7 @@ deriving instance AllHave Show (None ts) => Show (None ts)
 data Gql (q :: *) (m :: *) (s :: *) = Gql
   { gqlQuery        :: Magic ts q
   , gqlMutation     :: Magic ts m
-  , gqlSubscription :: Magic ts ts
+  , gqlSubscription :: Magic ts s
   } deriving Generic
 
 data GqlResolver (q :: *) (m :: *) (s :: *) = GqlResolver
