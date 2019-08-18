@@ -11,7 +11,6 @@ module Weft.Internal.Types
 import           Data.Aeson
 import           Data.Generic.HKD
 import           Data.Kind
-import           Data.List.NonEmpty
 import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Text (Text)
@@ -34,10 +33,8 @@ data TypeState = Query | Schema | Response | Resolver
 ------------------------------------------------------------------------------
 -- |
 type family Magic (ts :: TypeState) a where
-  Magic 'Resolver (Method ('(n, t) ': args) a) = Arg n t -> Magic 'Resolver (Method args a)  -- RV1
-  Magic 'Resolver (Method '[] a) = Magic 'Resolver a                                         -- RV1
-  Magic 'Resolver [record 'Resolver] = record 'Query -> IO [record 'Response]                -- RV2
-  Magic 'Resolver (record 'Resolver) = record 'Query -> IO (record 'Response)                -- RV3
+  Magic 'Resolver (Method ('(n, t) ': args) a) = Arg n t -> Magic 'Resolver (Method args a)
+  Magic 'Resolver (Method '[] a) = Magic 'Resolver a
   Magic 'Resolver a                  = MagicResolve a
 
   Magic 'Query    t                  = M.Map Text (MagicQueryResult t (UnravelArgs t))
@@ -102,10 +99,7 @@ type family UnravelArgs (t :: *) :: ([(Symbol, *)], *) where
   UnravelArgs a               = '( '[], a)
 
 type family MagicQueryResult (use :: *) (u :: ([(Symbol, *)], *)) :: * where
-  MagicQueryResult _ '(ts, NonEmpty (record 'Query)) = (Args ts, record 'Query)
-  MagicQueryResult _ '(ts, [record 'Query])          = (Args ts, record 'Query)
-  MagicQueryResult _ '(ts, record 'Query)            = (Args ts, record 'Query)
-  MagicQueryResult use '(ts, a)                      = (Args ts, MagicQueryInputOutput a use)
+  MagicQueryResult use '(ts, a) = (Args ts, MagicQueryInputOutput a use)
 
 type family MagicQueryInputOutput (t :: *) (use :: *) :: * where
   MagicQueryInputOutput Int     _ = ()
@@ -117,22 +111,6 @@ type family MagicQueryInputOutput (t :: *) (use :: *) :: * where
   MagicQueryInputOutput ()      _ = ()
   MagicQueryInputOutput [a]   use = MagicQueryInputOutput a use
   MagicQueryInputOutput a     use = J a 'Query Void
-
-type family MagicQueryFromRep (t :: *) (use :: *) (rep :: * -> *) :: * where
-  -- | It's a newtype
-  MagicQueryFromRep t use (M1 D ('MetaData _1 _2 _3 'True) (M1 C _ (M1 _4 _5 (K1 _6 a))))
-    = MagicQueryInputOutput use a
-  -- | It's an enum
-  MagicQueryFromRep t _ (M1 D _1 (_2 :+: _3)) = ()
-  -- | It's an input type
-  MagicQueryFromRep t use (M1 D _1 (M1 C _2 (a :*: b))) =
-    TypeError ( 'Text "[WEFT] Returning input types is not currently supported"
-          ':$$: 'Text "  Fix: stop trying to return "
-          ':<>: 'ShowType t
-          ':<>: 'Text " from "
-          ':$$: 'Text "    "
-          ':<>: 'ShowType use
-              )
 
 type family Fst (u :: (k1, k2)) :: k1 where
   Fst '(ts, a) = ts
@@ -204,16 +182,17 @@ data None (ts :: TypeState) =
 deriving instance AllHave Eq (None ts) => Eq (None ts)
 deriving instance AllHave Show (None ts) => Show (None ts)
 
-data Gql (q :: TypeState -> *)
-         (m :: TypeState -> *)
+data Gql (q :: *)
+         (m :: *)
          (s :: TypeState -> *)
          (ts :: TypeState) = Gql
-  { query        :: Magic ts (q ts)
-  , mutation     :: Magic ts (m ts)
+  { query        :: ToMagic ts q
+  , mutation     :: Magic ts m
   -- , subscription :: s ts
   }
   deriving Generic
 
+-- TODO(sandy): delete this crap
 type AllHave c a = GFields c (Rep a)
 
 type family GFields (c :: * -> Constraint) (f :: * -> *) :: Constraint
