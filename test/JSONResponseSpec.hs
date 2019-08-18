@@ -8,7 +8,7 @@ import           Data.Aeson
 import           Data.ByteString.Lazy
 import qualified Data.Map as M
 import           Test.Hspec hiding (Arg)
-import           BizzaroData
+import           TestData
 import           Weft.Generics.Hydrate
 import           Weft.Generics.JSONResponse
 import           Weft.Internal.Types
@@ -43,7 +43,7 @@ spec :: Spec
 spec = do
   describe "parses json from response" $ do
     it "should parse JSON from Sandy" $
-      encode (magicJsonResponse $ magicHydrate sandy userQuery) `shouldBe` mockSandyJSON
+      encode (jsonResponse $ hydrate sandy userQuery) `shouldBe` mockSandyJSON
     it "should parse JSON from Jonathan" $ do
-      encode (magicJsonResponse $ magicHydrate jonathan userQuery) `shouldBe` mockJonathanJSON
+      encode (jsonResponse $ hydrate jonathan userQuery) `shouldBe` mockJonathanJSON
 

@@ -1,6 +1,6 @@
 module Weft.Generics.Hydrate
-  ( HasMagicHydrate
-  , magicHydrate
+  ( HasHydrate
+  , hydrate
   , hydrateF
   ) where
 
@@ -12,7 +12,7 @@ import           Weft.Internal.Types hiding (query)
 
 ------------------------------------------------------------------------------
 -- |
-type HasMagicHydrate record =
+type HasHydrate record =
   ( Generic record
   , GHydrate (Rep record)
              (J record 'Query)
@@ -22,14 +22,14 @@ type HasMagicHydrate record =
 
 ------------------------------------------------------------------------------
 -- |
-magicHydrate :: HasMagicHydrate record => record -> JHKD record 'Query -> JHKD record 'Response
-magicHydrate d query = HKD $ gHydrate (from d) (runHKD query)
+hydrate :: HasHydrate record => record -> JHKD record 'Query -> JHKD record 'Response
+hydrate d query = HKD $ gHydrate (from d) (runHKD query)
 
-hydrateF :: (HasMagicHydrate record, Functor f )
+hydrateF :: (HasHydrate record, Functor f )
          => f record
          -> JHKD record 'Query
          -> f (JHKD record 'Response)
-hydrateF fd q = (flip magicHydrate q) <$> fd
+hydrateF fd q = (flip hydrate q) <$> fd
 
 
 ------------------------------------------------------------------------------
@@ -96,11 +96,11 @@ instance ( Generic record
 
 ------------------------------------------------------------------------------
 -- |
-instance HasMagicHydrate record =>
+instance HasHydrate record =>
       GHydrateTerm [record]
                    (M.Map Text (Args args, JHKD record 'Query))
                    (M.Map Text [JHKD record 'Response]) where
-  gHydrateTerm d q = fmap ((<$> d) . flip magicHydrate . snd) q
+  gHydrateTerm d q = fmap ((<$> d) . flip hydrate . snd) q
 
 instance ( Generic record
          , GHydrate (Rep record)

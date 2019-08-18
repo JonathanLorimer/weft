@@ -2,7 +2,7 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module BizzaroData where
+module TestData where
 
 import Test.QuickCheck hiding (Args)
 import Weft.Internal.Types

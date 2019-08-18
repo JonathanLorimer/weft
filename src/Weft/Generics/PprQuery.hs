@@ -1,8 +1,8 @@
 {-# LANGUAGE ViewPatterns #-}
 
 module Weft.Generics.PprQuery
-  ( HasMagicPprQuery
-  , magicPprQuery
+  ( HasPprQuery
+  , pprQuery
   , pprArg
   ) where
 
@@ -18,15 +18,15 @@ import           Weft.Internal.Types
 import Weft.Internal.GenericUtils
 
 
-type HasMagicPprQuery record =
+type HasPprQuery record =
   ( Generic record
   , FoldP1 GPprTerm (J record 'Query)
   )
 
 ------------------------------------------------------------------------------
 -- |
-magicPprQuery :: HasMagicPprQuery record => JHKD record 'Query -> Doc
-magicPprQuery = gPprQuery . runHKD
+pprQuery :: HasPprQuery record => JHKD record 'Query -> Doc
+pprQuery = gPprQuery . runHKD
 
 
 gPprQuery :: FoldP1 GPprTerm rep => rep x -> Doc

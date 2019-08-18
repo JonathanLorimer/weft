@@ -2,7 +2,7 @@ module GenericsSpec where
 
 import Control.Monad.Reader
 import Test.Hspec hiding (Arg)
-import BizzaroData
+import TestData
 import Text.PrettyPrint.HughesPJ (Doc)
 import Weft.Generics.Hydrate
 import Weft.Generics.PprQuery
@@ -27,38 +27,38 @@ spec = it "should compile when we instantiate our generics to concrete types" $
 
 
 hydrateUser :: User -> JHKD User 'Query -> JHKD User 'Response
-hydrateUser = magicHydrate
+hydrateUser = hydrate
 
 hydrateAccount :: Account -> JHKD Account 'Query -> JHKD Account 'Response
-hydrateAccount = magicHydrate
+hydrateAccount = hydrate
 
 pprQueryUser :: JHKD User 'Query -> Doc
-pprQueryUser = magicPprQuery
+pprQueryUser = pprQuery
 
 pprQueryAccount :: JHKD Account 'Query -> Doc
-pprQueryAccount = magicPprQuery
+pprQueryAccount = pprQuery
 
 pprSchemaUser :: JHKD User 'Schema -> Doc
-pprSchemaUser = magicPprSchema
+pprSchemaUser = pprSchema
 
 pprSchemaAccount :: JHKD Account 'Schema -> Doc
-pprSchemaAccount = magicPprSchema
+pprSchemaAccount = pprSchema
 
 queryParserUser :: ReaderT Vars Parser (JHKD User 'Query)
-queryParserUser = magicQueryParser
+queryParserUser = queryParser
 
 queryParserAccount :: ReaderT Vars Parser (JHKD Account 'Query)
-queryParserAccount = magicQueryParser
+queryParserAccount = queryParser
 
 resolveUser :: JHKD User 'Resolver -> JHKD User 'Query -> IO (JHKD User 'Response)
-resolveUser = magicResolve
+resolveUser = resolve
 
 resolveAccount :: JHKD Account 'Resolver -> JHKD Account 'Query -> IO (JHKD Account 'Response)
-resolveAccount = magicResolve
+resolveAccount = resolve
 
 schemaUser :: JHKD User 'Schema
-schemaUser = magicSchema
+schemaUser = schema
 
 schemaAccount :: JHKD Account 'Schema
-schemaAccount = magicSchema
+schemaAccount = schema
 

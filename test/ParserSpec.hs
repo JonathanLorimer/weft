@@ -2,7 +2,7 @@
 
 module ParserSpec where
 
-import           BizzaroData
+import           TestData
 import           Control.Monad.Reader
 import           Data.Bifunctor
 import           Data.Either
@@ -28,9 +28,9 @@ spec :: Spec
 spec = do
   describe "roundtrip parser" $ do
     it "should roundtrip for User" $
-      property $ testMagicQuery @User
+      property $ testQuery @User
     it "should roundtrip for Account" $
-      property $ testMagicQuery @Account
+      property $ testQuery @Account
 
   describe "invalid arguments" $ do
     it "should fail if passed a fake argument" $ do
@@ -71,7 +71,7 @@ spec = do
         `shouldSatisfy2` isLeft
 
     it "should inline a known variable" $ do
-      parseAllOnly (flip runReaderT (M.singleton "known" "1337") $ magicQueryParser @User)
+      parseAllOnly (flip runReaderT (M.singleton "known" "1337") $ queryParser @User)
             "userId(arg: $known)"
         `shouldBe2` (
           buildQuery @User
@@ -85,7 +85,7 @@ spec = do
                     )
 
     it "should inline a known variable in an input type" $ do
-      parseAllOnly (flip runReaderT (M.singleton "known" "1337") $ magicQueryParser @Finger)
+      parseAllOnly (flip runReaderT (M.singleton "known" "1337") $ queryParser @Finger)
             "fingers(input: {hearts: true, boots: $known}) { }"
         `shouldBe2` (
           buildQuery @Finger $ ToQuery $
@@ -95,7 +95,7 @@ spec = do
               ))
 
     it "should fail when var type is Int but receives String" $ do
-      parseAllOnly (flip runReaderT (M.singleton "known" "\"1337\"") $ magicQueryParser @User)
+      parseAllOnly (flip runReaderT (M.singleton "known" "\"1337\"") $ queryParser @User)
             "userId(arg: $known)"
         `shouldSatisfy2` \(Left s) ->
             L.isInfixOf "value that should have parsed as: Int" s
@@ -149,22 +149,22 @@ spec = do
               (ToQuery M.empty)
 
 
-testMagicQuery
+testQuery
     :: forall record
      . ( Eq (J record 'Query Void)
-       , HasMagicQueryParser record
-       , HasMagicPprQuery record
-       , HasMagicRecordGen record 'Query
+       , HasQueryParser record
+       , HasPprQuery record
+       , HasRecordGen record 'Query
        )
     => Property
-testMagicQuery = property $ do
-  q <- magicRecordGen @record @'Query
+testQuery = property $ do
+  q <- recordGen @record @'Query
   pure . (== Right (runHKD q))
        . fmap runHKD
        . parseNoVars @record
        . T.pack
        . render
-       $ magicPprQuery q
+       $ pprQuery q
 
 
 parseAllOnly :: Parser a -> Text -> Either String a
@@ -173,10 +173,10 @@ parseAllOnly p = first errorBundlePretty . parse p "<test>"
 
 parseNoVars
     :: forall record
-     . HasMagicQueryParser record
+     . HasQueryParser record
     => Text
     -> Either String (HKD record (ToMagic 'Query))
-parseNoVars = parseAllOnly (flip runReaderT mempty $ magicQueryParser @record)
+parseNoVars = parseAllOnly (flip runReaderT mempty $ queryParser @record)
 
 
 shouldSatisfy2 :: (HasCallStack) => a -> (a -> Bool) -> Expectation
@@ -186,22 +186,22 @@ v `shouldSatisfy2` p = expectTrue "predicate failed" $ p v
 shouldBe2
     :: ( HasCallStack
        , Eq (J record 'Query Void)
-       , HasMagicPprQuery record
+       , HasPprQuery record
        )
     => Either String (HKD record (ToMagic 'Query))
     -> HKD record (ToMagic 'Query)
     -> Expectation
 actual `shouldBe2` expected =
   case actual of
-    Right e -> expectTrue (render $ magicPprQuery e) $ runHKD e == runHKD expected
+    Right e -> expectTrue (render $ pprQuery e) $ runHKD e == runHKD expected
     Left err -> expectTrue err False
 
 
 parseShouldBe
     :: ( HasCallStack
        , Eq (J record 'Query Void)
-       , HasMagicPprQuery record
-       , HasMagicQueryParser record
+       , HasPprQuery record
+       , HasQueryParser record
        )
     => Text
     -> HKD record (ToMagic 'Query)

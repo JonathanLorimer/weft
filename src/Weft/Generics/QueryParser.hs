@@ -5,10 +5,10 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 
 module Weft.Generics.QueryParser
-  ( HasMagicQueryParser
+  ( HasQueryParser
   , Vars
   , Parser
-  , magicQueryParser
+  , queryParser
   -- , anonymousQueryParser
   ) where
 
@@ -32,13 +32,13 @@ import           Weft.Internal.ParserUtils
 import           Weft.Internal.Types
 
 
-type HasMagicQueryParser record =
+type HasQueryParser record =
      ( Generic record
      , GQueryParser (J record 'Query)
      )
 
-magicQueryParser :: HasMagicQueryParser record => ReaderT Vars Parser (JHKD record 'Query)
-magicQueryParser = fmap HKD $ lift skipCrap *> gQueryParser <* lift skipCrap
+queryParser :: HasQueryParser record => ReaderT Vars Parser (JHKD record 'Query)
+queryParser = fmap HKD $ lift skipCrap *> gQueryParser <* lift skipCrap
 
 
 -- anonymousQueryParser :: HasQueryParser q => ReaderT Vars Parser (Gql q m s 'Query)

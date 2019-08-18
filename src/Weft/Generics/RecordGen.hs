@@ -1,6 +1,6 @@
 module Weft.Generics.RecordGen
-  ( HasMagicRecordGen
-  , magicRecordGen
+  ( HasRecordGen
+  , recordGen
   ) where
 
 import           Data.Char
@@ -11,14 +11,14 @@ import           GHC.Generics
 import           Test.QuickCheck hiding (Args)
 import           Weft.Internal.Types
 
-type HasMagicRecordGen (record :: *) (ts :: TypeState) =
+type HasRecordGen (record :: *) (ts :: TypeState) =
   ( Generic record
   , GRecordGen (J record ts)
   )
 
 
-magicRecordGen :: HasMagicRecordGen record ts => Gen (JHKD record ts)
-magicRecordGen = fmap HKD gRecordGen
+recordGen :: HasRecordGen record ts => Gen (JHKD record ts)
+recordGen = fmap HKD gRecordGen
 
 
 class GRecordGen (r :: * -> *) where
