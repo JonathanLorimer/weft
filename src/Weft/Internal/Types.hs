@@ -73,8 +73,14 @@ newtype ToMagic (ts :: TypeState) (a :: *) = ToMagic
   { unMagic :: Magic ts a
   }
 
-pattern ToQuery :: Magic ts a -> ToMagic ts a
+pattern ToQuery :: Magic 'Query a -> ToMagic 'Query a
 pattern ToQuery a = ToMagic a
+
+pattern ToResolver :: Magic 'Resolver a -> ToMagic 'Resolver a
+pattern ToResolver a = ToMagic a
+
+pattern ToResponse :: Magic 'Response a -> ToMagic 'Response a
+pattern ToResponse a = ToMagic a
 
 deriving instance Eq (Magic ts a)        => Eq (ToMagic ts a)
 deriving instance Semigroup (Magic ts a) => Semigroup (ToMagic ts a)
