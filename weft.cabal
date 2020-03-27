@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 131ae4ca7d8cfd691b3baa18cb0db0400361bdbbf362e93c6b0cc00dea96af64
+-- hash: 36ae95119b2bc570ee9a01fd210ec8a51d2da1e769fd935756f2a2613f5fb708
 
 name:           weft
 version:        0.1.0.0
@@ -36,6 +36,7 @@ library
       Weft.Generics.RecordGen
       Weft.Generics.Resolve
       Weft.Generics.Schema
+      Weft.Generics.Subscribe
       Weft.Internal.ArgTypes
       Weft.Internal.GenericUtils
       Weft.Internal.ParserUtils
@@ -66,6 +67,7 @@ library
     , mtl
     , parser-combinators
     , pretty
+    , streamly
     , text
     , unordered-containers
     , wai
@@ -99,6 +101,7 @@ executable example
     , mtl
     , parser-combinators
     , pretty
+    , streamly
     , text
     , unordered-containers
     , wai
@@ -141,6 +144,7 @@ test-suite test
     , mtl
     , parser-combinators
     , pretty
+    , streamly
     , text
     , unordered-containers
     , wai

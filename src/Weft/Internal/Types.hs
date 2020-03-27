@@ -15,6 +15,9 @@ import qualified Data.Map as M
 import           Data.Maybe
 import           Data.Text (Text)
 import           Data.Void
+import           Streamly
+import           Streamly.Prelude ((.:))
+import qualified Streamly.Prelude as S
 import           GHC.Generics
 import           GHC.TypeLits
 import           Test.QuickCheck (Arbitrary (..), suchThat, oneof, resize, sized)

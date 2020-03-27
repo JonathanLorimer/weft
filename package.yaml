@@ -42,6 +42,7 @@ dependencies:
   - mtl
   - higgledy
   - websockets
+  - streamly
 
 default-extensions:
   - DeriveGeneric
